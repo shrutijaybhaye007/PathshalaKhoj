@@ -121,6 +121,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dropdownAdminPortalBtn) {
           dropdownAdminPortalBtn.style.display = user.role === 'admin' ? 'flex' : 'none';
         }
+
+        const dropdownStudentDashboardBtn = document.querySelector('a[href="dashboard.html"]');
+        if (dropdownStudentDashboardBtn) {
+          dropdownStudentDashboardBtn.style.display = user.role === 'admin' ? 'none' : 'flex';
+        }
         
         window.currentUser = user; // Expose globally for other scripts
         document.dispatchEvent(new CustomEvent('authSynced', { detail: user }));
