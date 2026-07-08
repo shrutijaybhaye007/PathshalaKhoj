@@ -179,16 +179,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminOverlay = document.getElementById('adminOverlay');
     if (!adminOverlay) return;
 
-    const metricEls = adminOverlay.querySelectorAll('div[style*="font-size: 20px"]');
-    if (metricEls.length < 3) return;
+    let collegesEl = null;
+    let examsEl = null;
+    let placementEl = null;
+
+    const divs = adminOverlay.getElementsByTagName('div');
+    for (let i = 0; i < divs.length; i++) {
+      const txt = divs[i].textContent.trim();
+      if (txt === 'Colleges' && divs[i].nextElementSibling) {
+        collegesEl = divs[i].nextElementSibling;
+      } else if (txt === 'Active Exams' && divs[i].nextElementSibling) {
+        examsEl = divs[i].nextElementSibling;
+      } else if (txt === 'Avg Placement' && divs[i].nextElementSibling) {
+        placementEl = divs[i].nextElementSibling;
+      }
+    }
+
+    if (!collegesEl || !examsEl || !placementEl) return;
 
     try {
       const res = await fetch('/api/colleges/stats');
       if (res.ok) {
         const stats = await res.json();
-        metricEls[0].textContent = Number(stats.collegesCount).toLocaleString('en-IN');
-        metricEls[1].textContent = `${stats.examsCount} Events`;
-        metricEls[2].textContent = `${stats.avgPlacement} LPA`;
+        collegesEl.textContent = Number(stats.collegesCount).toLocaleString('en-IN');
+        examsEl.textContent = `${stats.examsCount} Events`;
+        placementEl.textContent = `${stats.avgPlacement} LPA`;
       }
     } catch (err) {
       console.error('Failed to populate admin metrics:', err);
