@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compare Colleges | PathshalaKhoj</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css" />
+
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('pk_theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="/" class="brand" aria-label="PathshalaKhoj home">
+        <div class="brand-logo" aria-hidden="true">
+          <span class="brand-logo-icon">🎓</span>
+        </div>
+        <span class="brand-text">Pathshala<span class="brand-accent">Khoj</span></span>
+      </a>
+      <nav class="header-nav" id="headerNav" aria-label="Site navigation">
+        <a href="/" class="nav-link">Colleges</a>
+        <a href="courses.html" class="nav-link">Courses</a>
+        <a href="news.html" class="nav-link">News</a>
+        <a href="exams.html" class="nav-link">Exams</a>
+        <a href="predict.html" class="nav-link" style="font-weight: bold;">AI Predictor ✨</a>
+
+        <button id="navShortlistBtn" class="nav-shortlist" type="button" aria-label="Open shortlist" style="display: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span>Shortlist</span>
+          <span id="shortlistCount" class="shortlist-count" hidden>0</span>
+        </button>
+
+        <button id="navLoginBtn" class="nav-shortlist" type="button" aria-label="Sign In">
+          👤 Sign In
+        </button>
+        
+        <div id="profileDropdownContainer" class="profile-dropdown-container" style="display: none;">
+          <button type="button" id="profileTriggerBtn" class="profile-trigger-btn" aria-haspopup="true" aria-expanded="false" aria-label="Open user menu">
+            <img id="navUserPic" class="profile-trigger-avatar" src="" alt="Profile picture" style="display: none;" />
+            <span id="navUserName">User</span>
+            <span class="profile-trigger-chevron">▼</span>
+          </button>
+          
+          <div id="profileDropdownCard" class="profile-dropdown-card" hidden>
+            <div class="profile-dropdown-header">
+              <span id="dropdownUserName" class="dropdown-user-name">User Name</span>
+              <span id="dropdownUserEmail" class="dropdown-user-email">user@email.com</span>
+              <span id="dropdownUserRole" class="dropdown-user-role">Student</span>
+            </div>
+            <a href="dashboard.html" class="profile-dropdown-item" style="text-decoration: none; color: inherit;">
+              <span class="dropdown-item-icon">📊</span> Student Dashboard
+            </a>
+            <button type="button" id="dropdownEditProfileBtn" class="profile-dropdown-item">
+              <span class="dropdown-item-icon">⚙️</span> Settings &amp; Profile
+            </button>
+            <button type="button" id="dropdownAdminPortalBtn" class="profile-dropdown-item" style="display: none;">
+              <span class="dropdown-item-icon">🛠️</span> Admin Dashboard
+            </button>
+            <button type="button" id="dropdownLogoutBtn" class="profile-dropdown-item logout-item">
+              <span class="dropdown-item-icon">🚪</span> Sign Out
+            </button>
+          </div>
+        </div>
+        
+        <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Toggle light/dark mode" title="Toggle theme">
+          <svg class="icon-moon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg class="icon-sun" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </nav>
+
+      <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Open mobile menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============ PAGE HERO ============ -->
+  <section style="padding: 120px 24px 40px; text-align: center; position: relative;">
+    <div class="container" style="max-width: 800px;">
+      <h1 class="hero-title" style="font-family: var(--font-display); font-size: 40px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; color: var(--text);">Compare Colleges</h1>
+      <p class="hero-subtitle" style="font-size: 15px; color: var(--text-2); line-height: 1.6; margin: 0 auto; max-width: 600px;">
+        Detailed side-by-side comparison of fees, placements, rankings, facilities, and contact details to find your dream college.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main class="container" style="padding-bottom: 100px; max-width: 1200px; min-height: 50vh;">
+    <div class="details-card" style="padding: 24px; border-radius: var(--radius-lg); background: var(--surface);">
+      <!-- Loader -->
+      <div id="compareLoader" class="loading-state" style="text-align: center; padding: 60px 0;">
+        <div class="spinner" style="margin: 0 auto 16px;"></div>
+        <p class="text-2">Fetching college details for comparison...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="compareEmptyState" style="display: none; text-align: center; padding: 80px 20px;">
+        <span style="font-size: 48px;">⚖️</span>
+        <h2 style="font-family: var(--font-heading); font-size: 24px; color: var(--text); margin-top: 16px; margin-bottom: 8px;">No Colleges Selected</h2>
+        <p style="color: var(--text-2); font-size: 14px; margin-bottom: 24px;">Please select at least 2 colleges from the home page search results to compare.</p>
+        <a href="/" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--indigo); border-color: var(--indigo);">Go to Colleges List</a>
+      </div>
+
+      <!-- Comparison Content -->
+      <div id="compareWrapper" style="display: none; overflow-x: auto;">
+        <div class="compare-container" id="compareContainer"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ PROFILE EDIT MODAL ============ -->
+  <div id="profileOverlay" class="detail-overlay" hidden>
+    <div class="detail-modal" style="max-width: 440px;">
+      <button id="profileCloseBtn" class="detail-close" type="button" aria-label="Close profile dialog">✕</button>
+      <div class="detail-content" style="padding: 28px 30px;">
+        <h2 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 4px; text-align: center;">Profile Settings</h2>
+        <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 20px;">Manage your account details and credentials</p>
+
+        <form id="profileEditForm">
+          <div class="profile-pic-preview-wrapper">
+            <img id="profilePicPreview" class="profile-pic-preview-frame" src="https://lh3.googleusercontent.com/a/default-user=s100" alt="Avatar preview" />
+          </div>
+
+          <div class="filter-group" style="margin-bottom: 12px;">
+            <label>Email Address (Account ID)</label>
+            <input type="email" id="profileFormEmail" readonly style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text-3); outline: none; cursor: not-allowed; font-size:13px;" />
+          </div>
+
+          <div class="filter-group" style="margin-bottom: 12px;">
+            <label>Full Name *</label>
+            <input type="text" id="profileFormName" required placeholder="Your Name" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+          </div>
+
+          <div class="filter-group" style="margin-bottom: 16px;">
+            <label>Profile Picture URL</label>
+            <input type="url" id="profileFormPicture" placeholder="https://example.com/avatar.jpg" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+          </div>
+
+          <div id="profileLocalOnlySection" style="display: none;">
+            <button type="button" id="profilePasswordChangeToggle" class="password-change-toggle-btn">
+              🔒 Change Password ▼
+            </button>
+            <div id="profilePasswordSection" class="password-change-section" hidden style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label for="profileNewPassword">New Password</label>
+                <input type="password" id="profileNewPassword" placeholder="••••••••" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+              </div>
+              <div class="filter-group">
+                <label for="profileConfirmNewPassword">Confirm New Password</label>
+                <input type="password" id="profileConfirmNewPassword" placeholder="••••••••" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px;">
+            <button type="button" id="profileFormCancelBtn" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="global.js"></script>
+
+  <!-- ============ GLOBAL FOOTER ============ -->
+  <footer style="background: var(--brand); color: #fff; padding: 60px 24px 30px; margin-top: 60px;">
+    <div class="container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px;">
+      <div>
+        <h3 style="font-family: var(--font-display); font-size: 24px; color: var(--gold); margin-bottom: 16px;">PathshalaKhoj</h3>
+        <p style="color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">Your trusted portal for discovering the best educational institutions across India. Empowering students with data-driven insights.</p>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Explore</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="/" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Colleges</a></li>
+          <li><a href="courses.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Courses</a></li>
+          <li><a href="exams.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Exams</a></li>
+          <li><a href="predict.html" style="color: var(--gold); text-decoration: none; font-size: 14px; font-weight: bold;">AI Predictor</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Institution</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="about.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">About Us</a></li>
+          <li><a href="admissions.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Admissions</a></li>
+          <li><a href="contact.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Contact & Support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Legal</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="privacy.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Privacy Policy</a></li>
+          <li><a href="terms.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; text-align: center; color: rgba(255,255,255,0.5); font-size: 13px;">
+      &copy; 2026 PathshalaKhoj Education Platform. All rights reserved.
+    </div>
+  </footer>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- Comparison Controller Script -->
+  <script src="compare.js"></script>
+</body>
+</html>

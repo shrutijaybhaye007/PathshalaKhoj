@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PathshalaKhoj — Find Colleges Across India</title>
+  <meta name="description" content="Search and discover colleges across India by stream, state, fees, and entrance exam — with full course lists and contact details. Includes Engineering, Medical, Management, Law, Arts, Commerce, Science, Design, and Junior Colleges for Class XI-XII." />
+  <meta property="og:title"       content="PathshalaKhoj — India College Finder" />
+  <meta property="og:description" content="Search 133+ Indian institutions by stream, fees, NAAC grade, and entrance exam. Includes Class XI–XII junior colleges." />
+  <meta property="og:type"        content="website" />
+  <meta property="og:locale"      content="en_IN" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Anti-FOWT: apply saved theme before first paint -->
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('pk_theme');
+        if (!t) t = 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- ============ HEADER ============ -->
+    <!-- ============ HEADER ============ -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="/" class="brand" aria-label="PathshalaKhoj home">
+        <div class="brand-logo" aria-hidden="true">
+          <span class="brand-logo-icon">🎓</span>
+        </div>
+        <span class="brand-text">Pathshala<span class="brand-accent">Khoj</span></span>
+      </a>
+      <nav class="header-nav" id="headerNav" aria-label="Site navigation">
+        <!-- 1. Main Links -->
+        <a href="/" class="nav-link active">
+          Colleges
+        </a>
+        <a href="courses.html" class="nav-link">
+          Courses
+        </a>
+        <a href="news.html" class="nav-link">
+          News
+        </a>
+        <a href="exams.html" class="nav-link">
+          Exams
+        </a>
+        <a href="predict.html" class="nav-link" class="nav-link-highlight" style="font-weight: bold;">AI Predictor ✨</a>
+
+        
+        <!-- 2. Actions -->
+        <button id="navShortlistBtn" class="nav-shortlist" type="button" aria-label="Open shortlist">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span>Shortlist</span>
+          <span id="shortlistCount" class="shortlist-count" hidden>0</span>
+        </button>
+
+        <!-- 5. Profile / Auth -->
+        <button id="navLoginBtn" class="nav-shortlist" type="button" aria-label="Sign In">
+          👤 Sign In
+        </button>
+        
+        <div id="profileDropdownContainer" class="profile-dropdown-container" style="display: none;">
+          <button type="button" id="profileTriggerBtn" class="profile-trigger-btn" aria-haspopup="true" aria-expanded="false" aria-label="Open user menu">
+            <img id="navUserPic" class="profile-trigger-avatar" src="" alt="Profile picture" style="display: none;" />
+            <span id="navUserName">User</span>
+            <span class="profile-trigger-chevron">▼</span>
+          </button>
+          
+          <div id="profileDropdownCard" class="profile-dropdown-card" hidden>
+            <div class="profile-dropdown-header">
+              <span id="dropdownUserName" class="dropdown-user-name">User Name</span>
+              <span id="dropdownUserEmail" class="dropdown-user-email">user@email.com</span>
+              <span id="dropdownUserRole" class="dropdown-user-role">Student</span>
+            </div>
+            <a href="dashboard.html" class="profile-dropdown-item" style="text-decoration: none; color: inherit;">
+              <span class="dropdown-item-icon">📊</span> Student Dashboard
+            </a>
+            <button type="button" id="dropdownEditProfileBtn" class="profile-dropdown-item">
+              <span class="dropdown-item-icon">⚙️</span> Settings &amp; Profile
+            </button>
+            <button type="button" id="dropdownAdminPortalBtn" class="profile-dropdown-item" style="display: none;">
+              <span class="dropdown-item-icon">🛠️</span> Admin Dashboard
+            </button>
+            <button type="button" id="dropdownLogoutBtn" class="profile-dropdown-item logout-item">
+              <span class="dropdown-item-icon">🚪</span> Sign Out
+            </button>
+          </div>
+        </div>
+        
+        <!-- 4. Utilities (Theme Toggle) - Always far right -->
+        <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Toggle light/dark mode" title="Toggle theme">
+          <svg class="icon-moon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg class="icon-sun" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </nav>
+
+      <!-- Mobile Hamburger Button -->
+      <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Open mobile menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ============ HERO / SEARCH ============ -->
+  <section class="hero" aria-labelledby="heroHeading">
+    <!-- Animated background particles -->
+    <div class="hero-particles" aria-hidden="true">
+      <div class="particle p1"></div>
+      <div class="particle p2"></div>
+      <div class="particle p3"></div>
+      <div class="particle p4"></div>
+      <div class="particle p5"></div>
+      <div class="particle p6"></div>
+    </div>
+
+    <!-- Floating orbs -->
+    <div class="hero-orb orb-1" aria-hidden="true"></div>
+    <div class="hero-orb orb-2" aria-hidden="true"></div>
+    <div class="hero-orb orb-3" aria-hidden="true"></div>
+
+    <div class="container hero-inner">
+      <div class="hero-badge" id="heroStats" aria-live="polite">
+        <span class="hero-badge-pulse" aria-hidden="true"></span>
+        <span id="eyebrowText">Loading institutions…</span>
+      </div>
+
+      <h1 class="hero-title" id="heroHeading">
+        Find the right college,
+        <em class="hero-title-em">without the guesswork.</em>
+      </h1>
+
+      <p class="hero-sub">Search by name, city, course, or entrance exam — every result comes with courses on offer and direct admissions contact. Includes Class XI–XII Junior Colleges.</p>
+
+      <!-- Search panel -->
+      <form id="searchForm" class="search-card" role="search" aria-label="Search colleges">
+        <div class="search-glow" aria-hidden="true"></div>
+
+        <div class="search-row">
+          <div class="search-input-wrap">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.5"/>
+              <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <label for="searchInput" class="visually-hidden">Search colleges, cities, or courses</label>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder='Try "IIT Bombay", "NEET", "B.Tech Computer Science", or "Pune"…'
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-controls="resultsGrid"
+            />
+            <div class="search-actions-right">
+              <span class="search-shortcut-hint" aria-hidden="true">[ / ]</span>
+              <button type="button" id="searchClearBtn" class="search-clear-btn" aria-label="Clear search" hidden>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div id="autocompleteSuggestions" class="autocomplete-suggestions" hidden></div>
+          </div>
+          <button type="submit" class="search-submit" id="searchBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7"/><path d="M21 21L16.65 16.65"/>
+            </svg>
+            Search
+          </button>
+        </div>
+
+        <!-- Live search indicator -->
+        <div class="search-live-indicator" id="liveIndicator" aria-live="polite" aria-atomic="true">
+          <span class="live-dot" aria-hidden="true"></span>
+          Searching…
+        </div>
+
+        <!-- Stream chips -->
+        <div class="chips-section">
+          <div class="stream-chips" id="streamChips" role="group" aria-label="Filter by stream"></div>
+        </div>
+
+        <!-- City quick-chips -->
+        <div class="exam-chips-row" id="cityChipsRow" role="group" aria-label="Filter by city">
+          <span class="exam-chip-label" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              <circle cx="12" cy="9" r="2.5"/>
+            </svg>
+            City
+          </span>
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Exam chips -->
+        <div class="exam-chips-row" id="examChipsRow" role="group" aria-label="Filter by entrance exam">
+          <span class="exam-chip-label" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Exam
+          </span>
+          <!-- Populated by JS -->
+        </div>
+      </form>
+
+      <!-- Advanced filters toggle -->
+      <button
+        type="button"
+        id="filtersToggleBtn"
+        class="filters-toggle"
+        aria-expanded="false"
+        aria-controls="filtersPanel"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+          <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/>
+          <circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/>
+        </svg>
+        Advanced filters
+        <svg class="filters-toggle-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <!-- Advanced filters panel -->
+      <div class="filters-panel collapsed" id="filtersPanel" aria-hidden="true">
+        <div class="filter-group">
+          <label for="filterState">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+            State
+          </label>
+          <select id="filterState"><option value="">Any state</option></select>
+        </div>
+        <div class="filter-group">
+          <label for="filterCity">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+            City
+          </label>
+          <select id="filterCity"><option value="">Any city</option></select>
+        </div>
+        <div class="filter-group">
+          <label for="filterType">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Institution type
+          </label>
+          <select id="filterType"><option value="">Any type</option></select>
+        </div>
+        <div class="filter-group">
+          <label for="filterNaac">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            NAAC grade
+          </label>
+          <select id="filterNaac"><option value="">Any grade</option></select>
+        </div>
+        <div class="filter-group">
+          <label for="filterFees">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            Max fees / year
+          </label>
+          <select id="filterFees">
+            <option value="">Any budget</option>
+            <option value="10000">Under ₹10,000</option>
+            <option value="50000">Under ₹50,000</option>
+            <option value="200000">Under ₹2,00,000</option>
+            <option value="500000">Under ₹5,00,000</option>
+            <option value="1500000">Under ₹15,00,000</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filterSort">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/></svg>
+            Sort by
+          </label>
+          <select id="filterSort">
+            <option value="name">Name (A–Z)</option>
+            <option value="fees_low">Fees: low → high</option>
+            <option value="fees_high">Fees: high → low</option>
+            <option value="established">Oldest first</option>
+          </select>
+        </div>
+        <button type="button" id="clearFiltersBtn" class="clear-filters">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Clear all filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="hero-scroll" aria-hidden="true">
+      <div class="hero-scroll-line"></div>
+      <span>Scroll to explore</span>
+    </div>
+  </section>
+
+  <!-- Hero wave divider (CSS fills the path with var(--bg)) -->
+  <div class="hero-wave" aria-hidden="true">
+    <svg viewBox="0 0 1440 72" fill="none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,36 C360,72 1080,0 1440,36 L1440,72 L0,72 Z"/>
+    </svg>
+  </div>
+
+  <!-- ============ RESULTS ============ -->
+  <main class="container results-section" id="mainContent">
+    <div class="results-layout-wrapper">
+      <div class="results-main-content">
+        <div class="results-meta">
+          <div class="results-meta-left">
+            <h2 id="resultsHeading">All colleges</h2>
+            <p id="resultsCount" class="results-count"></p>
+          </div>
+          <div class="results-view-toggle" role="group" aria-label="View toggle">
+            <button class="view-btn active" id="viewGrid" aria-label="Grid view" title="Grid view">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+              </svg>
+            </button>
+            <button class="view-btn" id="viewList" aria-label="List view" title="List view">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Screen reader announcements -->
+        <div id="srAnnounce" class="visually-hidden" aria-live="assertive" aria-atomic="true"></div>
+
+        <div id="resultsGrid" class="results-grid" aria-live="polite" aria-label="College results">
+          <!-- Cards injected by JS -->
+        </div>
+
+        <div id="emptyState" class="empty-state" hidden>
+          <div class="empty-state-visual" aria-hidden="true">
+            <div class="empty-orb"></div>
+            <div class="empty-icon">🔍</div>
+          </div>
+          <p class="empty-state-title">No colleges match those filters.</p>
+          <p class="empty-state-sub">Try a different stream, a wider budget, or clear filters to see everything.</p>
+          <button type="button" id="emptyStateClearBtn" class="btn-ghost-action">Clear all filters</button>
+        </div>
+
+        <div id="loadingState" class="loading-state" hidden>
+          <div class="loader" role="status" aria-label="Loading results">
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+          </div>
+          <p>Searching colleges…</p>
+        </div>
+
+        <nav id="pagination" class="pagination" aria-label="Results pages" hidden></nav>
+      </div>
+
+      <!-- Timeline Sidebar Widget -->
+      <aside class="results-sidebar" id="sidebarArea" aria-label="Upcoming Exams & Admissions Timeline">
+        <div class="sidebar-card">
+          <h3 class="sidebar-title">
+            <span class="sidebar-title-icon">📅</span>
+            Upcoming Exams &amp; Counseling
+          </h3>
+          <p class="sidebar-subtitle">Key dates for 2026 admissions. Click on an exam to filter colleges.</p>
+          
+          <div class="timeline-chain" id="timelineChain">
+            <!-- Timeline items injected by JS -->
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ============ COLLEGE DETAIL MODAL ============ -->
+  <div id="detailOverlay" class="detail-overlay" hidden>
+    <div class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detailName">
+      <button type="button" class="detail-close" id="detailCloseBtn" aria-label="Close college detail">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div id="detailContent" class="detail-content">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHORTLIST DRAWER ============ -->
+  <div id="shortlistOverlay" class="shortlist-overlay" hidden>
+    <div class="shortlist-drawer" role="dialog" aria-modal="true" aria-labelledby="shortlistTitle">
+      <div class="shortlist-drawer-header">
+        <div class="shortlist-header-left">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--gold)" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <h2 id="shortlistTitle">Your shortlist</h2>
+        </div>
+        <button type="button" class="detail-close" id="shortlistCloseBtn" aria-label="Close shortlist">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div id="shortlistContent" class="shortlist-content">
+        <!-- Populated by JS -->
+      </div>
+      <div class="shortlist-drawer-actions">
+        <button type="button" id="compareBtn" class="btn-compare" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18"/>
+          </svg>
+          Compare selected
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPARE MODAL ============ -->
+  <div id="compareOverlay" class="compare-overlay" hidden>
+    <div class="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
+      <div class="compare-header">
+        <h2 id="compareTitle">Compare Colleges</h2>
+        <button type="button" class="detail-close" id="compareCloseBtn" aria-label="Close comparison">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="compare-table-wrapper">
+        <div id="compareContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TOAST CONTAINER ============ -->
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+  <!-- ============ FLOATING COMPARE BAR ============ -->
+  <div id="compareBar" class="compare-bar">
+    <div class="compare-bar-inner">
+      <div class="compare-bar-info">
+        ⚖️ <span id="compareBarCount" class="compare-bar-count">0</span> / 3 Selected
+      </div>
+      <div id="compareBarThumbs" class="compare-bar-thumbs"></div>
+      <div class="compare-bar-actions">
+        <button id="compareClearBtn" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13.5px;">Clear</button>
+        <button id="compareSubmitBtn" class="btn btn-primary" style="padding: 8px 20px; font-size: 13.5px; background: var(--indigo); border-color: var(--indigo);">Compare Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PROFILE EDIT MODAL ============ -->
+  <div id="profileOverlay" class="detail-overlay" hidden>
+    <div class="detail-modal" style="max-width: 440px;">
+      <button id="profileCloseBtn" class="detail-close" type="button" aria-label="Close profile dialog">✕</button>
+      <div class="detail-content" style="padding: 28px 30px;">
+        <h2 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 4px; text-align: center;">Profile Settings</h2>
+        <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 20px;">Manage your account details and credentials</p>
+
+        <form id="profileEditForm">
+          <!-- Avatar Preview -->
+          <div class="profile-pic-preview-wrapper">
+            <img id="profilePicPreview" class="profile-pic-preview-frame" src="https://lh3.googleusercontent.com/a/default-user=s100" alt="Avatar preview" />
+          </div>
+
+          <!-- General Inputs -->
+          <div class="filter-group" style="margin-bottom: 12px;">
+            <label>Email Address (Account ID)</label>
+            <input type="email" id="profileFormEmail" readonly style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text-3); outline: none; cursor: not-allowed; font-size:13px;" />
+          </div>
+
+          <div class="filter-group" style="margin-bottom: 12px;">
+            <label>Full Name *</label>
+            <input type="text" id="profileFormName" required placeholder="Your Name" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+          </div>
+
+          <div class="filter-group" style="margin-bottom: 16px;">
+            <label>Profile Picture URL</label>
+            <input type="url" id="profileFormPicture" placeholder="https://example.com/avatar.jpg" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+          </div>
+
+          <!-- Change Password Section (for local accounts) -->
+          <div id="profileLocalOnlySection" style="display: none;">
+            <button type="button" id="profilePasswordChangeToggle" class="password-change-toggle-btn">
+              🔒 Change Password ▼
+            </button>
+            <div id="profilePasswordSection" class="password-change-section" hidden style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label for="profileNewPassword">New Password</label>
+                <input type="password" id="profileNewPassword" placeholder="••••••••" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+              </div>
+              <div class="filter-group">
+                <label for="profileConfirmNewPassword">Confirm New Password</label>
+                <input type="password" id="profileConfirmNewPassword" placeholder="••••••••" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px;">
+            <button type="button" id="profileFormCancelBtn" class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ AUTHENTICATION MODAL ============ -->
+  <div id="loginOverlay" class="detail-overlay" hidden>
+    <div class="detail-modal" style="max-width: 420px;">
+      <button id="loginCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
+      <div class="detail-content" style="padding: 30px;">
+        
+        <!-- Auth Tabs -->
+        <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+          <button type="button" id="tabLoginBtn" style="flex: 1; padding: 12px; background: none; border: none; font-size: 16px; font-family: var(--font-display); font-weight: 600; color: var(--text); border-bottom: 2px solid var(--indigo); cursor: pointer;">Sign In</button>
+          <button type="button" id="tabRegisterBtn" style="flex: 1; padding: 12px; background: none; border: none; font-size: 16px; font-family: var(--font-display); font-weight: 600; color: var(--text-3); border-bottom: 2px solid transparent; cursor: pointer;">Sign Up</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+          <div class="filter-group">
+            <label for="loginEmail">Email Address</label>
+            <input type="email" id="loginEmail" placeholder="student@example.com" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+          </div>
+          <div class="filter-group" style="margin-bottom: 4px;">
+            <label for="loginPassword" style="display: flex; justify-content: space-between;">
+              <span>Password</span>
+              <a href="#" id="openForgotPasswordBtn" style="color: var(--indigo); text-decoration: underline; font-size: 11px;">Forgot password?</a>
+            </label>
+            <input type="password" id="loginPassword" placeholder="••••••••" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+          </div>
+          <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Sign In</button>
+        </form>
+
+        <!-- Register Form (Hidden by default) -->
+        <form id="registerForm" hidden style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+          <div class="filter-group">
+            <label for="registerName">Full Name</label>
+            <input type="text" id="registerName" placeholder="Your Name" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+          </div>
+          <div class="filter-group">
+            <label for="registerEmail">Email Address</label>
+            <input type="email" id="registerEmail" placeholder="student@example.com" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+          </div>
+          <div class="filter-group" style="margin-bottom: 4px;">
+            <label for="registerPassword">Password</label>
+            <input type="password" id="registerPassword" placeholder="••••••••" required minlength="6" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+          </div>
+          <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Create Account</button>
+        </form>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin: 20px 0; color: var(--text-3); font-size: 11px;">
+          <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);" />
+          <span>OR CONTINUE WITH</span>
+          <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);" />
+        </div>
+
+        <!-- Google OAuth Container -->
+        <div id="googleSignInContainer" style="display: flex; justify-content: center; min-height: 40px; margin-bottom: 12px;"></div>
+
+        <!-- Dev Bypass Helper -->
+        <div id="devBypassContainer" style="text-align: center; margin-top: 12px;">
+          <button type="button" id="devBypassBtn" class="btn-ghost-action" style="font-size: 11px; padding: 6px 12px; border-radius: var(--radius-xs); border-color: var(--rose);">
+            🧪 Bypass: Load Demo Student
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FORGOT PASSWORD MODAL ============ -->
+  <div id="forgotPasswordOverlay" class="detail-overlay" hidden>
+    <div class="detail-modal" style="max-width: 420px;">
+      <button id="forgotPasswordCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
+      <div class="detail-content" style="padding: 30px;">
+        <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Reset Password</h2>
+        <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Enter your email address and we'll send you a link to reset your password.</p>
+        
+        <form id="forgotPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="filter-group">
+            <label for="forgotPasswordEmail">Email Address</label>
+            <input type="email" id="forgotPasswordEmail" placeholder="Enter your email" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+          </div>
+          <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Send Reset Link</button>
+        </form>
+        <div style="text-align: center; margin-top: 16px;">
+          <a href="#" id="backToLoginBtn" style="color: var(--indigo); text-decoration: underline; font-size: 13px;">Back to Sign In</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESET PASSWORD MODAL ============ -->
+  <div id="resetPasswordOverlay" class="detail-overlay" hidden>
+    <div class="detail-modal" style="max-width: 420px;">
+      <div class="detail-content" style="padding: 30px;">
+        <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Create New Password</h2>
+        <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Please enter your new password below.</p>
+        
+        <form id="resetPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
+          <input type="hidden" id="resetPasswordToken" />
+          <div class="filter-group">
+            <label for="resetNewPassword">New Password</label>
+            <input type="password" id="resetNewPassword" placeholder="••••••••" required minlength="6" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+          </div>
+          <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Reset & Sign In</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN DASHBOARD OVERLAY ============ -->
+  <div id="adminOverlay" class="detail-overlay" hidden>
+    <div class="detail-modal" style="max-width: 900px;">
+      <button id="adminCloseBtn" class="detail-close" type="button" aria-label="Close Admin Dashboard">✕</button>
+      <div class="detail-content" style="padding: 28px 32px;">
+        <div style="border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px;">
+          <h2 style="font-family: var(--font-display); font-size: 28px; margin: 0 0 16px;">Admin Management Portal</h2>
+          
+          <!-- Admin Dashboard Metrics Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+              <div style="font-size: 28px; background: rgba(79, 70, 229, 0.1); color: var(--indigo); width: 48px; height: 48px; border-radius: var(--radius-xs); display: flex; align-items: center; justify-content: center;">🏛️</div>
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-3); letter-spacing: 0.5px;">Colleges</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--text);">1,755</div>
+              </div>
+            </div>
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+              <div style="font-size: 28px; background: rgba(217, 119, 6, 0.1); color: var(--gold); width: 48px; height: 48px; border-radius: var(--radius-xs); display: flex; align-items: center; justify-content: center;">📅</div>
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-3); letter-spacing: 0.5px;">Active Exams</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--text);">5 Events</div>
+              </div>
+            </div>
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+              <div style="font-size: 28px; background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: var(--radius-xs); display: flex; align-items: center; justify-content: center;">💼</div>
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-3); letter-spacing: 0.5px;">Avg Placement</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--text);">5.6 LPA</div>
+              </div>
+            </div>
+            <div style="background: var(--surface-2); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+              <div style="font-size: 28px; background: rgba(220, 38, 38, 0.1); color: var(--rose); width: 48px; height: 48px; border-radius: var(--radius-xs); display: flex; align-items: center; justify-content: center;">👥</div>
+              <div>
+                <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-3); letter-spacing: 0.5px;">Role</div>
+                <div style="font-size: 16px; font-weight: 800; color: var(--text);">System Admin</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <!-- Tab switches -->
+            <div style="display: flex; gap: 8px; background: var(--surface-2); padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+              <button type="button" id="adminTabColleges" class="view-btn active" style="font-size: 13px; font-weight: 600; width: auto; padding: 0 16px; border-radius: var(--radius-xs);">Colleges</button>
+              <button type="button" id="adminTabExams" class="view-btn" style="font-size: 13px; font-weight: 600; width: auto; padding: 0 16px; border-radius: var(--radius-xs);">Exams &amp; Timeline</button>
+            </div>
+            <!-- Action buttons -->
+            <div style="display: flex; gap: 10px;">
+              <button type="button" id="adminCreateNewBtn" class="btn-primary" style="font-size: 13px; padding: 8px 16px;">➕ Add New College</button>
+              <button type="button" id="adminCreateNewExamBtn" class="btn-primary" style="font-size: 13px; padding: 8px 16px; display: none;">➕ Add New Exam</button>
+              <button type="button" id="adminSyncDataBtn" class="btn-secondary" style="font-size: 13px; padding: 8px 16px; display: flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.26l5.58 5.58"/></svg>
+                Sync Global Data
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- College list panel -->
+        <div id="adminListPanel">
+          <p style="color: var(--text-2); font-size: 13.5px; margin-bottom: 16px;">Select a college below to update, delete, or manage courses & contact info:</p>
+          
+          <!-- Admin College Search and Filter bar -->
+          <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="adminCollegeSearchInput" placeholder="🔍 Search colleges by name or city..." style="flex: 1; min-width: 250px; padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size: 13.5px;" />
+            <select id="adminCollegeStreamFilter" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size: 13.5px;">
+              <option value="">All Streams</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Medical">Medical</option>
+              <option value="Management">Management</option>
+              <option value="Law">Law</option>
+              <option value="Arts">Arts</option>
+              <option value="Commerce">Commerce</option>
+              <option value="Science">Science</option>
+              <option value="Junior College">Junior College</option>
+            </select>
+          </div>
+
+          <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2);">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+              <thead>
+                <tr style="background: var(--surface-3); border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;">
+                  <th style="padding: 10px 16px;">College Name</th>
+                  <th style="padding: 10px 16px;">Location</th>
+                  <th style="padding: 10px 16px;">Stream</th>
+                  <th style="padding: 10px 16px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminCollegeTableBody">
+                <!-- Injected dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Exams list panel (hidden by default) -->
+        <div id="adminExamsListPanel" hidden>
+          <p style="color: var(--text-2); font-size: 13.5px; margin-bottom: 16px;">Manage national entrance exams, counseling timelines, and counseling status details:</p>
+          <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2);">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+              <thead>
+                <tr style="background: var(--surface-3); border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;">
+                  <th style="padding: 10px 16px;">Exam / Event Name</th>
+                  <th style="padding: 10px 16px;">Stream</th>
+                  <th style="padding: 10px 16px;">Status</th>
+                  <th style="padding: 10px 16px; text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminExamsTableBody">
+                <!-- Injected dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- College Create/Edit Form panel (hidden by default) -->
+        <div id="adminFormPanel" hidden>
+          <form id="collegeEditForm">
+            <h3 id="adminFormTitle" style="font-size: 18px; margin-bottom: 18px; color: var(--gold);">Edit College Details</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>College Name *</label>
+                <input type="text" id="adminFormName" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Stream *</label>
+                <select id="adminFormStream" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;">
+                  <option value="Engineering">Engineering</option>
+                  <option value="Medical">Medical</option>
+                  <option value="Management">Management</option>
+                  <option value="Law">Law</option>
+                  <option value="Arts">Arts</option>
+                  <option value="Commerce">Commerce</option>
+                  <option value="Science">Science</option>
+                  <option value="Design">Design</option>
+                  <option value="Junior College">Junior College</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>City *</label>
+                <input type="text" id="adminFormCity" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>State *</label>
+                <input type="text" id="adminFormState" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Pincode</label>
+                <input type="text" id="adminFormPincode" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>Institution Type *</label>
+                <select id="adminFormType" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;">
+                  <option value="Government">Government</option>
+                  <option value="Private">Private</option>
+                  <option value="Autonomous">Autonomous</option>
+                  <option value="Deemed">Deemed</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>NAAC Grade</label>
+                <input type="text" id="adminFormNaac" placeholder="e.g. A++, A, B" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Established Year</label>
+                <input type="number" id="adminFormEstablished" placeholder="e.g. 1995" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>Avg Fees / Year (INR)</label>
+                <input type="number" id="adminFormFees" placeholder="e.g. 85000" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>NIRF Rank</label>
+                <input type="number" id="adminFormNirf" placeholder="e.g. 45" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Avg Package (LPA)</label>
+                <input type="number" step="0.1" id="adminFormAvgPlacement" placeholder="e.g. 6.5" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Highest Package (LPA)</label>
+                <input type="number" step="0.1" id="adminFormMaxPlacement" placeholder="e.g. 44.0" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>Placement Rate (%)</label>
+                <input type="number" step="0.1" id="adminFormPlacementRate" placeholder="e.g. 95.5" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Campus Size</label>
+                <input type="text" id="adminFormCampusSize" placeholder="e.g. 150 Acres" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Hostel Available</label>
+                <select id="adminFormHostel" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;">
+                  <option value="">Unknown</option>
+                  <option value="1">Yes</option>
+                  <option value="0">No</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Website URL</label>
+                <input type="text" id="adminFormWebsite" placeholder="e.g. https://www.college.edu" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 12px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>Official Email</label>
+                <input type="text" id="adminFormContactEmail" placeholder="e.g. admissions@college.edu" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Official Phone</label>
+                <input type="text" id="adminFormContactPhone" placeholder="e.g. 022-12345678" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Facilities (comma separated)</label>
+                <input type="text" id="adminFormFacilities" placeholder="e.g. Library, Gym, WiFi Campus" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+            </div>
+
+            <div class="filter-group" style="margin-bottom: 20px;">
+              <label>Description</label>
+              <textarea id="adminFormDesc" rows="3" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); resize: vertical;"></textarea>
+            </div>
+
+            <div class="filter-group" style="margin-bottom: 20px;">
+              <label>Gallery Image URLs (comma separated)</label>
+              <textarea id="adminFormGallery" placeholder="e.g. https://image1.jpg, https://image2.jpg, https://image3.jpg" rows="2" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); resize: vertical;"></textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>Student Rating (Out of 5)</label>
+                <input type="number" step="0.1" max="5" id="adminFormStudentRating" placeholder="e.g. 4.2" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Application Deadline</label>
+                <input type="text" id="adminFormApplicationDeadline" placeholder="e.g. 15th August 2026" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+              <div class="filter-group">
+                <label>Top Recruiters (comma separated)</label>
+                <textarea id="adminFormTopRecruiters" placeholder="e.g. Google, Microsoft, TCS" rows="2" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); resize: vertical;"></textarea>
+              </div>
+              <div class="filter-group">
+                <label>Scholarships Info</label>
+                <textarea id="adminFormScholarshipsInfo" placeholder="e.g. Merit-based scholarships up to 50%" rows="2" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); resize: vertical;"></textarea>
+              </div>
+            </div>
+
+            <!-- Dynamic Courses Section -->
+            <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="font-family: var(--font-body); font-size: 14px; text-transform: uppercase; color: var(--text-3); font-weight:700;">Courses Offered</h4>
+                <button type="button" id="adminAddCourseBtn" class="btn-secondary" style="font-size: 11px; padding: 5px 10px;">➕ Add Course</button>
+              </div>
+              <div id="adminCoursesContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto; padding: 4px;">
+                <!-- dynamic rows injected by JS -->
+              </div>
+            </div>
+
+            <!-- Dynamic Contacts Section -->
+            <div style="border-top: 1px solid var(--border); padding-top: 16px; margin-bottom: 24px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="font-family: var(--font-body); font-size: 14px; text-transform: uppercase; color: var(--text-3); font-weight:700;">Contact Information</h4>
+                <button type="button" id="adminAddContactBtn" class="btn-secondary" style="font-size: 11px; padding: 5px 10px;">➕ Add Contact</button>
+              </div>
+              <div id="adminContactsContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto; padding: 4px;">
+                <!-- dynamic rows injected by JS -->
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border); padding-top: 18px;">
+              <button type="button" id="adminFormCancelBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save College Info</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Exam Create/Edit Form panel (hidden by default) -->
+        <div id="adminExamFormPanel" hidden>
+          <form id="examEditForm">
+            <h3 id="adminExamFormTitle" style="font-size: 18px; margin-bottom: 18px; color: var(--gold);">Edit Exam Details</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>Exam / Event Name *</label>
+                <input type="text" id="adminExamFormName" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Stream *</label>
+                <select id="adminExamFormStream" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;">
+                  <option value="Engineering">Engineering</option>
+                  <option value="Medical">Medical</option>
+                  <option value="Management">Management</option>
+                  <option value="Law">Law</option>
+                  <option value="Arts">Arts</option>
+                  <option value="Commerce">Commerce</option>
+                  <option value="Science">Science</option>
+                  <option value="Design">Design</option>
+                  <option value="Junior College">Junior College</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div class="filter-group">
+                <label>Key Dates *</label>
+                <input type="text" id="adminExamFormDates" placeholder="e.g. Exam: Jan 22 - Feb 2, 2026" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+              <div class="filter-group">
+                <label>Status *</label>
+                <select id="adminExamFormStatus" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;">
+                  <option value="Ongoing">Ongoing</option>
+                  <option value="Upcoming">Upcoming</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="Completed">Completed (Done)</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>Badge Filter Target *</label>
+                <input type="text" id="adminExamFormBadge" placeholder="e.g. JEE Main, NEET" required style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+              </div>
+            </div>
+
+            <div class="filter-group" style="margin-bottom: 24px;">
+              <label>Post-Exam Counseling Note / Action Info (Optional)</label>
+              <textarea id="adminExamFormNote" placeholder="Shown when status is Completed (Done). e.g. Counseling started at josaa.nic.in" rows="3" style="padding: 8px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); resize: vertical;"></textarea>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--border); padding-top: 18px;">
+              <button type="button" id="adminExamFormCancelBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save Exam Info</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="global.js"></script>
+  <script src="app.js"></script>
+
+  <!-- ============ GLOBAL FOOTER ============ -->
+  <footer style="background: var(--brand); color: #fff; padding: 60px 24px 30px; margin-top: 60px;">
+    <div class="container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px;">
+      <div>
+        <h3 style="font-family: var(--font-display); font-size: 24px; color: var(--gold); margin-bottom: 16px;">PathshalaKhoj</h3>
+        <p style="color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">Your trusted portal for discovering the best educational institutions across India. Empowering students with data-driven insights.</p>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Explore</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="/" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Colleges</a></li>
+          <li><a href="courses.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Courses</a></li>
+          <li><a href="exams.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Exams</a></li>
+          <li><a href="predict.html" style="color: var(--gold); text-decoration: none; font-size: 14px; font-weight: bold;">AI Predictor</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Institution</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="about.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">About Us</a></li>
+          <li><a href="admissions.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Admissions</a></li>
+          <li><a href="contact.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Contact & Support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Legal</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="privacy.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Privacy Policy</a></li>
+          <li><a href="terms.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; text-align: center; color: rgba(255,255,255,0.5); font-size: 13px;">
+      &copy; 2026 PathshalaKhoj Education Platform. All rights reserved.
+    </div>
+  </footer>
+
+</body>
+</html>

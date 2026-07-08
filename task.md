@@ -1,0 +1,6 @@
+- `[x]` Real-Time Website Discovery & Crawling Tasks
+  - `[x]` Add `GET /api/colleges/:id/website-preview` in `backend/routes/colleges.js`
+  - `[x]` Implement website check, DDG auto-discover, and Cheerio scraper
+  - `[x]` Update `frontend/college.js` to call website-preview and update UI dynamically
+  - `[x]` Test API locally for IIT Bombay and check database updates
+  - `[x]` Verify UI gallery and links update correctly

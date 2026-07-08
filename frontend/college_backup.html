@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>College Profile - PathshalaKhoj</title>
+  
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="College Profile - PathshalaKhoj" />
+  <meta name="description" content="View detailed information, placement stats, and courses offered." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Anti-FOWT: apply saved theme before first paint -->
+  <script>
+    const savedTheme = localStorage.getItem('pk_theme');
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    } else {
+      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+      if (prefersLight) document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+</head>
+<body>
+
+  <!-- ============ HEADER ============ -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="/" class="brand" aria-label="PathshalaKhoj home">
+        <div class="brand-logo" aria-hidden="true">
+          <span class="brand-logo-icon">🎓</span>
+        </div>
+        <span class="brand-text">Pathshala<span class="brand-accent">Khoj</span></span>
+      </a>
+      <nav class="header-nav" id="headerNav" aria-label="Site navigation">
+        <!-- 1. Main Links -->
+        <a href="/" class="nav-link">Home</a>
+        <a href="news.html" class="nav-link">News</a>
+        <a href="exams.html" class="nav-link">Exams</a>
+        <a href="predict.html" class="nav-link" style="color: #2B6CB0; font-weight: bold;">AI Predictor ✨</a>
+
+        
+        <!-- 2. Actions -->
+        <button id="navShortlistBtn" class="nav-shortlist" type="button" aria-label="Open shortlist">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span>Shortlist</span>
+          <span id="shortlistCount" class="shortlist-count" hidden>0</span>
+        </button>
+
+        <!-- 5. Profile / Auth -->
+        <button id="navLoginBtn" class="nav-shortlist" type="button" aria-label="Sign In">
+          👤 Sign In
+        </button>
+        
+        <div id="profileDropdownContainer" class="profile-dropdown-container" style="display: none;">
+          <button type="button" id="profileTriggerBtn" class="profile-trigger-btn" aria-haspopup="true" aria-expanded="false" aria-label="Open user menu">
+            <img id="navUserPic" class="profile-trigger-avatar" src="" alt="Profile picture" style="display: none;" />
+            <span id="navUserName">User</span>
+            <span class="profile-trigger-chevron">▼</span>
+          </button>
+          
+          <div id="profileDropdownCard" class="profile-dropdown-card" hidden>
+            <div class="profile-dropdown-header">
+              <span id="dropdownUserName" class="dropdown-user-name">User Name</span>
+              <span id="dropdownUserEmail" class="dropdown-user-email">user@email.com</span>
+              <span id="dropdownUserRole" class="dropdown-user-role">Student</span>
+            </div>
+            <a href="dashboard.html" class="profile-dropdown-item" style="text-decoration: none; color: inherit;">
+              <span class="dropdown-item-icon">📊</span> Student Dashboard
+            </a>
+            <button type="button" id="dropdownEditProfileBtn" class="profile-dropdown-item">
+              <span class="dropdown-item-icon">⚙️</span> Settings &amp; Profile
+            </button>
+            <button type="button" id="dropdownAdminPortalBtn" class="profile-dropdown-item" style="display: none;">
+              <span class="dropdown-item-icon">🛠️</span> Admin Dashboard
+            </button>
+            <button type="button" id="dropdownLogoutBtn" class="profile-dropdown-item logout-item">
+              <span class="dropdown-item-icon">🚪</span> Sign Out
+            </button>
+          </div>
+        </div>
+        
+        <!-- 4. Utilities (Theme Toggle) -->
+        <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Toggle light/dark mode" title="Toggle theme">
+          <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+          </svg>
+          <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </nav>
+
+      <!-- Mobile Hamburger Button -->
+      <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Open mobile menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div id="collegeLoading" class="loading-state" style="padding: 120px 0;">
+    <div class="loader">
+      <div class="loader-ring"></div><div class="loader-ring"></div><div class="loader-ring"></div>
+    </div>
+    <p>Loading college profile...</p>
+  </div>
+
+  <div id="collegeContent" style="display: none;">
+    <!-- ============ COLLEGE HERO ============ -->
+    <section class="college-hero" aria-labelledby="collegeName">
+      <div class="hero-particles" aria-hidden="true">
+        <div class="particle p1"></div><div class="particle p2"></div><div class="particle p3"></div>
+      </div>
+      <div class="container hero-inner">
+        <div class="hero-badge">
+          <span id="collegeTypeBadge">University</span>
+        </div>
+        <h1 id="collegeName" class="hero-title">College Name</h1>
+        <p id="collegeLocation" class="hero-subtitle">City, State</p>
+        
+        <div class="college-quick-stats">
+          <div class="stat-box">
+            <span class="stat-label">NIRF Ranking</span>
+            <span id="collegeNirf" class="stat-value">N/A</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Avg Package</span>
+            <span id="collegePackage" class="stat-value">N/A</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Est. Year</span>
+            <span id="collegeEst" class="stat-value">N/A</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 32px; display: flex; gap: 16px; flex-wrap: wrap;">
+          <button id="addToShortlistBtn" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; border-color: var(--border-2); color: var(--text);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            <span>Add to Shortlist</span>
+          </button>
+          <button id="applyNowBtn" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 24px;">
+            <span>Apply Now</span>
+            <span style="font-size: 1.1em;">🚀</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MAIN CONTENT ============ -->
+    <main class="container" style="padding-bottom: 100px; padding-top: 40px;">
+      <div class="college-grid">
+        
+        <!-- Left Sidebar: Navigation & Predictor -->
+        <aside class="college-sidebar">
+          <nav class="college-nav-tabs">
+
+          <section id="courses" class="content-section fade-in" style="display: none;">
+            <h2>Courses & Fees</h2>
+            <div class="details-card">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Average Annual Fees</h3>
+                <span id="collegeFees" class="stat-value text-gold" style="font-size: 24px;">₹ N/A</span>
+              </div>
+              <p class="prose" style="margin-top: 16px;">This is an estimated average for the primary stream. Actual fees may vary per specific course program and category.</p>
+            </div>
+          </section>
+
+          <section id="placements" class="content-section fade-in" style="display: none;">
+            <h2>Placements</h2>
+            <div class="stats-grid">
+              <div class="details-card" style="text-align: center;">
+                <p class="stat-label">Average Package</p>
+                <p id="collegeAvgPlacement" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
+                <p class="stat-label">LPA</p>
+              </div>
+              <div class="details-card" style="text-align: center;">
+                <p class="stat-label">Highest Package</p>
+                <p id="collegeHighPlacement" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
+                <p class="stat-label">LPA</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="facilities" class="content-section fade-in" style="display: none;">
+            <h2>Facilities & Campus</h2>
+            <div class="details-card">
+              <h3>Address</h3>
+              <p id="collegeAddress" class="prose">N/A</p>
+              <p class="prose"><strong>Pincode:</strong> <span id="collegePincode">N/A</span></p>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="global.js"></script>
+  <script src="college.js"></script>
+
+  <!-- ============ GLOBAL FOOTER ============ -->
+  <footer style="background: var(--brand); color: #fff; padding: 60px 24px 30px; margin-top: 60px;">
+    <div class="container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px;">
+      <div>
+        <h3 style="font-family: var(--font-display); font-size: 24px; color: var(--gold); margin-bottom: 16px;">PathshalaKhoj</h3>
+        <p style="color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">Your trusted portal for discovering the best educational institutions across India. Empowering students with data-driven insights.</p>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Explore</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="/" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Colleges</a></li>
+          <li><a href="courses.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Courses</a></li>
+          <li><a href="exams.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Exams</a></li>
+          <li><a href="predict.html" style="color: var(--gold); text-decoration: none; font-size: 14px; font-weight: bold;">AI Predictor</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Institution</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="about.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">About Us</a></li>
+          <li><a href="admissions.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Admissions</a></li>
+          <li><a href="contact.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Contact & Support</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Legal</h4>
+        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
+          <li><a href="privacy.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Privacy Policy</a></li>
+          <li><a href="terms.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; text-align: center; color: rgba(255,255,255,0.5); font-size: 13px;">
+      &copy; 2026 PathshalaKhoj Education Platform. All rights reserved.
+    </div>
+  </footer>
+
+</body>
+</html>
+
+

@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+**/database.sqlite
+backend/db/*.db
+
+# Environment files
+.env
+**/.env
+
+# OS / editor / logs
+.DS_Store
+*.log
+
