@@ -75,6 +75,7 @@ const el = {
   qnaSubmitQuestionBtn: document.getElementById('qnaSubmitQuestionBtn'),
   qnaGuestWarning: document.getElementById('qnaGuestWarning'),
   autoDiscoverBtn: document.getElementById('autoDiscoverBtn'),
+  editCollegeBtn: document.getElementById('editCollegeBtn'),
 };
 
 let collegeId = null;
@@ -779,6 +780,15 @@ function populateUI(data) {
     el.downloadBrochureBtn.addEventListener('click', (e) => {
       e.preventDefault();
       generateBrochure(data);
+    });
+  // Bind Edit College Info
+  if (el.editCollegeBtn) {
+    const newBtn = el.editCollegeBtn.cloneNode(true);
+    el.editCollegeBtn.parentNode.replaceChild(newBtn, el.editCollegeBtn);
+    el.editCollegeBtn = newBtn;
+    el.editCollegeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      loadCollegeIntoAdminForm(data);
     });
   }
 
@@ -1760,6 +1770,7 @@ function updateSyncWikiVisibility() {
   if (el.syncWebsiteBtn) el.syncWebsiteBtn.style.display = displayVal;
   if (el.autoDiscoverBtn) el.autoDiscoverBtn.style.display = displayVal;
   if (el.syncReviewsBtn) el.syncReviewsBtn.style.display = displayVal;
+  if (el.editCollegeBtn) el.editCollegeBtn.style.display = displayVal;
 }
 
 document.addEventListener('authSynced', () => {
@@ -1838,5 +1849,262 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 });
+
+  // --- Admin Editing Portal in Details Page ---
+  const adminEl = {
+    overlay: document.getElementById('adminOverlay'),
+    closeBtn: document.getElementById('adminCloseBtn'),
+    cancelBtn: document.getElementById('adminFormCancelBtn'),
+    form: document.getElementById('collegeEditForm'),
+    title: document.getElementById('adminFormTitle'),
+    name: document.getElementById('adminFormName'),
+    stream: document.getElementById('adminFormStream'),
+    city: document.getElementById('adminFormCity'),
+    state: document.getElementById('adminFormState'),
+    pincode: document.getElementById('adminFormPincode'),
+    type: document.getElementById('adminFormType'),
+    naac: document.getElementById('adminFormNaac'),
+    established: document.getElementById('adminFormEstablished'),
+    fees: document.getElementById('adminFormFees'),
+    nirf: document.getElementById('adminFormNirf'),
+    avgPlacement: document.getElementById('adminFormAvgPlacement'),
+    maxPlacement: document.getElementById('adminFormMaxPlacement'),
+    desc: document.getElementById('adminFormDesc'),
+    gallery: document.getElementById('adminFormGallery'),
+    placementRate: document.getElementById('adminFormPlacementRate'),
+    campusSize: document.getElementById('adminFormCampusSize'),
+    hostel: document.getElementById('adminFormHostel'),
+    website: document.getElementById('adminFormWebsite'),
+    contactEmail: document.getElementById('adminFormContactEmail'),
+    contactPhone: document.getElementById('adminFormContactPhone'),
+    facilities: document.getElementById('adminFormFacilities'),
+    studentRating: document.getElementById('adminFormStudentRating'),
+    applicationDeadline: document.getElementById('adminFormApplicationDeadline'),
+    topRecruiters: document.getElementById('adminFormTopRecruiters'),
+    scholarshipsInfo: document.getElementById('adminFormScholarshipsInfo'),
+    addCourseBtn: document.getElementById('adminAddCourseBtn'),
+    coursesContainer: document.getElementById('adminCoursesContainer'),
+    addContactBtn: document.getElementById('adminAddContactBtn'),
+    contactsContainer: document.getElementById('adminContactsContainer')
+  };
+
+  function appendAdminCourseRow(course = null) {
+    const row = document.createElement('div');
+    row.className = 'admin-course-row';
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '1.5fr 1fr 1fr 1fr 1fr 1.2fr auto';
+    row.style.gap = '8px';
+    row.style.alignItems = 'center';
+    row.style.marginBottom = '6px';
+
+    row.innerHTML = `
+      <input type="text" class="c-name" placeholder="Course Name" required value="${course ? escapeHtml(course.name) : ''}" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;" />
+      <select class="c-level" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;">
+        <option value="UG" ${course && course.level === 'UG' ? 'selected' : ''}>UG</option>
+        <option value="PG" ${course && course.level === 'PG' ? 'selected' : ''}>PG</option>
+        <option value="XI-XII" ${course && course.level === 'XI-XII' ? 'selected' : ''}>XI-XII</option>
+        <option value="PhD" ${course && course.level === 'PhD' ? 'selected' : ''}>PhD</option>
+        <option value="Diploma" ${course && course.level === 'Diploma' ? 'selected' : ''}>Diploma</option>
+      </select>
+      <input type="number" class="c-fees" placeholder="Fees / Year" value="${course && course.fees_per_year != null ? course.fees_per_year : ''}" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;" />
+      <input type="number" class="c-seats" placeholder="Seats" value="${course && course.seats != null ? course.seats : ''}" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;" />
+      <input type="number" step="0.5" class="c-duration" placeholder="Duration (yrs)" value="${course && course.duration_years != null ? course.duration_years : ''}" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;" />
+      <input type="text" class="c-exam" placeholder="Entrance Exam" value="${course && course.entrance_exam ? escapeHtml(course.entrance_exam) : ''}" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;" />
+      <button type="button" class="btn-secondary row-remove-btn" style="padding: 6px 10px; font-size: 11px; color: var(--rose); border-color: rgba(204,68,68,0.25);">✕</button>
+    `;
+
+    row.querySelector('.row-remove-btn').addEventListener('click', () => row.remove());
+    adminEl.coursesContainer.appendChild(row);
+  }
+
+  function appendAdminContactRow(contact = null) {
+    const row = document.createElement('div');
+    row.className = 'admin-contact-row';
+    row.style.display = 'grid';
+    row.style.gridTemplateColumns = '1.2fr 2fr 1.5fr auto';
+    row.style.gap = '8px';
+    row.style.alignItems = 'center';
+    row.style.marginBottom = '6px';
+
+    row.innerHTML = `
+      <select class="con-type" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;">
+        <option value="phone" ${contact && contact.contact_type === 'phone' ? 'selected' : ''}>Phone</option>
+        <option value="email" ${contact && contact.contact_type === 'email' ? 'selected' : ''}>Email</option>
+        <option value="website" ${contact && contact.contact_type === 'website' ? 'selected' : ''}>Website</option>
+        <option value="address" ${contact && contact.contact_type === 'address' ? 'selected' : ''}>Address</option>
+      </select>
+      <input type="text" class="con-value" placeholder="Value" required value="${contact ? escapeHtml(contact.contact_value) : ''}" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;" />
+      <input type="text" class="con-label" placeholder="Label" value="${contact && contact.label ? escapeHtml(contact.label) : ''}" style="padding: 6px 10px; border-radius: var(--radius-xs); border: 1px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:12px;" />
+      <button type="button" class="btn-secondary row-remove-btn" style="padding: 6px 10px; font-size: 11px; color: var(--rose); border-color: rgba(204,68,68,0.25);">✕</button>
+    `;
+
+    row.querySelector('.row-remove-btn').addEventListener('click', () => row.remove());
+    adminEl.contactsContainer.appendChild(row);
+  }
+
+  function loadCollegeIntoAdminForm(college) {
+    adminEl.title.textContent = `Edit College: ${college.name}`;
+    
+    adminEl.name.value = college.name || '';
+    adminEl.stream.value = college.stream || 'Engineering';
+    adminEl.city.value = college.city || '';
+    adminEl.state.value = college.state || '';
+    adminEl.pincode.value = college.pincode || '';
+    adminEl.type.value = college.college_type || 'Government';
+    adminEl.naac.value = college.naac_grade || '';
+    adminEl.established.value = college.established_year || '';
+    adminEl.fees.value = college.avg_fees_per_year || '';
+    adminEl.nirf.value = college.nirf_ranking || '';
+    adminEl.avgPlacement.value = college.avg_placement_package || '';
+    adminEl.maxPlacement.value = college.highest_placement_package || '';
+    adminEl.desc.value = college.description || '';
+    adminEl.gallery.value = college.gallery_images && Array.isArray(college.gallery_images) ? college.gallery_images.join(', ') : '';
+    
+    adminEl.placementRate.value = college.placement_rate || '';
+    adminEl.campusSize.value = college.campus_size || '';
+    adminEl.hostel.value = college.hostel_available !== undefined && college.hostel_available !== null ? (college.hostel_available ? '1' : '0') : '';
+    adminEl.website.value = college.website || '';
+    adminEl.contactEmail.value = college.contact_email || '';
+    adminEl.contactPhone.value = college.contact_phone || '';
+    
+    if (college.facilities) {
+      try {
+        const facArr = typeof college.facilities === 'string' ? JSON.parse(college.facilities) : college.facilities;
+        adminEl.facilities.value = Array.isArray(facArr) ? facArr.join(', ') : '';
+      } catch (e) {
+        adminEl.facilities.value = '';
+      }
+    } else {
+      adminEl.facilities.value = '';
+    }
+
+    adminEl.studentRating.value = college.student_rating || '';
+    adminEl.applicationDeadline.value = college.application_deadline || '';
+    adminEl.topRecruiters.value = college.top_recruiters || '';
+    adminEl.scholarshipsInfo.value = college.scholarships_info || '';
+
+    adminEl.coursesContainer.innerHTML = '';
+    if (college.courses && college.courses.length > 0) {
+      college.courses.forEach(c => appendAdminCourseRow(c));
+    } else {
+      appendAdminCourseRow();
+    }
+
+    adminEl.contactsContainer.innerHTML = '';
+    if (college.contacts && college.contacts.length > 0) {
+      college.contacts.forEach(c => appendAdminContactRow(c));
+    } else {
+      appendAdminContactRow();
+    }
+
+    adminEl.overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAdminForm() {
+    adminEl.overlay.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  // Set up listeners for the admin form
+  if (adminEl.closeBtn) adminEl.closeBtn.addEventListener('click', closeAdminForm);
+  if (adminEl.cancelBtn) adminEl.cancelBtn.addEventListener('click', closeAdminForm);
+  if (adminEl.addCourseBtn) adminEl.addCourseBtn.addEventListener('click', () => appendAdminCourseRow());
+  if (adminEl.addContactBtn) adminEl.addContactBtn.addEventListener('click', () => appendAdminContactRow());
+
+  if (adminEl.form) {
+    adminEl.form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const token = localStorage.getItem('pk_token');
+      if (!token) {
+        showToast('Session expired. Please log in again.', 'error');
+        return;
+      }
+
+      const courses = [];
+      adminEl.coursesContainer.querySelectorAll('.admin-course-row').forEach(row => {
+        const name = row.querySelector('.c-name').value.trim();
+        if (!name) return;
+        courses.push({
+          name,
+          level: row.querySelector('.c-level').value,
+          fees_per_year: parseInt(row.querySelector('.c-fees').value, 10) || 0,
+          seats: parseInt(row.querySelector('.c-seats').value, 10) || null,
+          duration_years: parseFloat(row.querySelector('.c-duration').value) || null,
+          entrance_exam: row.querySelector('.c-exam').value.trim() || null
+        });
+      });
+
+      const contacts = [];
+      adminEl.contactsContainer.querySelectorAll('.admin-contact-row').forEach(row => {
+        const val = row.querySelector('.con-value').value.trim();
+        if (!val) return;
+        contacts.push({
+          contact_type: row.querySelector('.con-type').value,
+          contact_value: val,
+          label: row.querySelector('.con-label').value.trim() || null
+        });
+      });
+
+      let facArr = null;
+      const facVal = adminEl.facilities.value.trim();
+      if (facVal) {
+        facArr = facVal.split(',').map(s => s.trim()).filter(s => s);
+      }
+
+      const bodyData = {
+        name: adminEl.name.value.trim(),
+        stream: adminEl.stream.value,
+        city: adminEl.city.value.trim(),
+        state: adminEl.state.value.trim(),
+        pincode: adminEl.pincode.value.trim() || null,
+        college_type: adminEl.type.value,
+        naac_grade: adminEl.naac.value.trim() || null,
+        established_year: parseInt(adminEl.established.value, 10) || null,
+        avg_fees_per_year: parseInt(adminEl.fees.value, 10) || null,
+        nirf_ranking: parseInt(adminEl.nirf.value, 10) || null,
+        avg_placement_package: parseFloat(adminEl.avgPlacement.value) || null,
+        highest_placement_package: parseFloat(adminEl.maxPlacement.value) || null,
+        description: adminEl.desc.value.trim() || null,
+        gallery_images: adminEl.gallery.value.trim() ? adminEl.gallery.value.split(',').map(u => u.trim()).filter(u => u) : null,
+        placement_rate: parseFloat(adminEl.placementRate.value) || null,
+        campus_size: adminEl.campusSize.value.trim() || null,
+        hostel_available: adminEl.hostel.value === '1' ? true : (adminEl.hostel.value === '0' ? false : null),
+        website: adminEl.website.value.trim() || null,
+        contact_email: adminEl.contactEmail.value.trim() || null,
+        contact_phone: adminEl.contactPhone.value.trim() || null,
+        facilities: facArr ? JSON.stringify(facArr) : null,
+        student_rating: parseFloat(adminEl.studentRating.value) || null,
+        application_deadline: adminEl.applicationDeadline.value.trim() || null,
+        top_recruiters: adminEl.topRecruiters.value.trim() || null,
+        scholarships_info: adminEl.scholarshipsInfo.value.trim() || null,
+        courses,
+        contacts
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/colleges/${currentCollege.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(bodyData)
+        });
+
+        if (res.ok) {
+          showToast('College details updated successfully. Reloading...', 'success');
+          closeAdminForm();
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          const data = await res.json();
+          showToast(data.error || 'Failed to save college details.', 'error');
+        }
+      } catch (err) {
+        showToast('Connection error. Failed to update college details.', 'error');
+      }
+    });
+  }
 
 })();
