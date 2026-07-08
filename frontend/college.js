@@ -781,6 +781,8 @@ function populateUI(data) {
       e.preventDefault();
       generateBrochure(data);
     });
+  }
+
   // Bind Edit College Info
   if (el.editCollegeBtn) {
     const newBtn = el.editCollegeBtn.cloneNode(true);
