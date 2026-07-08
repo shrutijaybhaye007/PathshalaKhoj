@@ -2001,6 +2001,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     adminEl.overlay.hidden = false;
     document.body.style.overflow = 'hidden';
+
+    // Directly show the form panel and hide the list panel
+    const listPanel = document.getElementById('adminListPanel');
+    const formPanel = document.getElementById('adminFormPanel');
+    if (listPanel) listPanel.hidden = true;
+    if (formPanel) formPanel.hidden = false;
   }
 
   function closeAdminForm() {
