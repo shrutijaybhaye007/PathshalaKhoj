@@ -174,5 +174,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- Admin Metrics Auto-Populate ---
+  async function populateAdminMetrics() {
+    const adminOverlay = document.getElementById('adminOverlay');
+    if (!adminOverlay) return;
+
+    const metricEls = adminOverlay.querySelectorAll('div[style*="font-size: 20px"]');
+    if (metricEls.length < 3) return;
+
+    try {
+      const res = await fetch('/api/colleges/stats');
+      if (res.ok) {
+        const stats = await res.json();
+        metricEls[0].textContent = Number(stats.collegesCount).toLocaleString('en-IN');
+        metricEls[1].textContent = `${stats.examsCount} Events`;
+        metricEls[2].textContent = `${stats.avgPlacement} LPA`;
+      }
+    } catch (err) {
+      console.error('Failed to populate admin metrics:', err);
+    }
+  }
+
+  populateAdminMetrics();
 
 });

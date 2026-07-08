@@ -209,6 +209,28 @@ router.get('/', (req, res) => {
 });
 
 /**
+ * GET /api/colleges/stats
+ * Public: Returns overall database metrics (colleges count, active exams count, normalized average placement).
+ */
+router.get('/stats', (req, res) => {
+  try {
+    const totalColleges = get('SELECT COUNT(*) as count FROM colleges').count;
+    const totalExams = get('SELECT COUNT(*) as count FROM timeline_events').count;
+    const avgPlacementObj = get("SELECT AVG(CASE WHEN avg_placement_package >= 1000 THEN avg_placement_package / 100000.0 ELSE avg_placement_package END) as avg_package FROM colleges WHERE avg_placement_package > 0");
+    const avgPlacement = avgPlacementObj && avgPlacementObj.avg_package ? avgPlacementObj.avg_package.toFixed(1) : '0.0';
+
+    res.json({
+      collegesCount: totalColleges,
+      examsCount: totalExams,
+      avgPlacement: avgPlacement
+    });
+  } catch (err) {
+    console.error('GET /api/colleges/stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch database statistics.' });
+  }
+});
+
+/**
  * GET /api/colleges/sync-coverage
  * Admin: Returns stats about how many colleges have real vs missing data.
  * Used by admin dashboard to show sync coverage metrics.
