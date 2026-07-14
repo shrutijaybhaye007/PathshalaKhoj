@@ -1,4 +1,13 @@
 (function() {
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 const predictForm = document.getElementById('predictForm');
 const predictResults = document.getElementById('predictResults');
 const predictSafe = document.querySelector('#predictSafe .result-list');
@@ -192,10 +201,10 @@ function renderPredictResults(data) {
 function createCollegeCard(c) {
   return `
     <a href="college.html?id=${c.id}" style="display: flex; align-items: center; gap: 16px; background: var(--surface-3); padding: 16px; border-radius: 12px; text-decoration: none; border: 1px solid var(--border-2); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;" onmouseover="this.style.transform='translateX(6px)'; this.style.borderColor='var(--gold)';" onmouseout="this.style.transform='translateX(0)'; this.style.borderColor='var(--border-2)';">
-      ${c.logo_url ? `<img src="${c.logo_url}" style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; box-shadow: var(--shadow-sm);" onerror="this.src=''; this.style.display='none';">` : ''}
+      ${c.logo_url ? `<img src="${escapeHtml(c.logo_url)}" style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; box-shadow: var(--shadow-sm);" onerror="this.src=''; this.style.display='none';">` : ''}
       <div style="flex: 1;">
-        <h4 style="margin: 0; color: var(--text); font-family: var(--font-display); font-size: 15px; font-weight: 750;">${c.name}</h4>
-        <div style="font-size: 12px; color: var(--text-2); margin-top: 4px;">📍 ${c.city}, ${c.state} | ★ NIRF: ${c.nirf_ranking || 'N/A'}</div>
+        <h4 style="margin: 0; color: var(--text); font-family: var(--font-display); font-size: 15px; font-weight: 750;">${escapeHtml(c.name)}</h4>
+        <div style="font-size: 12px; color: var(--text-2); margin-top: 4px;">📍 ${escapeHtml(c.city)}, ${escapeHtml(c.state)} | ★ NIRF: ${escapeHtml(c.nirf_ranking) || 'N/A'}</div>
       </div>
     </a>
   `;

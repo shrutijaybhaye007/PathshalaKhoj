@@ -184,7 +184,11 @@ function renderComparisonTable(colleges, container) {
           try {
             facilities = typeof c.facilities === 'string' ? JSON.parse(c.facilities) : c.facilities;
           } catch {
-            facilities = c.facilities.split(',').map(f => f.trim()).filter(Boolean);
+            if (typeof c.facilities === 'string') {
+              facilities = c.facilities.split(',').map(f => f.trim()).filter(Boolean);
+            } else {
+              facilities = Array.isArray(c.facilities) ? c.facilities : [];
+            }
           }
         }
         if (!Array.isArray(facilities) || facilities.length === 0) return '—';
