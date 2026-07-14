@@ -926,8 +926,8 @@ function renderCollegeCard(college) {
   const streamLabel   = isJunior ? 'Junior College (XI–XII)' : escapeHtml(college.stream);
   const naacClass     = getNaacStampClass(college.naac_grade);
   const isGovt        = college.college_type === 'Government';
-  const feesText      = college.avg_fees_per_year === 0 ? 'Free' : currency(college.avg_fees_per_year);
-  const feesClass     = college.avg_fees_per_year === 0 ? 'card-fees free' : 'card-fees';
+  const feesText      = (!college.avg_fees_per_year || college.avg_fees_per_year === 0) ? (college.avg_fees_per_year === 0 ? 'Free' : 'N/A') : currency(college.avg_fees_per_year);
+  const feesClass     = (!college.avg_fees_per_year || college.avg_fees_per_year === 0) ? 'card-fees free' : 'card-fees';
 
   // Tags
   let tagsHtml = '';
@@ -953,7 +953,7 @@ function renderCollegeCard(college) {
       <h3 class="card-name">${escapeHtml(college.name)}</h3>
       <p class="card-location">
         <span class="card-location-icon">📍</span>
-        ${escapeHtml(college.city)}, ${escapeHtml(college.state)}
+        ${escapeHtml(college.city || '')}, ${escapeHtml(college.state || '')}
       </p>
       <p class="card-desc">${escapeHtml(college.description || '')}</p>
  
@@ -978,7 +978,7 @@ function renderCollegeCard(college) {
         <span class="card-fees-label">Avg. fees / year</span>
         <span class="${feesClass}">${feesText}</span>
       </div>
-      <span class="card-courses-count">${college.total_courses} course${college.total_courses === 1 ? '' : 's'}</span>
+      <span class="card-courses-count">${college.total_courses > 0 ? college.total_courses + ' course' + (college.total_courses === 1 ? '' : 's') : (college.stream || 'Multi-stream')}</span>
     </div>
   `;
  

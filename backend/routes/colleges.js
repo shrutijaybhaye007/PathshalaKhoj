@@ -975,6 +975,34 @@ router.get('/:id', (req, res) => {
       college.gallery_images = [];
     }
 
+    // ── Strip fake/generated contact fields ─────────────────────────────────
+    // Fake pattern indicators seeded from data generation:
+    //   email  : ends in @indianinstitute.edu.in or matches info@<anything>.edu.in
+    //   phone  : random 10-digit mobiles starting with +91 7/8/9 (not landlines)
+    //   website: www.indianinstitute.edu.in
+    const isFakeEmail  = (e) => !e || e.includes('indianinstitute.edu.in') || /^info@[^.]+\.edu\.in$/.test(e);
+    // Strip +91 / country code, then check if it's a plain 10-digit mobile (7xx/8xx/9xx) — these were randomly generated
+    const isFakeMobile = (p) => {
+      if (!p) return false; // null/undefined = already clean
+      const digits = p.replace(/[\s\-\(\)\+]/g, '').replace(/^91/, '');
+      return /^[789]\d{9}$/.test(digits) && !p.includes('-'); // landlines have hyphens; mobiles don't
+    };
+    const isFakeWeb    = (w) => !w || w.includes('indianinstitute.edu.in');
+
+    if (isFakeEmail(college.contact_email))  college.contact_email  = null;
+    if (isFakeMobile(college.contact_phone)) college.contact_phone  = null;
+    if (isFakeWeb(college.website))          college.website         = null;
+
+    // If contacts table has real data, promote it to the top-level fields too
+    if (contacts.length > 0) {
+      const realPhone   = contacts.find(c => c.contact_type === 'phone');
+      const realEmail   = contacts.find(c => c.contact_type === 'email');
+      const realWebsite = contacts.find(c => c.contact_type === 'website');
+      if (realPhone   && !college.contact_phone)  college.contact_phone  = realPhone.contact_value;
+      if (realEmail   && !college.contact_email)  college.contact_email  = realEmail.contact_value;
+      if (realWebsite && !college.website)         college.website         = realWebsite.contact_value;
+    }
+
     res.json({ ...college, courses, contacts, reviews, qna });
   } catch (err) {
     console.error('GET /api/colleges/:id error:', err);
