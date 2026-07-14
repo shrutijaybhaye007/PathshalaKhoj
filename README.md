@@ -1,208 +1,227 @@
-# Pathshala Khoj — India College Finder
+# PathshalaKhoj — India College Finder
 
-A full-stack web app for prospective students to search and discover colleges
-across India, with detailed course listings and contact details for each
-institution.
+A production-ready, full-stack web application for prospective students to search, discover, and compare colleges across India. Includes authentication, an admin dashboard, FTS5-powered search, AI college prediction, student reviews, exams timeline, and education news.
 
-Built to satisfy the brief: **Node.js + SQL backend with a REST API**, and a
-**responsive HTML/CSS/JS frontend with a search-first experience**.
+[![Node.js](https://img.shields.io/badge/Node.js-22.5%2B-green)](https://nodejs.org)
+[![SQLite](https://img.shields.io/badge/SQLite-FTS5-blue)](https://sqlite.org)
+[![Express](https://img.shields.io/badge/Express-4.x-black)](https://expressjs.com)
 
 ---
 
-## What's inside
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🔍 **FTS5 Search** | Full-text search with BM25 relevance ranking across 130+ institutions |
+| 🎓 **College Detail** | NAAC grade, NIRF ranking, placement, fees, courses, contacts, reviews |
+| 📊 **Compare Mode** | Side-by-side comparison of up to 3 colleges |
+| ⭐ **Shortlist** | Save colleges for later (session-based, no login required) |
+| 🔐 **Authentication** | Email/password + Google OAuth, PBKDF2 hashed passwords, JWT sessions |
+| 🛠️ **Admin Panel** | College and exam CRUD, Wikipedia data sync, coverage metrics |
+| 🤖 **AI Predictor** | Rank-based college admission prediction |
+| 📰 **News Feed** | Live education news via RSS aggregation |
+| 📅 **Exams Timeline** | Upcoming entrance exam calendar |
+| 🌗 **Dark Mode** | Full dark/light theme with no flash-of-unstyled-theme |
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# 1. Install dependencies
+cd backend
+npm install
+
+# 2. Set up environment
+cp .env.example .env
+# Edit .env — at minimum set JWT_SECRET (see below)
+
+# 3. Seed the database
+npm run seed          # Imports 130+ colleges
+npm run seed:admin    # Creates the admin account from .env
+
+# 4. Start the server
+npm start             # Production
+npm run dev           # Development (auto-restart with nodemon)
+```
+
+Open **http://localhost:4000** — the Express server serves the frontend at the same URL.
+
+---
+
+## ⚙️ Environment Variables
+
+Copy `backend/.env.example` to `backend/.env` and fill in:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JWT_SECRET` | **YES** | Long random string for JWT signing. Server refuses to start without this. |
+| `PORT` | No | Port to listen on. Default: `4000` |
+| `ALLOWED_ORIGIN` | No | Allowed CORS origin. Default: `http://localhost:PORT` |
+| `GOOGLE_CLIENT_ID` | No | Enables Google Sign-In. Omit to use only email/password. |
+| `ADMIN_EMAIL` | No | Used by `npm run seed:admin`. Default: `admin@pathshalakhoj.com` |
+| `ADMIN_PASSWORD` | No | Used by `npm run seed:admin`. Must be ≥ 8 characters. |
+
+Generate a secure JWT secret:
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+---
+
+## 🛡️ Security
+
+- **Passwords**: PBKDF2-SHA512 with random salt
+- **Sessions**: JWT tokens signed with `JWT_SECRET` (7-day expiry)
+- **Rate limiting**: 20 req / 15 min on `/login`, `/register`, `/forgot-password`
+- **CORS**: Restricted to `ALLOWED_ORIGIN` (not open wildcard)
+- **HTTP Headers**: `helmet.js` — CSP, X-Frame-Options, HSTS, X-Content-Type-Options
+- **Google OAuth**: Real signature verification via `google-auth-library` (bypass removed)
+- **Admin seed**: Hash never stored in source — `npm run seed:admin` reads from env
+
+---
+
+## 📁 Project Structure
 
 ```
 college-finder/
 ├── backend/
-│   ├── server.js           # Express app entry point
+│   ├── server.js               # Entry point — security, middleware, routes
 │   ├── routes/
-│   │   ├── colleges.js     # search, filter, sort, pagination, CRUD
-│   │   ├── courses.js      # per-college courses + cross-college course search
-│   │   ├── contacts.js     # per-college contact channels
-│   │   └── shortlist.js    # session-based "save for later" list
+│   │   ├── auth.js             # Login, register, Google OAuth, profile
+│   │   ├── colleges.js         # Search (FTS5), filter, CRUD, stats
+│   │   ├── courses.js          # Per-college courses + cross-college search
+│   │   ├── contacts.js         # College contact entries
+│   │   ├── shortlist.js        # Session-based college shortlist
+│   │   ├── reviews.js          # Student reviews (auth required)
+│   │   ├── exams.js            # Exam/event timeline
+│   │   ├── news.js             # Education news via RSS
+│   │   ├── predict.js          # AI college prediction
+│   │   └── applications.js     # Application tracking
+│   ├── middlewares/
+│   │   └── authMiddleware.js   # requireAuth / requireAdmin
 │   ├── db/
-│   │   ├── schema.sql      # table definitions + indexes
-│   │   ├── connection.js   # the ONLY file that talks to the database engine
-│   │   ├── init.js         # applies schema.sql (idempotent)
-│   │   └── seed.js         # 20 real Indian institutions, courses, contacts
+│   │   ├── connection.js       # SQLite abstraction (get, all, run, exec)
+│   │   ├── schema.sql          # Canonical table definitions + indexes
+│   │   ├── init.js             # Applies schema (idempotent)
+│   │   ├── seed.js             # Seeds 130+ colleges
+│   │   └── seed-admin.js       # Creates admin from .env (run after first boot)
 │   ├── package.json
-│   └── .env.example
+│   ├── .env.example
+│   └── smoke.test.js           # 16-test API smoke suite (node:test)
 └── frontend/
-    ├── index.html
-    ├── styles.css
-    └── app.js
+    ├── index.html              # Main SPA page
+    ├── college.html            # College detail page
+    ├── courses.html            # Course explorer
+    ├── exams.html              # Exams calendar
+    ├── news.html               # Education news
+    ├── predict.html            # AI predictor
+    ├── dashboard.html          # Student dashboard
+    ├── styles.css              # Global design system
+    ├── global.js               # Shared UI: theme, nav, auth sync
+    ├── app.js                  # Core: search, filters, cards, shortlist
+    └── js/
+        ├── auth.module.js      # Auth modals, profile management
+        └── admin.module.js     # Admin dashboard, CRUD operations
 ```
-
-## Quick start
-
-```bash
-cd backend
-npm install
-npm run seed     # creates db/colleges.db and populates it
-npm start        # http://localhost:4000
-```
-
-Open **http://localhost:4000** — the Express server serves the frontend
-directly, so there's nothing else to run. The API lives under `/api/*` on
-the same origin (no CORS setup needed, though `cors` is enabled anyway in
-case you want to point a separately-hosted frontend at it).
-
-To wipe and reseed the database at any point: `npm run seed` again — it's
-safe to re-run.
 
 ---
 
-## Database engine — important note
+## 🗄️ Database
 
-This project uses Node's **built-in `node:sqlite` module** (stable in
-Node 22.5+) rather than a separately-installed database server. This was a
-deliberate choice so the project runs with **zero setup** — no MySQL/Postgres
-install, no native module compilation, no Docker.
+Uses Node's **built-in `node:sqlite`** module (stable in Node 22.5+) — zero setup, no external DB server.
 
-It is still real SQL: proper `CREATE TABLE`, foreign keys, joins, indexes —
-everything in `schema.sql` is standard SQL with only trivial SQLite-specific
-syntax (`AUTOINCREMENT`, `datetime('now')`).
+**Key tables:**
 
-**All database access goes through `backend/db/connection.js`.** No other
-file ever imports a database driver directly. This means swapping to MySQL
-or PostgreSQL for production is a localized change:
+| Table | Description |
+|-------|-------------|
+| `colleges` | 130+ institutions with NAAC, NIRF, fees, placement, description |
+| `courses` | Per-college courses with level, duration, seats, entrance exam |
+| `college_contacts` | Phones, emails, websites (normalized, 1-to-many) |
+| `college_reviews` | Student reviews with rating (1–5), pros/cons |
+| `users` | Email+password or Google OAuth accounts |
+| `shortlists` | Session-based saved colleges |
+| `timeline_events` | Entrance exam calendar |
+| `colleges_fts` | FTS5 virtual table with BM25 relevance triggers |
 
-1. Install a driver (`npm install mysql2` or `npm install pg`)
-2. Rewrite `connection.js` to export the same four functions
-   (`get`, `all`, `run`, `exec`) using that driver
-3. Adjust `?` placeholders to `?`/named params as needed by the driver
-   (mysql2 uses `?` already; pg uses `$1, $2...`, which would need a small
-   helper to convert)
-
-Nothing in `routes/` or `seed.js` needs to change.
+Switching to PostgreSQL/MySQL is a single-file change in `backend/db/connection.js`.
 
 ---
 
-## Database schema
+## 🔌 API Reference
 
-```
-colleges (id, name, slug, city, state, stream, college_type, affiliation,
-          naac_grade, established_year, description, address, pincode,
-          avg_fees_per_year, total_courses, created_at, updated_at)
-
-courses (id, college_id → colleges.id, name, level, duration_years,
-         seats, fees_per_year, entrance_exam)
-
-college_contacts (id, college_id → colleges.id, contact_type,
-                   contact_value, label)
-
-shortlists (id, session_id, college_id → colleges.id, created_at)
-```
-
-One college has many courses and many contacts (1-to-many, normalized,
-`ON DELETE CASCADE`). Indexes are on every column used for filtering or
-joining (`name`, `city`, `state`, `stream`, `college_type`, `college_id`).
-
-`shortlists` is keyed by a random `session_id` generated client-side and
-stored in `localStorage` — it lets a visitor save colleges to compare
-without building a full login system.
-
----
-
-## API reference
-
-All responses are JSON. Base URL: `/api`.
+Base URL: `/api` — all responses are JSON.
 
 ### Colleges
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/colleges` | No | Search/filter/sort/paginate |
+| GET | `/colleges/stats` | No | Aggregate stats (cached 5 min) |
+| GET | `/colleges/meta/filters` | No | Dynamic dropdown values (cached 5 min) |
+| GET | `/colleges/autocomplete` | No | FTS5 instant suggestions |
+| GET | `/colleges/:id` | No | Full college detail |
+| POST | `/colleges` | Admin | Create college |
+| PUT | `/colleges/:id` | Admin | Update college |
+| DELETE | `/colleges/:id` | Admin | Delete college (cascades) |
 
+**Search query params** (`GET /colleges`):
+`q`, `stream`, `state`, `city`, `type`, `naac`, `max_fees`, `exam`, `sort`, `page`, `limit`
+
+### Auth
 | Method | Endpoint | Description |
-|---|---|---|
-| GET | `/colleges` | Search/filter/sort/paginate (see query params below) |
-| GET | `/colleges/meta/filters` | Distinct streams, states, types, NAAC grades, fee range — used to populate dropdowns |
-| GET | `/colleges/:id` | Full detail: college + courses + contacts |
-| POST | `/colleges` | Create a college (with optional nested `courses[]`, `contacts[]`) |
-| PUT | `/colleges/:id` | Update top-level college fields |
-| DELETE | `/colleges/:id` | Delete a college (cascades to its courses/contacts) |
+|--------|----------|-------------|
+| POST | `/auth/register` | Create account → returns `201` + JWT |
+| POST | `/auth/login` | Email/password login → JWT |
+| POST | `/auth/google` | Google OAuth → JWT |
+| GET | `/auth/me` | Current user (no `password_hash` exposed) |
+| PUT | `/auth/profile` | Update name / picture / password |
+| POST | `/auth/forgot-password` | Send reset token |
+| POST | `/auth/reset-password` | Set new password |
 
-**`GET /colleges` query params** (all optional, combinable):
-
-| Param | Example | Behaviour |
-|---|---|---|
-| `q` | `q=computer science` | Free text across name, city, state, description, **and course names** |
-| `stream` | `stream=Engineering` | Exact match |
-| `state` | `state=Maharashtra` | Exact match |
-| `city` | `city=Mumbai` | Exact match |
-| `type` | `type=Government` | college_type exact match |
-| `naac` | `naac=A++` | Exact match |
-| `max_fees` | `max_fees=200000` | avg_fees_per_year ≤ value |
-| `exam` | `exam=NEET` | Colleges offering a course with a matching entrance exam |
-| `sort` | `sort=fees_low` | `name` \| `fees_low` \| `fees_high` \| `established` |
-| `page` | `page=2` | Default 1 |
-| `limit` | `limit=12` | Default 12, max 50 |
-
-Example: `GET /api/colleges?stream=Engineering&max_fees=250000&sort=fees_low&page=1`
-
-### Courses
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/courses?q=...&level=...&entrance_exam=...` | Search courses across all colleges |
-| GET | `/courses/college/:collegeId` | All courses for one college |
-| POST | `/courses/college/:collegeId` | Add a course |
-| PUT | `/courses/:id` | Update a course |
-| DELETE | `/courses/:id` | Delete a course |
-
-### Contacts
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/contacts/college/:collegeId` | All contact entries for one college |
-| POST | `/contacts/college/:collegeId` | Add a contact (`contact_type`, `contact_value`, `label`) |
-| DELETE | `/contacts/:id` | Delete a contact |
-
-### Shortlist (session-based, no login)
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/shortlist/:sessionId` | List shortlisted colleges |
-| POST | `/shortlist/:sessionId` | Add `{ college_id }` |
-| DELETE | `/shortlist/:sessionId/:collegeId` | Remove one |
-
-### Health
-
-`GET /api/health` → `{ status: "ok", time: ... }`
+### Other Endpoints
+- `GET /api/courses?q=&level=&entrance_exam=` — Search courses
+- `GET /api/reviews/:college_id` — College reviews
+- `POST /api/reviews/:college_id` — Submit review (auth required)
+- `GET /api/shortlist/:sessionId` — Session-based shortlist
+- `GET /api/exams` — Upcoming exams
+- `GET /api/news` — Education news
+- `POST /api/predict` — AI college prediction
+- `GET /api/health` — Health check
 
 ---
 
-## Frontend
+## 🧪 Testing
 
-Plain HTML/CSS/JS, no build step or framework — open `frontend/index.html`
-served by Express, or point any static server at the `frontend/` folder
-(update `API_BASE` in `app.js` if hosting separately).
+```bash
+# In one terminal:
+npm start
 
-**Design notes:** the visual language is built around the Indian admissions
-season specifically (NAAC grades, entrance exams, "admit card" search panel,
-index-card-style result tiles with a verified-grade corner stamp) rather than
-a generic dashboard look. Palette: deep navy + marigold accent on warm paper.
-Type: serif display headings (Source Serif 4) + Inter for UI + JetBrains Mono
-for data (fees, codes, counts).
+# In another:
+npm run test:smoke
+```
 
-**Features:**
-- Free-text search across college name, city, state, description, and course names
-- Stream filter chips (Engineering, Medical, Law, Management, Arts, Commerce, Science, Design)
-- Advanced filters: state, institution type, NAAC grade, max fees, sort order
-- Paginated results grid
-- Click-through detail view: full course table (duration, seats, fees, entrance exam) + clickable contacts (`tel:`, `mailto:`, website)
-- Shortlist: save colleges to a drawer for later comparison, persisted server-side per anonymous session
-- Responsive down to mobile; visible keyboard focus; `prefers-reduced-motion` respected
+16 smoke tests cover: health, college search/filter, auth register/login/me (including checking no sensitive fields leak), shortlist CRUD, 404 handling.
 
 ---
 
-## Known limitations / next steps
+## 🚢 Deployment
 
-- Search uses indexed `LIKE` queries, which is plenty fast at this dataset
-  size. For a much larger catalogue, swap to SQLite FTS5 (or your SQL
-  engine's full-text search) inside `connection.js`/`colleges.js` without
-  changing the route contracts.
-- The shortlist has no real authentication — it's scoped to a random ID in
-  `localStorage`, which is fine for "save for this browser session" but
-  wouldn't survive a cleared cache or follow a user across devices. A real
-  accounts system would replace `session_id` with a `user_id`.
-- Only 20 sample institutions are seeded. The schema and API already support
-  any number of colleges/courses/contacts — add more via `seed.js` or the
-  `POST` endpoints.
+1. **Set a real `JWT_SECRET`** — never deploy with the default value
+2. Set `ALLOWED_ORIGIN` to your production domain
+3. Set `GOOGLE_CLIENT_ID` if using Google Sign-In
+4. Run `npm run seed` then `npm run seed:admin`
+5. Start with `npm start` behind a reverse proxy (nginx/Caddy)
+
+For process management, use `PM2`:
+```bash
+npm install -g pm2
+pm2 start server.js --name pathshalakhoj
+pm2 startup
+pm2 save
+```
+
+---
+
+## 📜 License
+
+MIT — see [LICENSE](LICENSE) for details.

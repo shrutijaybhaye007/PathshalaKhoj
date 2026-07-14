@@ -6,8 +6,9 @@ const { get, run } = require('../db/connection');
 
 const router = express.Router();
 
-// Read environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'pk_fallback_jwt_secret_key_12984';
+// Environment variables — JWT_SECRET is validated at server startup; app
+// will have already exited if it is missing (see server.js).
+const JWT_SECRET       = process.env.JWT_SECRET;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
@@ -36,67 +37,45 @@ router.post('/google', async (req, res) => {
       return res.status(400).json({ error: 'No credential token provided.' });
     }
 
-    let email, name, picture;
-
-    // Graceful bypass/development helper if GOOGLE_CLIENT_ID is not configured
-    if (!GOOGLE_CLIENT_ID) {
-      console.warn('WARNING: GOOGLE_CLIENT_ID is not set in env. Simulating auth for testing.');
-      // Extract payload from decoded JWT header/body (since it's a JWT anyway)
-      try {
-        const payloadBase64 = credential.split('.')[1];
-        const payload = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
-        email = payload.email;
-        name = payload.name;
-        picture = payload.picture;
-      } catch {
-        // Fallback demo user if token isn't a valid JWT
-        email = 'demo.user@gmail.com';
-        name = 'Demo Student';
-        picture = '';
-      }
-    } else {
-      // Real Google verification
-      const ticket = await googleClient.verifyIdToken({
-        idToken: credential,
-        audience: GOOGLE_CLIENT_ID,
+    // Google Sign-In requires GOOGLE_CLIENT_ID to be set.
+    // The auth bypass has been removed — configure GOOGLE_CLIENT_ID in .env.
+    if (!googleClient) {
+      return res.status(503).json({
+        error: 'Google Sign-In is not configured on this server. Please use email/password login.',
       });
-      const payload = ticket.getPayload();
-      email = payload.email;
-      name = payload.name;
-      picture = payload.picture;
     }
+
+    // Verify the credential against Google's servers (signature validated).
+    const ticket = await googleClient.verifyIdToken({
+      idToken:  credential,
+      audience: GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name, picture } = payload;
 
     if (!email) {
       return res.status(400).json({ error: 'Failed to extract email from Google credential.' });
     }
 
-    // Check if user exists in database
+    // Find or create the user account.
     let user = get('SELECT id, email, name, picture, role FROM users WHERE email = ?', [email]);
 
     if (!user) {
-      // Create user as a standard 'user'
       const result = run(
         'INSERT INTO users (email, name, picture, role) VALUES (?, ?, ?, ?)',
-        [email, name, picture, 'user']
+        [email, name, picture || null, 'user']
       );
-      user = {
-        id: result.lastInsertRowid,
-        email,
-        name,
-        picture,
-        role: 'user'
-      };
+      user = { id: result.lastInsertRowid, email, name, picture: picture || null, role: 'user' };
     } else {
-      // Update name and picture if they changed
+      // Sync name/picture from Google in case they changed.
       run(
-        'UPDATE users SET name = ?, picture = ?, updated_at = datetime(\'now\') WHERE email = ?',
-        [name, picture, email]
+        "UPDATE users SET name = ?, picture = ?, updated_at = datetime('now') WHERE email = ?",
+        [name, picture || null, email]
       );
-      user.name = name;
-      user.picture = picture;
+      user.name    = name;
+      user.picture = picture || null;
     }
 
-    // Sign session JWT
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
       JWT_SECRET,
@@ -127,7 +106,7 @@ router.post('/register', (req, res) => {
 
     const existingUser = get('SELECT id FROM users WHERE email = ?', [email]);
     if (existingUser) {
-      return res.status(400).json({ error: 'An account with this email already exists.' });
+      return res.status(409).json({ error: 'An account with this email already exists. Please sign in instead.' });
     }
 
     const salt = crypto.randomBytes(8).toString('hex');
@@ -145,7 +124,7 @@ router.post('/register', (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({
+    res.status(201).json({
       token,
       user: { id: result.lastInsertRowid, email, name, role: 'user' }
     });
@@ -269,15 +248,23 @@ router.get('/me', (req, res) => {
       return res.status(401).json({ error: 'Unauthorized. No token provided.' });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token   = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Fetch fresh user state from DB
-    const user = get('SELECT id, email, name, picture, role, jee_rank, neet_rank, cat_percentile, board_percentage, academic_stream FROM users WHERE id = ?', [decoded.id]);
-    if (!user) {
+    // Fetch fresh user state — never expose password_hash or reset tokens.
+    const row = get(
+      `SELECT id, email, name, picture, role,
+              jee_rank, neet_rank, cat_percentile, board_percentage, academic_stream,
+              CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END AS has_local_password
+       FROM users WHERE id = ?`,
+      [decoded.id]
+    );
+    if (!row) {
       return res.status(401).json({ error: 'User no longer exists.' });
     }
 
+    // Convert SQLite integer flag to boolean
+    const user = { ...row, has_local_password: row.has_local_password === 1 };
     res.json({ user });
   } catch (err) {
     res.status(401).json({ error: 'Session expired or invalid token.' });
@@ -295,10 +282,14 @@ router.put('/profile', (req, res) => {
       return res.status(401).json({ error: 'Unauthorized. No token provided.' });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token   = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const user = get('SELECT * FROM users WHERE id = ?', [decoded.id]);
+    // Only fetch the fields we actually need (no SELECT *).
+    const user = get(
+      'SELECT id, email, name, picture, role, password_hash FROM users WHERE id = ?',
+      [decoded.id]
+    );
     if (!user) {
       return res.status(401).json({ error: 'User account not found.' });
     }
@@ -354,11 +345,21 @@ router.put('/profile', (req, res) => {
     params.push(user.id);
     run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
 
-    const updatedUser = get('SELECT id, email, name, picture, role, jee_rank, neet_rank, cat_percentile, board_percentage, academic_stream FROM users WHERE id = ?', [user.id]);
-    res.json({ user: updatedUser });
+    const updatedUser = get(
+      `SELECT id, email, name, picture, role,
+              jee_rank, neet_rank, cat_percentile, board_percentage, academic_stream,
+              CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END AS has_local_password
+       FROM users WHERE id = ?`,
+      [user.id]
+    );
+    const responseUser = { ...updatedUser, has_local_password: updatedUser.has_local_password === 1 };
+    res.json({ user: responseUser });
   } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Invalid or expired session token.' });
+    }
     console.error('Profile update error:', err);
-    res.status(401).json({ error: 'Failed to update profile. Invalid session token.' });
+    res.status(500).json({ error: 'Failed to update profile.' });
   }
 });
 

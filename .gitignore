@@ -2,7 +2,7 @@
 node_modules/
 **/node_modules/
 
-# Database files
+# Database files — never commit the live database
 *.sqlite
 *.sqlite3
 *.db
@@ -10,12 +10,20 @@ node_modules/
 *.db-wal
 **/database.sqlite
 backend/db/*.db
+database.sqlite
 
-# Environment files
+# Environment files — never commit secrets
 .env
 **/.env
 
-# OS / editor / logs
+# Dev / editor artifacts
 .DS_Store
 *.log
+*.backup.html
+*_backup.html
+task.md
+merge_seed.js
 
+# Build output
+dist/
+build/

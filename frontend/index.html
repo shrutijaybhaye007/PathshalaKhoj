@@ -53,7 +53,7 @@
         <a href="exams.html" class="nav-link">
           Exams
         </a>
-        <a href="predict.html" class="nav-link" class="nav-link-highlight" style="font-weight: bold;">AI Predictor ✨</a>
+        <a href="predict.html" class="nav-link nav-link-highlight" style="font-weight: bold;">AI Predictor ✨</a>
 
         
         <!-- 2. Actions -->
@@ -976,6 +976,9 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="global.js"></script>
   <script src="app.js"></script>
+  <!-- Auth, profile & admin logic are in separate modules to keep app.js focused -->
+  <script src="js/auth.module.js"></script>
+  <script src="js/admin.module.js"></script>
 
   <!-- ============ GLOBAL FOOTER ============ -->
   <footer style="background: var(--brand); color: #fff; padding: 60px 24px 30px; margin-top: 60px;">

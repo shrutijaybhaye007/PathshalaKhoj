@@ -72,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       const isHidden = profileDropdownCard.hidden;
       profileDropdownCard.hidden = !isHidden;
+      // Keep aria-expanded in sync for screen readers
+      profileTriggerBtn.setAttribute('aria-expanded', String(isHidden));
       if (profileDropdownContainer) {
         profileDropdownContainer.classList.toggle('open', isHidden);
       }
@@ -80,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
       if (profileDropdownContainer && !profileDropdownContainer.contains(e.target)) {
         profileDropdownCard.hidden = true;
+        profileTriggerBtn.setAttribute('aria-expanded', 'false');
         profileDropdownContainer.classList.remove('open');
       }
     });

@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { get } = require('../db/connection');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pk_fallback_jwt_secret_key_12984';
+// JWT_SECRET is guaranteed to be set: server.js validates and exits if missing.
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
  * Middleware to require valid JWT authentication.

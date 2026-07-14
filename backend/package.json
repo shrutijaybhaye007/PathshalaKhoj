@@ -1,13 +1,15 @@
 {
-  "name": "college-finder-backend",
-  "version": "1.0.0",
-  "description": "Backend API for India College Finder",
+  "name": "pathshalakhoj-backend",
+  "version": "2.0.0",
+  "description": "Backend API for PathshalaKhoj — India College Finder",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
+    "dev": "nodemon server.js",
     "seed": "node db/seed.js",
-    "dev": "node server.js"
+    "seed:admin": "node db/seed-admin.js",
+    "test:smoke": "node smoke.test.js"
   },
   "engines": {
     "node": ">=22.5.0"
@@ -17,9 +19,14 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
     "google-auth-library": "^10.9.0",
+    "helmet": "^8.2.0",
     "indian-colleges": "^1.1.1",
     "jsonwebtoken": "^9.0.3",
     "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

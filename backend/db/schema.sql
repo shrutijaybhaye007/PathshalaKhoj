@@ -120,14 +120,9 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at      TEXT DEFAULT (datetime('now'))
 );
 
--- Seed default admin account
-INSERT OR IGNORE INTO users (email, name, role, password_hash)
-VALUES (
-    'admin@pathshalakhoj.com',
-    'System Admin',
-    'admin',
-    '461e7123984db8c8:1d82cdf777e9e0c25262870a503ccdb9cb458260f7ad9ef94cd984c0aee520f4935095fba53687e9941dd7677dc70a0269ef69abaf59bad8fecd40b676ad7ab8'
-);
+-- IMPORTANT: Do NOT hardcode admin credentials in this file.
+-- Run `node db/seed-admin.js` after first boot to create the admin account.
+-- The script reads ADMIN_EMAIL and ADMIN_PASSWORD from the .env file.
 
 CREATE TABLE IF NOT EXISTS timeline_events (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -164,8 +159,12 @@ CREATE TABLE IF NOT EXISTS college_reviews (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     college_id      INTEGER NOT NULL REFERENCES colleges(id) ON DELETE CASCADE,
     author_name     TEXT NOT NULL,
-    rating          INTEGER NOT NULL,
+    rating          INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
     review_text     TEXT NOT NULL,
+    user_id         INTEGER,
+    pros            TEXT,
+    cons            TEXT,
+    status          TEXT DEFAULT 'approved',
     created_at      TEXT DEFAULT (datetime('now'))
 );
 

@@ -9,11 +9,7 @@ const router = express.Router();
 const { get, all, run } = require('../db/connection');
 const { requireAuth } = require('../middlewares/authMiddleware');
 
-// Add missing columns safely
-try { run('ALTER TABLE college_reviews ADD COLUMN user_id INTEGER;'); } catch(e) {}
-try { run('ALTER TABLE college_reviews ADD COLUMN pros TEXT;'); } catch(e) {}
-try { run('ALTER TABLE college_reviews ADD COLUMN cons TEXT;'); } catch(e) {}
-try { run('ALTER TABLE college_reviews ADD COLUMN status TEXT DEFAULT \'approved\';'); } catch(e) {}
+// Note: user_id, pros, cons, status columns are added via server.js migrations on startup.
 
 /**
  * GET /api/reviews/:college_id

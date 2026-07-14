@@ -1,5 +1,5 @@
 /**
- * India College Finder — Backend Server
+ * PathshalaKhoj — Backend Server
  *
  * Express app exposing a REST API over a SQLite database of Indian
  * colleges, their courses, and their contact details. Also serves the
@@ -7,60 +7,122 @@
  */
 require('dotenv').config();
 
+// ─── Environment validation — fail fast rather than run insecurely ────────
+if (!process.env.JWT_SECRET) {
+  console.error('\n[FATAL] JWT_SECRET environment variable is not set.');
+  console.error('[FATAL] Copy backend/.env.example to backend/.env and set a strong JWT_SECRET.');
+  console.error('[FATAL] Refusing to start in an insecure state.\n');
+  process.exit(1);
+}
+
 const path = require('node:path');
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
-const collegesRouter = require('./routes/colleges');
-const coursesRouter = require('./routes/courses');
-const contactsRouter = require('./routes/contacts');
-const shortlistRouter = require('./routes/shortlist');
-const authRouter = require('./routes/auth');
-const examsRouter = require('./routes/exams');
-const newsRouter = require('./routes/news');
+const collegesRouter     = require('./routes/colleges');
+const coursesRouter      = require('./routes/courses');
+const contactsRouter     = require('./routes/contacts');
+const shortlistRouter    = require('./routes/shortlist');
+const authRouter         = require('./routes/auth');
+const examsRouter        = require('./routes/exams');
+const newsRouter         = require('./routes/news');
 const applicationsRouter = require('./routes/applications');
-const predictRouter = require('./routes/predict');
-const reviewsRouter = require('./routes/reviews');
-const { initDb } = require('./db/init');
+const predictRouter      = require('./routes/predict');
+const reviewsRouter      = require('./routes/reviews');
+const { initDb }         = require('./db/init');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 4000;
 
 // Make sure tables exist even if someone forgets to run the seed script.
 initDb();
 
-// Run schema migrations for user academic profiles
+// ─── Run idempotent schema migrations ─────────────────────────────────────
+// These ALTER TABLE calls are safe to run on every boot; they silently
+// succeed when the column already exists and skip when it doesn't.
 const { run: runDb } = require('./db/connection');
-try { runDb("ALTER TABLE users ADD COLUMN jee_rank INTEGER;"); } catch(e){}
-try { runDb("ALTER TABLE users ADD COLUMN neet_rank INTEGER;"); } catch(e){}
-try { runDb("ALTER TABLE users ADD COLUMN cat_percentile REAL;"); } catch(e){}
-try { runDb("ALTER TABLE users ADD COLUMN board_percentage REAL;"); } catch(e){}
-try { runDb("ALTER TABLE users ADD COLUMN academic_stream TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE users ADD COLUMN password_reset_token TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE users ADD COLUMN password_reset_expires TEXT;"); } catch(e){}
 
-// Run schema migrations for new comprehensive college fields
-try { runDb("ALTER TABLE colleges ADD COLUMN student_rating REAL;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN top_recruiters TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN scholarships_info TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN application_deadline TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN placement_rate REAL;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN hostel_available INTEGER;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN contact_email TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN contact_phone TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN website TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN campus_size TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE colleges ADD COLUMN facilities TEXT;"); } catch(e){}
-// college_reviews extra columns
-try { runDb("ALTER TABLE college_reviews ADD COLUMN user_id INTEGER;"); } catch(e){}
-try { runDb("ALTER TABLE college_reviews ADD COLUMN pros TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE college_reviews ADD COLUMN cons TEXT;"); } catch(e){}
-try { runDb("ALTER TABLE college_reviews ADD COLUMN status TEXT DEFAULT 'approved';"); } catch(e){}
+const migrations = [
+  // Users — academic profile
+  "ALTER TABLE users ADD COLUMN jee_rank INTEGER",
+  "ALTER TABLE users ADD COLUMN neet_rank INTEGER",
+  "ALTER TABLE users ADD COLUMN cat_percentile REAL",
+  "ALTER TABLE users ADD COLUMN board_percentage REAL",
+  "ALTER TABLE users ADD COLUMN academic_stream TEXT",
+  "ALTER TABLE users ADD COLUMN password_reset_token TEXT",
+  "ALTER TABLE users ADD COLUMN password_reset_expires TEXT",
+  // Colleges — extended data
+  "ALTER TABLE colleges ADD COLUMN student_rating REAL",
+  "ALTER TABLE colleges ADD COLUMN top_recruiters TEXT",
+  "ALTER TABLE colleges ADD COLUMN scholarships_info TEXT",
+  "ALTER TABLE colleges ADD COLUMN application_deadline TEXT",
+  "ALTER TABLE colleges ADD COLUMN placement_rate REAL",
+  "ALTER TABLE colleges ADD COLUMN hostel_available INTEGER",
+  "ALTER TABLE colleges ADD COLUMN contact_email TEXT",
+  "ALTER TABLE colleges ADD COLUMN contact_phone TEXT",
+  "ALTER TABLE colleges ADD COLUMN website TEXT",
+  "ALTER TABLE colleges ADD COLUMN campus_size TEXT",
+  "ALTER TABLE colleges ADD COLUMN facilities TEXT",
+  // Reviews — extended data
+  "ALTER TABLE college_reviews ADD COLUMN user_id INTEGER",
+  "ALTER TABLE college_reviews ADD COLUMN pros TEXT",
+  "ALTER TABLE college_reviews ADD COLUMN cons TEXT",
+  "ALTER TABLE college_reviews ADD COLUMN status TEXT DEFAULT 'approved'",
+];
 
-app.use(cors());
-app.use(express.json());
+migrations.forEach(sql => {
+  try { runDb(sql); } catch (_) { /* column already exists — expected */ }
+});
 
-// Simple request log — handy when demoing the API.
+// ─── Security: Helmet (HTTP headers) ──────────────────────────────────────
+app.use(helmet({
+  // Allow Google Fonts, our own API, and Wikipedia (for wiki-preview)
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:  ["'self'"],
+      scriptSrc:   ["'self'", "'unsafe-inline'", "https://accounts.google.com", "https://apis.google.com"],
+      styleSrc:    ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:     ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:      ["'self'", "data:", "https:", "blob:"],
+      connectSrc:  ["'self'", "https://en.wikipedia.org", "https://accounts.google.com"],
+      frameSrc:    ["https://accounts.google.com"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Required for Google Identity Services
+}));
+
+// ─── Security: CORS — only allow our own origin ───────────────────────────
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || `http://localhost:${PORT}`;
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, Postman) and
+    // same-origin browser requests (origin === undefined when same-origin).
+    if (!origin || origin === ALLOWED_ORIGIN) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: Origin '${origin}' is not allowed.`));
+  },
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '1mb' }));
+
+// ─── Rate limiting — auth endpoints only ──────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs:        15 * 60 * 1000, // 15 minutes
+  max:             20,              // 20 attempts per window per IP
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message:         { error: 'Too many requests. Please try again after 15 minutes.' },
+  skipSuccessfulRequests: false,
+});
+app.use('/api/auth/login',           authLimiter);
+app.use('/api/auth/register',        authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+
+// ─── Request logger ───────────────────────────────────────────────────────
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -69,29 +131,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- API routes ---
-app.use('/api/colleges', collegesRouter);
-app.use('/api/courses', coursesRouter);
-app.use('/api/contacts', contactsRouter);
-app.use('/api/shortlist', shortlistRouter);
-app.use('/api/auth', authRouter);
-app.use('/api/exams', examsRouter);
-app.use('/api/news', newsRouter);
+// ─── API routes ───────────────────────────────────────────────────────────
+app.use('/api/colleges',     collegesRouter);
+app.use('/api/courses',      coursesRouter);
+app.use('/api/contacts',     contactsRouter);
+app.use('/api/shortlist',    shortlistRouter);
+app.use('/api/auth',         authRouter);
+app.use('/api/exams',        examsRouter);
+app.use('/api/news',         newsRouter);
 app.use('/api/applications', applicationsRouter);
-app.use('/api/predict', predictRouter);
-app.use('/api/reviews', reviewsRouter);
+app.use('/api/predict',      predictRouter);
+app.use('/api/reviews',      reviewsRouter);
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+  res.json({ status: 'ok', time: new Date().toISOString(), version: '2.0.0' });
 });
 
-// --- Serve the static frontend (so `npm start` is the whole app) ---
+// ─── Serve static frontend ────────────────────────────────────────────────
 const frontendPath = path.join(__dirname, '..', 'frontend');
 
-// Disable ETags + cache in development so CSS/JS changes show immediately.
 app.set('etag', false);
 app.use((req, res, next) => {
-  // Only apply no-cache to frontend static files (not API responses)
   if (!req.path.startsWith('/api')) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.set('Pragma', 'no-cache');
@@ -105,19 +165,22 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-// --- 404 handler for unmatched API routes ---
+// ─── 404 for unmatched API routes ─────────────────────────────────────────
 app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'Not found.' });
+  res.status(404).json({ error: 'API endpoint not found.' });
 });
 
-// --- Generic error handler ---
+// ─── Global error handler ─────────────────────────────────────────────────
 app.use((err, req, res, next) => {
+  if (err.message && err.message.startsWith('CORS:')) {
+    return res.status(403).json({ error: err.message });
+  }
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error.' });
 });
 
 app.listen(PORT, () => {
-  console.log(`\nIndia College Finder API running at http://localhost:${PORT}`);
+  console.log(`\nPathshalaKhoj API running at http://localhost:${PORT}`);
   console.log(`Frontend served from the same URL.`);
-  console.log(`Try: http://localhost:${PORT}/api/colleges?q=delhi\n`);
+  console.log(`Allowed CORS origin: ${ALLOWED_ORIGIN}\n`);
 });

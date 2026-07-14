@@ -214,16 +214,21 @@ router.get('/', (req, res) => {
  */
 router.get('/stats', (req, res) => {
   try {
-    const totalColleges = get('SELECT COUNT(*) as count FROM colleges').count;
-    const totalExams = get('SELECT COUNT(*) as count FROM timeline_events').count;
-    const avgPlacementObj = get("SELECT AVG(CASE WHEN avg_placement_package >= 1000 THEN avg_placement_package / 100000.0 ELSE avg_placement_package END) as avg_package FROM colleges WHERE avg_placement_package > 0");
-    const avgPlacement = avgPlacementObj && avgPlacementObj.avg_package ? avgPlacementObj.avg_package.toFixed(1) : '0.0';
+    const totalColleges   = get('SELECT COUNT(*) as count FROM colleges').count;
+    const totalExams      = get('SELECT COUNT(*) as count FROM timeline_events').count;
+    const avgPlacementObj = get(
+      `SELECT AVG(CASE WHEN avg_placement_package >= 1000
+                       THEN avg_placement_package / 100000.0
+                       ELSE avg_placement_package END) as avg_package
+       FROM colleges WHERE avg_placement_package > 0`
+    );
+    const avgPlacement = avgPlacementObj && avgPlacementObj.avg_package
+      ? avgPlacementObj.avg_package.toFixed(1)
+      : '0.0';
 
-    res.json({
-      collegesCount: totalColleges,
-      examsCount: totalExams,
-      avgPlacement: avgPlacement
-    });
+    // Cache for 5 minutes — stats change rarely
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    res.json({ collegesCount: totalColleges, examsCount: totalExams, avgPlacement });
   } catch (err) {
     console.error('GET /api/colleges/stats error:', err);
     res.status(500).json({ error: 'Failed to fetch database statistics.' });
@@ -384,6 +389,8 @@ router.get('/meta/filters', (req, res) => {
       ? all('SELECT DISTINCT city FROM colleges WHERE state = ? ORDER BY city', [state])
       : all('SELECT DISTINCT city FROM colleges ORDER BY city');
 
+    // Cache filter metadata for 5 minutes — values change only when colleges are added
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json({
       streams:     streams.map((r) => r.stream),
       states:      states.map((r) => r.state),

@@ -63,10 +63,13 @@ router.post('/:sessionId', (req, res) => {
  */
 router.delete('/:sessionId/:collegeId', (req, res) => {
   try {
-    run(
+    const result = run(
       'DELETE FROM shortlists WHERE session_id = ? AND college_id = ?',
       [req.params.sessionId, req.params.collegeId]
     );
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'College not found in shortlist.' });
+    }
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/shortlist/:sessionId/:collegeId error:', err);
