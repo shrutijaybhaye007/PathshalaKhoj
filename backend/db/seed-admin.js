@@ -30,7 +30,7 @@ if (password.length < 8) {
 }
 
 function hashPassword(pwd, salt) {
-  return crypto.pbkdf2Sync(pwd, salt, 1000, 64, 'sha512').toString('hex');
+  return crypto.pbkdf2Sync(pwd, salt, 210000, 64, 'sha512').toString('hex');
 }
 
 const salt         = crypto.randomBytes(8).toString('hex');

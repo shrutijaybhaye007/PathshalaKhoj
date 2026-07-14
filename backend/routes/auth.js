@@ -15,7 +15,7 @@ const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : nul
 
 // Helper to hash password using PBKDF2
 function hashPassword(password, salt) {
-  return crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+  return crypto.pbkdf2Sync(password, salt, 210000, 64, 'sha512').toString('hex');
 }
 
 /**
