@@ -31,6 +31,7 @@ const newsRouter         = require('./routes/news');
 const applicationsRouter = require('./routes/applications');
 const predictRouter      = require('./routes/predict');
 const reviewsRouter      = require('./routes/reviews');
+const adminRouter        = require('./routes/admin');
 const { initDb }         = require('./db/init');
 
 const app  = express();
@@ -142,6 +143,7 @@ app.use('/api/news',         newsRouter);
 app.use('/api/applications', applicationsRouter);
 app.use('/api/predict',      predictRouter);
 app.use('/api/reviews',      reviewsRouter);
+app.use('/api/admin',        adminRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString(), version: '2.0.0' });

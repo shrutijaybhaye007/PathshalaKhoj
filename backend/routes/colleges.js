@@ -1485,10 +1485,19 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Valid contact_email is required.' });
     }
 
-    const slug = `${name}-${city}`
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+    const slug = (() => {
+      const base = `${name.trim()}-${city.trim()}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      // Deduplicate: append counter if slug already taken
+      let candidate = base;
+      let n = 1;
+      while (get('SELECT id FROM colleges WHERE slug = ?', [candidate])) {
+        candidate = `${base}-${++n}`;
+      }
+      return candidate;
+    })();
 
     const result = run(
       `INSERT INTO colleges
@@ -1499,11 +1508,11 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
          contact_email, contact_phone, website,
          student_rating, top_recruiters, scholarships_info, application_deadline, gallery_images)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, slug, city, state, stream, college_type, affiliation || null,
+      [name.trim(), slug, city.trim(), state.trim(), stream, college_type, affiliation || null,
         naac_grade || null, established_year || null, description || null,
         address || null, pincode || null, avg_fees_per_year || null,
         req.body.nirf_ranking || null, req.body.avg_placement_package || null,
-        req.body.highest_placement_package || null, courses.length,
+        req.body.highest_placement_package || null, 0, // total_courses set by trigger/sync below
         placement_rate || null, campus_size || null, facilities || null,
         hostel_available !== undefined ? hostel_available : null,
         contact_email || null, contact_phone || null, website || null,
@@ -1513,14 +1522,28 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
 
     const collegeId = result.lastInsertRowid;
 
+    // Insert courses into college_courses junction table (not into courses directly)
     for (const course of courses) {
+      // Find or create the master course entry
+      let masterCourse = get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
+      if (!masterCourse) {
+        const r = run(
+          'INSERT INTO courses (name, level, duration_years, degree_type) VALUES (?, ?, ?, ?)',
+          [course.name, course.level || 'UG', course.duration_years || null, course.degree_type || null]
+        );
+        masterCourse = { id: r.lastInsertRowid };
+      }
       run(
-        `INSERT INTO courses (college_id, name, level, duration_years, seats, fees_per_year, entrance_exam)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [collegeId, course.name, course.level, course.duration_years || null,
-          course.seats || null, course.fees_per_year || null, course.entrance_exam || null]
+        `INSERT OR IGNORE INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [collegeId, masterCourse.id, course.fees_per_year || null,
+          course.seats || null, course.entrance_exam || null, course.eligibility || null]
       );
     }
+
+    // Sync total_courses count
+    run('UPDATE colleges SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = ?) WHERE id = ?',
+      [collegeId, collegeId]);
 
     for (const contact of contacts) {
       run(
@@ -1572,9 +1595,11 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
       'avg_fees_per_year', 'nirf_ranking', 'avg_placement_package',
       'highest_placement_package',
       'placement_rate', 'campus_size', 'facilities', 'hostel_available',
-      'contact_email', 'contact_phone', 'website', 'courses',
+      'contact_email', 'contact_phone', 'website',
       'student_rating', 'top_recruiters', 'scholarships_info', 'application_deadline', 'gallery_images'
+      // Note: 'courses' is intentionally omitted — handled below via college_courses junction table
     ];
+
     const updates = [];
     const params = [];
 
@@ -1596,23 +1621,33 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
     // Actually, I should remove it. I'll just leave it and let the Admin JS stringify it if it wants, but wait, the Admin UI uses req.body.courses for the `courses` table loop! 
     // So if it's in the fields array, it will ALSO update the `colleges` table with the stringified array! This is actually perfect!
 
-    // Overwrite courses if provided and it's an array for the secondary table
+    // Overwrite courses if provided (array of course objects)
     if (req.body.courses !== undefined && Array.isArray(req.body.courses)) {
-      // Clear old courses
-      run('DELETE FROM courses WHERE college_id = ?', [req.params.id]);
-      // Insert new ones
+      // Clear old course linkages for this college
+      run('DELETE FROM college_courses WHERE college_id = ?', [req.params.id]);
+      // Re-link courses
       for (const course of req.body.courses) {
+        let masterCourse = get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
+        if (!masterCourse) {
+          const r = run(
+            'INSERT INTO courses (name, level, duration_years, degree_type) VALUES (?, ?, ?, ?)',
+            [course.name, course.level || 'UG', course.duration_years || null, course.degree_type || null]
+          );
+          masterCourse = { id: r.lastInsertRowid };
+        }
         run(
-          `INSERT INTO courses (college_id, name, level, duration_years, seats, fees_per_year, entrance_exam)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [req.params.id, course.name, course.level, course.duration_years || null,
-            course.seats || null, course.fees_per_year || null, course.entrance_exam || null]
+          `INSERT OR IGNORE INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [req.params.id, masterCourse.id, course.fees_per_year || null,
+            course.seats || null, course.entrance_exam || null, course.eligibility || null]
         );
       }
-      // Sync total_courses counter
-      updates.push(`total_courses = ?`);
-      params.push(req.body.courses.length);
+      // Sync total_courses counter from actual junction table count
+      const newCount = get('SELECT COUNT(*) as c FROM college_courses WHERE college_id = ?', [req.params.id]).c;
+      updates.push('total_courses = ?');
+      params.push(newCount);
     }
+    // Remove 'courses' from fields list so it doesn't get written to colleges.courses (TEXT column)
 
     // Overwrite contacts if provided
     if (req.body.contacts !== undefined) {

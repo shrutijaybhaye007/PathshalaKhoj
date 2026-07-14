@@ -56,8 +56,76 @@ try {
       VALUES (new.id, new.name, new.city, new.state, new.description);
     END;
   `);
+
+  // ── total_courses auto-sync triggers ────────────────────────────────────
+  // These keep colleges.total_courses in sync whenever college_courses rows
+  // are inserted or deleted — no manual sync needed after admin edits.
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS cc_ai_sync AFTER INSERT ON college_courses BEGIN
+      UPDATE colleges
+      SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = NEW.college_id)
+      WHERE id = NEW.college_id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS cc_ad_sync AFTER DELETE ON college_courses BEGIN
+      UPDATE colleges
+      SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = OLD.college_id)
+      WHERE id = OLD.college_id;
+    END;
+  `);
 } catch (e) {
-  console.error('Index/FTS creation failed:', e);
+  console.error('Index/FTS/trigger creation failed:', e);
+}
+
+// ── Schema Migrations ──────────────────────────────────────────────────────
+// Tracks which DB migrations have been applied. Each migration runs exactly
+// once. To add a new column or index, add a new entry below.
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      name      TEXT NOT NULL UNIQUE,
+      applied_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
+  const migrations = [
+    {
+      name: 'M001_idx_nirf_ranking',
+      sql:  'CREATE INDEX IF NOT EXISTS idx_colleges_nirf ON colleges(nirf_ranking);',
+    },
+    {
+      name: 'M002_idx_fees_placement',
+      sql: `CREATE INDEX IF NOT EXISTS idx_colleges_fees ON colleges(avg_fees_per_year);
+            CREATE INDEX IF NOT EXISTS idx_colleges_placement ON colleges(avg_placement_package);`,
+    },
+    {
+      name: 'M003_idx_college_courses_composite',
+      sql: 'CREATE INDEX IF NOT EXISTS idx_cc_composite ON college_courses(college_id, course_id);',
+    },
+    {
+      name: 'M004_idx_users_email',
+      sql: 'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);',
+    },
+    {
+      name: 'M005_idx_shortlists_composite',
+      sql: 'CREATE INDEX IF NOT EXISTS idx_shortlists_composite ON shortlists(session_id, college_id);',
+    },
+  ];
+
+  for (const { name, sql } of migrations) {
+    const already = db.prepare('SELECT id FROM schema_migrations WHERE name = ?').get(name);
+    if (!already) {
+      try {
+        db.exec(sql);
+        db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name);
+      } catch (e) {
+        console.warn(`Migration ${name} skipped:`, e.message);
+      }
+    }
+  }
+
+} catch (e) {
+  console.warn('Migrations system error:', e.message);
 }
 
 /**
