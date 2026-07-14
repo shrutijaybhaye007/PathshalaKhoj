@@ -38,10 +38,10 @@ try {
     const nirf = hasNirf ? Math.floor(Math.random() * 200) + 1 : null;
     
     let baseLakhs = c.college_type === 'IIT' || c.college_type === 'IIM' ? 15 : (c.stream === 'Engineering' || c.stream === 'Medical' ? 4 : 2);
-    baseLakhs += Math.floor(Math.random() * 4);
+    baseLakhs += Math.random() * 4;
     
-    const avgPlacement = baseLakhs * 100000;
-    const highPlacement = avgPlacement * (Math.floor(Math.random() * 5) + 2);
+    const avgPlacement = Math.round(baseLakhs * 10) / 10;
+    const highPlacement = Math.round(avgPlacement * (Math.random() * 2 + 1.5) * 10) / 10;
 
     const deadline = `${Math.floor(Math.random() * 28) + 1} ${months[Math.floor(Math.random() * months.length)]} 2026`;
     
