@@ -979,6 +979,8 @@
   <!-- Auth, profile & admin logic are in separate modules to keep app.js focused -->
   <script src="js/auth.module.js"></script>
   <script src="js/admin.module.js"></script>
+  <!-- boot.js must be LAST — calls init() once all modules above are ready -->
+  <script src="js/boot.js"></script>
 
   <!-- ============ GLOBAL FOOTER ============ -->
   <footer style="background: var(--brand); color: #fff; padding: 60px 24px 30px; margin-top: 60px;">

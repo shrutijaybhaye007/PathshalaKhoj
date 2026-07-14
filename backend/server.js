@@ -111,8 +111,8 @@ app.use(express.json({ limit: '1mb' }));
 
 // ─── Rate limiting — auth endpoints only ──────────────────────────────────
 const authLimiter = rateLimit({
-  windowMs:        15 * 60 * 1000, // 15 minutes
-  max:             20,              // 20 attempts per window per IP
+  windowMs:        15 * 60 * 1000,                                   // 15 minutes
+  max:             process.env.NODE_ENV === 'production' ? 20 : 100, // relaxed in dev/test
   standardHeaders: true,
   legacyHeaders:   false,
   message:         { error: 'Too many requests. Please try again after 15 minutes.' },

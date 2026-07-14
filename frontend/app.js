@@ -1861,7 +1861,8 @@ function updateSuggestionHighlight(items, activeSuggestionIndex) {
 // These are loaded via <script> tags in index.html after this file.
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
-init();
+// init() is called by js/boot.js which loads AFTER auth.module.js and admin.module.js,
+// ensuring initUserSession, bindAuthEvents, and bindAdminEvents are all defined first.
 
 // --- Mobile Navigation ---
 const mobileMenuBtn = document.getElementById('mobileMenuBtn');
