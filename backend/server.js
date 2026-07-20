@@ -188,8 +188,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error.' });
 });
 
+const { migrateToPg } = require('./db/migrate-to-pg');
+
 app.listen(PORT, () => {
   console.log(`\nPathshalaKhoj API running at http://localhost:${PORT}`);
   console.log(`Frontend served from the same URL.`);
   console.log(`Allowed CORS origin: ${ALLOWED_ORIGIN}\n`);
+
+  // Run database migration check asynchronously after port is open
+  migrateToPg().catch(err => {
+    console.error('Database initialization warning:', err.message);
+  });
 });

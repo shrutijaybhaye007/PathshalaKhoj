@@ -2,7 +2,8 @@
  * migrate-to-pg.js
  *
  * Migrates local SQLite data (if backend/db/colleges.db exists) to PostgreSQL.
- * If colleges.db does not exist, runs the database seeders directly against PostgreSQL.
+ * If colleges.db does not exist, checks if PostgreSQL is already seeded. If empty,
+ * runs the database seeders directly against PostgreSQL.
  *
  * Usage:
  *   node db/migrate-to-pg.js
@@ -32,10 +33,8 @@ const TABLES = [
 async function migrateToPg() {
   console.log('🚀 Starting PostgreSQL initialization & migration...');
 
-  // 1. Ensure PostgreSQL schema is initialized
   await initDb();
 
-  // 2. Check if local SQLite database file exists
   if (fs.existsSync(SQLITE_DB_PATH)) {
     console.log(`📦 Local SQLite file found at ${SQLITE_DB_PATH}. Starting data migration...`);
 
@@ -99,12 +98,23 @@ async function migrateToPg() {
       }
     }
 
-    // Ensure admin user exists
     await seedAdmin();
     console.log('🎉 Data migration from SQLite to PostgreSQL completed successfully!');
 
   } else {
-    console.log('ℹ️  No local SQLite database file found. Seeding PostgreSQL from scratch...');
+    let existingCount = 0;
+    try {
+      const row = await get("SELECT COUNT(*) as count FROM colleges");
+      existingCount = row ? parseInt(row.count, 10) : 0;
+    } catch (e) {}
+
+    if (existingCount > 0) {
+      console.log(`✅ PostgreSQL database already populated with ${existingCount} colleges. Skipping seeding.`);
+      await seedAdmin();
+      return;
+    }
+
+    console.log('🌱 Seeding PostgreSQL from scratch...');
     await seed();
     await seedAdmin();
     console.log('🎉 PostgreSQL database seeded from scratch successfully!');

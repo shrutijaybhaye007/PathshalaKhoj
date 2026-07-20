@@ -4056,6 +4056,7 @@ async function seed() {
     }
   }
 
+  await exec('BEGIN;');
   for (const college of uniqueColleges) {
     const slug = slugify(college.name, college.city);
 
@@ -4169,6 +4170,7 @@ async function seed() {
       );
     }
   }
+  await exec('COMMIT;');
 
   console.log(`✅ Seeded ${colleges.length} colleges with courses and contacts.`);
   console.log(`   Streams: Engineering, Medical, Management, Law, Arts, Commerce, Science, Design, Junior College (XI–XII)`);
