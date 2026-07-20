@@ -492,7 +492,9 @@ async function handleCollegeFormSubmit(e) {
       el.adminFormPanel.hidden = true;
       el.adminListPanel.hidden = false;
       await loadAdminCollegesList();
-      fetchAndRenderColleges();
+      if (typeof fetchAndRenderColleges === 'function') {
+        fetchAndRenderColleges();
+      }
     } else {
       const data = await res.json();
       showToast(data.error || 'Failed to save college details.', 'error');
@@ -518,7 +520,9 @@ async function deleteCollegeAction(id) {
     if (res.ok) {
       showToast('College deleted successfully.', 'success');
       await loadAdminCollegesList();
-      fetchAndRenderColleges();
+      if (typeof fetchAndRenderColleges === 'function') {
+        fetchAndRenderColleges();
+      }
     } else {
       showToast('Failed to delete college.', 'error');
     }

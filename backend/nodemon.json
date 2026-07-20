@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "*.db",
+    "*.sqlite",
+    "*.db-journal",
+    "*.db-wal",
+    "*.db-shm",
+    "database.sqlite",
+    "colleges.db"
+  ],
+  "ext": "js,json"
+}

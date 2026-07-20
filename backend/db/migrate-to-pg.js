@@ -65,23 +65,40 @@ async function migrateToPg() {
           continue;
         }
 
-        console.log(`➡️  Migrating ${rows.length} rows for table '${table}'...`);
+        const countRes = await pool.query(`SELECT COUNT(*) as count FROM "${table}"`);
+        const pgCount = parseInt(countRes.rows[0].count, 10);
+        if (pgCount >= rows.length) {
+          console.log(`✅ Table '${table}' already migrated (${pgCount} rows). Skipping.`);
+          continue;
+        }
+
+        console.log(`➡️  Migrating ${rows.length} rows for table '${table}' in batches...`);
 
         const cols = Object.keys(rows[0]);
         const colsFormatted = cols.map(c => `"${c}"`).join(', ');
 
-        for (const row of rows) {
-          const values = cols.map(c => row[c]);
-          const placeholders = cols.map((_, idx) => `$${idx + 1}`).join(', ');
+        let onConflictClause = '';
+        if (cols.includes('id')) {
+          onConflictClause = 'ON CONFLICT ("id") DO NOTHING';
+        } else if (table === 'college_courses' && cols.includes('college_id') && cols.includes('course_id')) {
+          onConflictClause = 'ON CONFLICT ("college_id", "course_id") DO NOTHING';
+        }
 
-          let onConflictClause = '';
-          if (cols.includes('id')) {
-            onConflictClause = 'ON CONFLICT ("id") DO NOTHING';
-          } else if (table === 'college_courses' && cols.includes('college_id') && cols.includes('course_id')) {
-            onConflictClause = 'ON CONFLICT ("college_id", "course_id") DO NOTHING';
+        const batchSize = 500;
+        for (let i = 0; i < rows.length; i += batchSize) {
+          const batch = rows.slice(i, i + batchSize);
+          const values = [];
+          const placeholders = [];
+          let paramIdx = 1;
+          for (const row of batch) {
+            const rowPlaceholders = [];
+            for (const c of cols) {
+              values.push(row[c]);
+              rowPlaceholders.push(`$${paramIdx++}`);
+            }
+            placeholders.push(`(${rowPlaceholders.join(', ')})`);
           }
-
-          const insertSql = `INSERT INTO "${table}" (${colsFormatted}) VALUES (${placeholders}) ${onConflictClause}`;
+          const insertSql = `INSERT INTO "${table}" (${colsFormatted}) VALUES ${placeholders.join(', ')} ${onConflictClause}`;
           await pool.query(insertSql, values);
         }
 
