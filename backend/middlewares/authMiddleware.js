@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
  * Middleware to require valid JWT authentication.
  * Attaches verified user object to req.user.
  */
-function requireAuth(req, res, next) {
+async function requireAuth(req, res, next) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -18,7 +18,7 @@ function requireAuth(req, res, next) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    const user = get('SELECT id, email, name, role FROM users WHERE id = ?', [decoded.id]);
+    const user = await get('SELECT id, email, name, role FROM users WHERE id = ?', [decoded.id]);
     if (!user) {
       return res.status(401).json({ error: 'User account no longer exists.' });
     }

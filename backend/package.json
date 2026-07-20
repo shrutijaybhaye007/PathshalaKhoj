@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "seed": "node db/seed.js",
     "seed:admin": "node db/seed-admin.js",
+    "migrate:pg": "node db/migrate-to-pg.js",
     "test:smoke": "node smoke.test.js"
   },
   "engines": {
@@ -24,6 +25,7 @@
     "helmet": "^8.2.0",
     "indian-colleges": "^1.1.1",
     "jsonwebtoken": "^9.0.3",
+    "pg": "^8.22.0",
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {

@@ -84,13 +84,20 @@ const newExams = [
   }
 ];
 
-function seed() {
+async function seedExams() {
   console.log('Seeding new exams...');
   for (const exam of newExams) {
     try {
-      run(
-        `INSERT OR REPLACE INTO timeline_events (id, exam_name, stream, dates_details, status, badge_filter, post_exam_note)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      await run(
+        `INSERT INTO timeline_events (id, exam_name, stream, dates_details, status, badge_filter, post_exam_note)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (id) DO UPDATE SET
+           exam_name = EXCLUDED.exam_name,
+           stream = EXCLUDED.stream,
+           dates_details = EXCLUDED.dates_details,
+           status = EXCLUDED.status,
+           badge_filter = EXCLUDED.badge_filter,
+           post_exam_note = EXCLUDED.post_exam_note`,
         [exam.id, exam.exam_name, exam.stream, exam.dates_details, exam.status, exam.badge_filter, exam.post_exam_note]
       );
       console.log(`Seeded: ${exam.exam_name}`);
@@ -101,4 +108,8 @@ function seed() {
   console.log('Done seeding new exams.');
 }
 
-seed();
+if (require.main === module) {
+  seedExams().catch(console.error);
+}
+
+module.exports = { seedExams };

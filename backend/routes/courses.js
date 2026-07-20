@@ -7,23 +7,23 @@ const { get, all, run } = require('../db/connection');
  * Search across all courses regardless of college — useful for a
  * "find colleges offering X course" search mode.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { q, level, entrance_exam } = req.query;
     const conditions = [];
     const params = [];
 
     if (q && q.trim()) {
-      conditions.push('LOWER(co.name) LIKE ?');
-      params.push(`%${q.trim().toLowerCase()}%`);
+      conditions.push('co.name ILIKE ?');
+      params.push(`%${q.trim()}%`);
     }
     if (level) {
       conditions.push('co.level = ?');
       params.push(level);
     }
     if (entrance_exam && entrance_exam.trim()) {
-      conditions.push('LOWER(cc.entrance_exam) LIKE ?');
-      params.push(`%${entrance_exam.trim().toLowerCase()}%`);
+      conditions.push('cc.entrance_exam ILIKE ?');
+      params.push(`%${entrance_exam.trim()}%`);
     }
 
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
@@ -32,7 +32,7 @@ router.get('/', (req, res) => {
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const totalRow = get(
+    const totalRow = await get(
       `SELECT COUNT(*) as count 
        FROM college_courses cc 
        JOIN courses co ON cc.course_id = co.id 
@@ -40,9 +40,9 @@ router.get('/', (req, res) => {
        ${whereClause}`, 
        params
     );
-    const total = totalRow.count;
+    const total = parseInt(totalRow.count, 10);
 
-    const rows = all(
+    const rows = await all(
       `SELECT co.id as master_course_id, co.name, co.level, co.duration_years, co.degree_type,
               cc.id, cc.fees_per_year, cc.seats, cc.entrance_exam, cc.eligibility,
               c.name as college_name, c.city, c.state, c.slug as college_slug, c.id as college_id
@@ -74,26 +74,26 @@ router.get('/', (req, res) => {
  * GET /api/courses/autocomplete
  * Provides live suggestions across courses and colleges.
  */
-router.get('/autocomplete', (req, res) => {
+router.get('/autocomplete', async (req, res) => {
   try {
     const q = req.query.q || '';
     if (!q.trim()) return res.json({ courses: [], colleges: [] });
-    const term = `%${q.trim().toLowerCase()}%`;
+    const term = `%${q.trim()}%`;
     
-    const courses = all(
+    const courses = await all(
       `SELECT DISTINCT name 
        FROM courses 
-       WHERE LOWER(name) LIKE ? 
+       WHERE name ILIKE ? 
        LIMIT 5`,
       [term]
     );
 
-    const colleges = all(
+    const colleges = await all(
       `SELECT DISTINCT c.id, c.name, c.city, c.state 
        FROM colleges c
        JOIN college_courses cc ON cc.college_id = c.id
        JOIN courses co ON cc.course_id = co.id
-       WHERE LOWER(co.name) LIKE ? OR LOWER(c.name) LIKE ?
+       WHERE co.name ILIKE ? OR c.name ILIKE ?
        LIMIT 4`,
       [term, term]
     );
@@ -109,10 +109,10 @@ router.get('/autocomplete', (req, res) => {
  * GET /api/courses/:id/colleges
  * Returns all colleges that offer a specific master course.
  */
-router.get('/:id/colleges', (req, res) => {
+router.get('/:id/colleges', async (req, res) => {
   try {
     const { id } = req.params;
-    const rows = all(
+    const rows = await all(
       `SELECT c.id, c.name, c.slug, c.city, c.state, c.stream, c.college_type, c.naac_grade, c.avg_fees_per_year,
               cc.fees_per_year as course_fees, cc.seats, cc.entrance_exam
        FROM college_courses cc
@@ -127,21 +127,27 @@ router.get('/:id/colleges', (req, res) => {
     res.status(500).json({ error: 'Failed to fetch colleges for course.' });
   }
 });
+
 /**
  * POST /api/courses/college/:collegeId
  * Admin only: Maps an existing master course to a college.
  */
-router.post('/college/:collegeId', (req, res) => {
+router.post('/college/:collegeId', async (req, res) => {
   try {
     const { course_id, fees_per_year, seats, entrance_exam, eligibility } = req.body;
-    run(
+    await run(
       `INSERT INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (college_id, course_id) DO UPDATE SET
+         fees_per_year = EXCLUDED.fees_per_year,
+         seats = EXCLUDED.seats,
+         entrance_exam = EXCLUDED.entrance_exam,
+         eligibility = EXCLUDED.eligibility`,
       [req.params.collegeId, course_id, fees_per_year || null, seats || null, entrance_exam || null, eligibility || null]
     );
     
     // Update count
-    run(
+    await run(
       `UPDATE colleges SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = ?) WHERE id = ?`,
       [req.params.collegeId, req.params.collegeId]
     );

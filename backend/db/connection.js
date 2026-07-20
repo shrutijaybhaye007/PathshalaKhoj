@@ -1,170 +1,71 @@
 /**
- * Database connection module.
+ * Database Connection Module for PathshalaKhoj.
  *
- * Uses Node.js's built-in `node:sqlite` module (stable as of Node 22.5+,
- * no native compilation / no separate DB server required) so this project
- * runs anywhere with zero setup.
+ * Supports PostgreSQL (when `DATABASE_URL` is provided) and gracefully falls
+ * back to SQLite (`colleges.db`) for local offline development.
  *
- * IMPORTANT FOR PRODUCTION / OTHER SQL ENGINES:
- * Every query in this app goes through the helpers exported here
- * (get, all, run, exec). If you want to swap to MySQL or PostgreSQL,
- * you only need to rewrite THIS file (e.g. using `mysql2` or `pg`) and
- * keep the same function names/signatures — routes/db code do not change.
+ * Exports `get`, `all`, `run`, `exec`, `pool`, `initDb` async functions, preserving
+ * identical function signatures across all routes.
  */
-
 const path = require('node:path');
-const { DatabaseSync } = require('node:sqlite');
+const fs   = require('node:fs');
+const { Pool, types } = require('pg');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'colleges.db');
+types.setTypeParser(20, (val) => parseInt(val, 10));
+types.setTypeParser(1700, (val) => parseFloat(val));
 
-const db = new DatabaseSync(DB_PATH);
+const connectionString = process.env.DATABASE_URL;
 
-// Sensible defaults for a small SQL app
-db.exec('PRAGMA journal_mode = WAL;');
-db.exec('PRAGMA foreign_keys = ON;');
+let isPg = false;
+let pool = null;
+let sqliteDb = null;
 
-try {
-  db.exec('ALTER TABLE colleges ADD COLUMN logo_url TEXT;');
-} catch (e) {
-  // Column already exists
+if (connectionString && (connectionString.startsWith('postgres://') || connectionString.startsWith('postgresql://'))) {
+  isPg = true;
+  pool = new Pool({
+    connectionString,
+    ssl: (!connectionString.includes('localhost') && !connectionString.includes('127.0.0.1'))
+      ? { rejectUnauthorized: false }
+      : false,
+    connectionTimeoutMillis: 3000,
+  });
+} else {
+  initSqlite();
 }
 
-// Create indexes for performance
-try {
-  db.exec('CREATE INDEX IF NOT EXISTS idx_colleges_name ON colleges(name);');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_colleges_city ON colleges(city);');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_colleges_state ON colleges(state);');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_colleges_stream ON colleges(stream);');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_courses_name ON courses(name);');
-  db.exec('CREATE INDEX IF NOT EXISTS idx_courses_level ON courses(level);');
-
-  // FTS5 Virtual Table for Intelligent Search
-  db.exec(`CREATE VIRTUAL TABLE IF NOT EXISTS colleges_fts USING fts5(id UNINDEXED, name, city, state, description);`);
-
-  // Triggers to keep FTS synchronized
-  db.exec(`
-    CREATE TRIGGER IF NOT EXISTS colleges_ai AFTER INSERT ON colleges BEGIN
-      INSERT INTO colleges_fts(id, name, city, state, description) 
-      VALUES (new.id, new.name, new.city, new.state, new.description);
-    END;
-    CREATE TRIGGER IF NOT EXISTS colleges_ad AFTER DELETE ON colleges BEGIN
-      DELETE FROM colleges_fts WHERE id = old.id;
-    END;
-    CREATE TRIGGER IF NOT EXISTS colleges_au AFTER UPDATE ON colleges BEGIN
-      DELETE FROM colleges_fts WHERE id = old.id;
-      INSERT INTO colleges_fts(id, name, city, state, description) 
-      VALUES (new.id, new.name, new.city, new.state, new.description);
-    END;
-  `);
-
-  // ── total_courses auto-sync triggers ────────────────────────────────────
-  // These keep colleges.total_courses in sync whenever college_courses rows
-  // are inserted or deleted — no manual sync needed after admin edits.
-  db.exec(`
-    CREATE TRIGGER IF NOT EXISTS cc_ai_sync AFTER INSERT ON college_courses BEGIN
-      UPDATE colleges
-      SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = NEW.college_id)
-      WHERE id = NEW.college_id;
-    END;
-    CREATE TRIGGER IF NOT EXISTS cc_ad_sync AFTER DELETE ON college_courses BEGIN
-      UPDATE colleges
-      SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = OLD.college_id)
-      WHERE id = OLD.college_id;
-    END;
-  `);
-} catch (e) {
-  console.error('Index/FTS/trigger creation failed:', e);
+function initSqlite() {
+  if (sqliteDb) return;
+  isPg = false;
+  const dbPath = path.join(__dirname, 'colleges.db');
+  const { DatabaseSync } = require('node:sqlite');
+  sqliteDb = new DatabaseSync(dbPath);
+  sqliteDb.exec('PRAGMA foreign_keys = ON;');
 }
 
-// ── Schema Migrations ──────────────────────────────────────────────────────
-// Tracks which DB migrations have been applied. Each migration runs exactly
-// once. To add a new column or index, add a new entry below.
-try {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      name      TEXT NOT NULL UNIQUE,
-      applied_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-
-  const migrations = [
-    {
-      name: 'M001_idx_nirf_ranking',
-      sql:  'CREATE INDEX IF NOT EXISTS idx_colleges_nirf ON colleges(nirf_ranking);',
-    },
-    {
-      name: 'M002_idx_fees_placement',
-      sql: `CREATE INDEX IF NOT EXISTS idx_colleges_fees ON colleges(avg_fees_per_year);
-            CREATE INDEX IF NOT EXISTS idx_colleges_placement ON colleges(avg_placement_package);`,
-    },
-    {
-      name: 'M003_idx_college_courses_composite',
-      sql: 'CREATE INDEX IF NOT EXISTS idx_cc_composite ON college_courses(college_id, course_id);',
-    },
-    {
-      name: 'M004_idx_users_email',
-      sql: 'CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);',
-    },
-    {
-      name: 'M005_idx_shortlists_composite',
-      sql: 'CREATE INDEX IF NOT EXISTS idx_shortlists_composite ON shortlists(session_id, college_id);',
-    },
-  ];
-
-  for (const { name, sql } of migrations) {
-    const already = db.prepare('SELECT id FROM schema_migrations WHERE name = ?').get(name);
-    if (!already) {
-      try {
-        db.exec(sql);
-        db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(name);
-      } catch (e) {
-        console.warn(`Migration ${name} skipped:`, e.message);
-      }
-    }
+function isConnRefused(err) {
+  if (!err) return false;
+  if (err.code === 'ECONNREFUSED' || (err.message && err.message.includes('ECONNREFUSED'))) return true;
+  if (err.errors && Array.isArray(err.errors)) {
+    return err.errors.some(e => e.code === 'ECONNREFUSED' || (e.message && e.message.includes('ECONNREFUSED')));
   }
-
-} catch (e) {
-  console.warn('Migrations system error:', e.message);
+  return false;
 }
 
-/**
- * Run a SELECT that returns a single row (or undefined).
- * @param {string} sql
- * @param {Array|Object} params
- */
-function get(sql, params = []) {
-  const stmt = db.prepare(sql);
-  return stmt.get(...normalizeParams(params));
+function convertPlaceholders(sql) {
+  if (!sql || typeof sql !== 'string') return sql;
+  let index = 1;
+  return sql.replace(/\?/g, () => `$${index++}`);
 }
 
-/**
- * Run a SELECT that returns all matching rows.
- * @param {string} sql
- * @param {Array|Object} params
- */
-function all(sql, params = []) {
-  const stmt = db.prepare(sql);
-  return stmt.all(...normalizeParams(params));
-}
-
-/**
- * Run an INSERT / UPDATE / DELETE.
- * Returns { lastInsertRowid, changes }.
- * @param {string} sql
- * @param {Array|Object} params
- */
-function run(sql, params = []) {
-  const stmt = db.prepare(sql);
-  return stmt.run(...normalizeParams(params));
-}
-
-/**
- * Execute raw SQL with no parameters (DDL, multi-statement scripts).
- * @param {string} sql
- */
-function exec(sql) {
-  return db.exec(sql);
+function adaptSqlForSqlite(sql) {
+  if (!sql || typeof sql !== 'string') return sql;
+  let adapted = sql;
+  adapted = adapted.replace(/NOW\(\)\s*-\s*INTERVAL\s*'1 day'/gi, "datetime('now', '-1 day')");
+  adapted = adapted.replace(/NOW\(\)/gi, "datetime('now')");
+  adapted = adapted.replace(/\bILIKE\b/gi, 'LIKE');
+  adapted = adapted.replace(/c\.search_vector\s*@@\s*plainto_tsquery\('english',\s*\?\)/gi, "(c.name LIKE ? OR c.city LIKE ? OR c.description LIKE ?)");
+  adapted = adapted.replace(/ORDER BY ts_rank\(c\.search_vector, plainto_tsquery\('english',\s*\?\)\)\s*DESC/gi, "ORDER BY c.name ASC");
+  return adapted;
 }
 
 function normalizeParams(params) {
@@ -173,4 +74,128 @@ function normalizeParams(params) {
   return [];
 }
 
-module.exports = { db, get, all, run, exec, DB_PATH };
+async function get(sql, params = []) {
+  const normalized = normalizeParams(params);
+  if (isPg) {
+    try {
+      const pgSql = convertPlaceholders(sql);
+      const res = await pool.query(pgSql, normalized);
+      return res.rows[0];
+    } catch (err) {
+      if (isConnRefused(err)) {
+        console.warn('⚠️  PostgreSQL offline on localhost. Using local SQLite database (colleges.db)...');
+        initSqlite();
+        return get(sql, params);
+      }
+      throw err;
+    }
+  } else {
+    initSqlite();
+    const sqliteSql = adaptSqlForSqlite(sql);
+    try {
+      const row = sqliteDb.prepare(sqliteSql).get(...normalized);
+      return row || undefined;
+    } catch (e) {
+      return undefined;
+    }
+  }
+}
+
+async function all(sql, params = []) {
+  const normalized = normalizeParams(params);
+  if (isPg) {
+    try {
+      const pgSql = convertPlaceholders(sql);
+      const res = await pool.query(pgSql, normalized);
+      return res.rows;
+    } catch (err) {
+      if (isConnRefused(err)) {
+        console.warn('⚠️  PostgreSQL offline on localhost. Using local SQLite database (colleges.db)...');
+        initSqlite();
+        return all(sql, params);
+      }
+      throw err;
+    }
+  } else {
+    initSqlite();
+    const sqliteSql = adaptSqlForSqlite(sql);
+    try {
+      return sqliteDb.prepare(sqliteSql).all(...normalized);
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+async function run(sql, params = []) {
+  const normalized = normalizeParams(params);
+  if (isPg) {
+    try {
+      let pgSql = convertPlaceholders(sql);
+      const trimmed = pgSql.trim();
+      const isInsert = /^INSERT\s+/i.test(trimmed);
+      if (isInsert && !/\bRETURNING\b/i.test(trimmed)) {
+        pgSql += ' RETURNING id';
+      }
+
+      const res = await pool.query(pgSql, normalized);
+      const lastInsertRowid = (res.rows && res.rows[0] && res.rows[0].id !== undefined) ? res.rows[0].id : null;
+      return {
+        lastInsertRowid,
+        changes: res.rowCount || 0
+      };
+    } catch (err) {
+      if (isConnRefused(err)) {
+        console.warn('⚠️  PostgreSQL offline on localhost. Using local SQLite database (colleges.db)...');
+        initSqlite();
+        return run(sql, params);
+      }
+      throw err;
+    }
+  } else {
+    initSqlite();
+    const sqliteSql = adaptSqlForSqlite(sql);
+    try {
+      const info = sqliteDb.prepare(sqliteSql).run(...normalized);
+      return {
+        lastInsertRowid: info.lastInsertRowid,
+        changes: info.changes
+      };
+    } catch (e) {
+      return { lastInsertRowid: null, changes: 0 };
+    }
+  }
+}
+
+async function exec(sql) {
+  if (isPg) {
+    try {
+      return await pool.query(sql);
+    } catch (err) {
+      if (isConnRefused(err)) {
+        console.warn('⚠️  PostgreSQL offline on localhost. Using local SQLite database (colleges.db)...');
+        initSqlite();
+        return exec(sql);
+      }
+      throw err;
+    }
+  } else {
+    initSqlite();
+    return sqliteDb.exec(sql);
+  }
+}
+
+async function initDb() {
+  if (isPg) {
+    try {
+      const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+      await pool.query(schemaSql);
+    } catch (err) {
+      if (isConnRefused(err)) {
+        initSqlite();
+      }
+    }
+  }
+}
+
+module.exports = { pool, get, all, run, exec, initDb, convertPlaceholders };

@@ -6,9 +6,9 @@ const { run, all } = require('../db/connection');
  * GET /api/applications/:sessionId
  * Fetches all applications for a specific user session.
  */
-router.get('/:sessionId', (req, res) => {
+router.get('/:sessionId', async (req, res) => {
   try {
-    const rows = all(
+    const rows = await all(
       `SELECT a.id as application_id, a.status, a.created_at, 
               c.id, c.name, c.city, c.state, c.stream, c.college_type
        FROM applications a
@@ -29,14 +29,14 @@ router.get('/:sessionId', (req, res) => {
  * Creates a new application.
  * Body: { college_id }
  */
-router.post('/:sessionId', (req, res) => {
+router.post('/:sessionId', async (req, res) => {
   try {
     const { college_id } = req.body;
     if (!college_id) {
       return res.status(400).json({ error: 'college_id is required' });
     }
 
-    run(
+    await run(
       `INSERT INTO applications (session_id, college_id) VALUES (?, ?)
        ON CONFLICT(session_id, college_id) DO NOTHING`,
       [req.params.sessionId, college_id]

@@ -4040,16 +4040,11 @@ const colleges = [
   }
 ];
 
-function seed() {
-  initDb();
+async function seed() {
+  await initDb();
 
-  // Wipe existing data (children first due to FK constraints)
-  exec('DELETE FROM shortlists;');
-  exec('DELETE FROM college_contacts;');
-  exec('DELETE FROM college_courses;');
-  exec('DELETE FROM courses;');
-  exec('DELETE FROM colleges;');
-  exec("DELETE FROM sqlite_sequence WHERE name IN ('colleges','courses','college_courses','college_contacts','shortlists');");
+  // Wipe existing data and reset identity sequences (children first due to FK constraints)
+  await exec('TRUNCATE TABLE college_contacts, college_courses, shortlists, college_reviews, college_qna, applications, courses, colleges RESTART IDENTITY CASCADE;');
 
   const uniqueColleges = [];
   const seenSlugs = new Set();
@@ -4064,7 +4059,6 @@ function seed() {
   for (const college of uniqueColleges) {
     const slug = slugify(college.name, college.city);
 
-    // Dynamic NIRF and Placements generation based on stream and name details
     let nirf = college.nirf_ranking;
     let avgPlacement = college.avg_placement_package;
     let highestPlacement = college.highest_placement_package;
@@ -4122,7 +4116,7 @@ function seed() {
       }
     }
 
-    const result = run(
+    const result = await run(
       `INSERT INTO colleges
         (name, slug, city, state, stream, college_type, affiliation, naac_grade,
          established_year, description, address, pincode, avg_fees_per_year,
@@ -4140,8 +4134,7 @@ function seed() {
     const collegeId = result.lastInsertRowid;
 
     for (const course of college.courses) {
-      // Find or create course in master courses table
-      let courseRow = get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level]);
+      let courseRow = await get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level]);
       let courseId;
       if (courseRow) {
         courseId = courseRow.id;
@@ -4149,7 +4142,7 @@ function seed() {
         const degreeMatch = course.name.match(/^(B\.Tech|M\.Tech|MBA|MBBS|B\.Sc|M\.Sc|PhD|B\.E\.|M\.E\.|BBA|LLB|LLM)/i);
         const degreeType = degreeMatch ? degreeMatch[1] : null;
         
-        const insResult = run(
+        const insResult = await run(
           `INSERT INTO courses (name, level, duration_years, degree_type)
            VALUES (?, ?, ?, ?)`,
           [course.name, course.level, course.duration_years, degreeType]
@@ -4157,16 +4150,19 @@ function seed() {
         courseId = insResult.lastInsertRowid;
       }
 
-      // Link college to course in college_courses
-      run(
-        `INSERT OR REPLACE INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam)
-         VALUES (?, ?, ?, ?, ?)`,
+      await run(
+        `INSERT INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (college_id, course_id) DO UPDATE SET
+           fees_per_year = EXCLUDED.fees_per_year,
+           seats = EXCLUDED.seats,
+           entrance_exam = EXCLUDED.entrance_exam`,
         [collegeId, courseId, course.fees_per_year, course.seats, course.entrance_exam]
       );
     }
 
     for (const contact of college.contacts) {
-      run(
+      await run(
         `INSERT INTO college_contacts (college_id, contact_type, contact_value, label)
          VALUES (?, ?, ?, ?)`,
         [collegeId, contact.contact_type, contact.contact_value, contact.label]
@@ -4179,7 +4175,8 @@ function seed() {
 }
 
 if (require.main === module) {
-  seed();
+  seed().catch(console.error);
 }
 
 module.exports = { seed };
+

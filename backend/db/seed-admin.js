@@ -33,24 +33,35 @@ function hashPassword(pwd, salt) {
   return crypto.pbkdf2Sync(pwd, salt, 210000, 64, 'sha512').toString('hex');
 }
 
-const salt         = crypto.randomBytes(8).toString('hex');
-const hash         = hashPassword(password, salt);
-const passwordHash = `${salt}:${hash}`;
+async function seedAdmin() {
+  const salt         = crypto.randomBytes(8).toString('hex');
+  const hash         = hashPassword(password, salt);
+  const passwordHash = `${salt}:${hash}`;
 
-const existing = get('SELECT id FROM users WHERE email = ?', [email]);
+  const existing = await get('SELECT id FROM users WHERE email = ?', [email]);
 
-if (existing) {
-  run(
-    "UPDATE users SET name = ?, role = 'admin', password_hash = ?, updated_at = datetime('now') WHERE email = ?",
-    [name, passwordHash, email]
-  );
-  console.log(`[seed-admin] ✅ Admin account updated: ${email}`);
-} else {
-  run(
-    'INSERT INTO users (email, name, role, password_hash) VALUES (?, ?, ?, ?)',
-    [email, name, 'admin', passwordHash]
-  );
-  console.log(`[seed-admin] ✅ Admin account created: ${email}`);
+  if (existing) {
+    await run(
+      "UPDATE users SET name = ?, role = 'admin', password_hash = ?, updated_at = NOW() WHERE email = ?",
+      [name, passwordHash, email]
+    );
+    console.log(`[seed-admin] ✅ Admin account updated: ${email}`);
+  } else {
+    await run(
+      'INSERT INTO users (email, name, role, password_hash) VALUES (?, ?, ?, ?)',
+      [email, name, 'admin', passwordHash]
+    );
+    console.log(`[seed-admin] ✅ Admin account created: ${email}`);
+  }
+
+  console.log('[seed-admin] Done. Keep your ADMIN_PASSWORD safe — do not commit it to git.');
 }
 
-console.log('[seed-admin] Done. Keep your ADMIN_PASSWORD safe — do not commit it to git.');
+if (require.main === module) {
+  seedAdmin().catch((err) => {
+    console.error('[seed-admin] Error:', err);
+    process.exit(1);
+  });
+}
+
+module.exports = { seedAdmin };

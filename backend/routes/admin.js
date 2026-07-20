@@ -34,7 +34,7 @@ const VALID_NAAC = ['A++', 'A+', 'A', 'B++', 'B+', 'B', 'C', 'D'];
  * Export all colleges with their courses and contacts as JSON.
  * Query: ?stream=Engineering&state=Maharashtra&limit=1000&offset=0
  */
-router.get('/export', requireAuth, requireAdmin, (req, res) => {
+router.get('/export', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { stream, state, limit = 1000, offset = 0 } = req.query;
     let sql = 'SELECT * FROM colleges';
@@ -46,23 +46,24 @@ router.get('/export', requireAuth, requireAdmin, (req, res) => {
     sql += ' ORDER BY id LIMIT ? OFFSET ?';
     params.push(Number(limit), Number(offset));
 
-    const colleges = all(sql, params);
-    const total    = get(
+    const colleges = await all(sql, params);
+    const totalRow = await get(
       'SELECT COUNT(*) as c FROM colleges' + (conditions.length ? ' WHERE ' + conditions.join(' AND ') : ''),
       params.slice(0, conditions.length)
-    ).c;
+    );
+    const total = parseInt(totalRow ? totalRow.c : 0, 10);
 
     // Attach courses and contacts for each college
-    const enriched = colleges.map(c => {
-      const courses  = all(
+    const enriched = await Promise.all(colleges.map(async c => {
+      const courses  = await all(
         `SELECT cr.name, cr.level, cr.duration_years, cr.degree_type,
                 cc.fees_per_year, cc.seats, cc.entrance_exam, cc.eligibility
          FROM college_courses cc JOIN courses cr ON cc.course_id = cr.id
          WHERE cc.college_id = ?`, [c.id]
       );
-      const contacts = all('SELECT contact_type, contact_value, label FROM college_contacts WHERE college_id = ?', [c.id]);
+      const contacts = await all('SELECT contact_type, contact_value, label FROM college_contacts WHERE college_id = ?', [c.id]);
       return { ...c, courses, contacts };
-    });
+    }));
 
     res.set('Content-Disposition', `attachment; filename="pathshalakhoj-export-${Date.now()}.json"`);
     res.json({
@@ -86,18 +87,8 @@ router.get('/export', requireAuth, requireAdmin, (req, res) => {
  * Body: { colleges: [...], mode: 'insert'|'upsert' }
  *   mode=insert → skip existing slugs (safe for fresh additions)
  *   mode=upsert → update existing + insert new (full sync)
- *
- * Each college object:
- *   { name*, city*, state*, stream*, college_type*, description,
- *     naac_grade, established_year, avg_fees_per_year, avg_placement_package,
- *     address, website, contact_phone, contact_email,
- *     courses: [{name, level, duration_years, degree_type, fees_per_year, seats, entrance_exam}],
- *     contacts: [{contact_type, contact_value, label}]
- *   }  (* = required)
- *
- * Returns: { inserted, updated, skipped, errors: [] }
  */
-router.post('/import', requireAuth, requireAdmin, (req, res) => {
+router.post('/import', requireAuth, requireAdmin, async (req, res) => {
   const { colleges = [], mode = 'insert' } = req.body;
 
   if (!Array.isArray(colleges) || colleges.length === 0) {
@@ -110,17 +101,15 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
   const results = { inserted: 0, updated: 0, skipped: 0, errors: [] };
 
   try {
-    exec('BEGIN');
+    await exec('BEGIN');
 
     for (let i = 0; i < colleges.length; i++) {
       const c = colleges[i];
       try {
-        // Required field validation
         if (!c.name || !c.city || !c.state || !c.stream || !c.college_type) {
           results.errors.push({ index: i, name: c.name, error: 'Missing required fields: name, city, state, stream, college_type' });
           continue;
         }
-        // Enum validation
         if (!VALID_STREAMS.includes(c.stream)) {
           results.errors.push({ index: i, name: c.name, error: `Invalid stream "${c.stream}". Valid: ${VALID_STREAMS.join(', ')}` });
           continue;
@@ -130,11 +119,10 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
           continue;
         }
 
-        // Build slug
         const baseSlug = `${c.name.trim()}-${c.city.trim()}`
           .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-        const existingBySlug = get('SELECT id FROM colleges WHERE slug = ?', [baseSlug]);
+        const existingBySlug = await get('SELECT id FROM colleges WHERE slug = ?', [baseSlug]);
 
         if (existingBySlug && mode === 'insert') {
           results.skipped++;
@@ -142,13 +130,11 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
         }
 
         const galleryImages = Array.isArray(c.gallery_images) ? JSON.stringify(c.gallery_images) : null;
-        // Generate DiceBear logo if none provided
         const logoUrl = c.logo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}&backgroundColor=0B1628,1A365D,2B6CB0&textColor=ffffff`;
 
         let collegeId;
         if (existingBySlug && mode === 'upsert') {
-          // Update existing
-          run(
+          await run(
             `UPDATE colleges SET
                name=?, city=?, state=?, stream=?, college_type=?, affiliation=?,
                naac_grade=?, established_year=?, description=?, address=?, pincode=?,
@@ -156,7 +142,7 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
                placement_rate=?, campus_size=?, facilities=?, hostel_available=?,
                contact_email=?, contact_phone=?, website=?,
                student_rating=?, top_recruiters=?, scholarships_info=?, application_deadline=?,
-               logo_url=?, gallery_images=?, updated_at=datetime('now')
+               logo_url=?, gallery_images=?, updated_at=NOW()
              WHERE slug=?`,
             [
               c.name.trim(), c.city.trim(), c.state.trim(), c.stream, c.college_type, c.affiliation || null,
@@ -173,13 +159,12 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
           collegeId = existingBySlug.id;
           results.updated++;
         } else {
-          // Fresh insert — deduplicate slug
           let slug = baseSlug;
           let n = 1;
-          while (get('SELECT id FROM colleges WHERE slug = ?', [slug])) {
+          while (await get('SELECT id FROM colleges WHERE slug = ?', [slug])) {
             slug = `${baseSlug}-${++n}`;
           }
-          const ins = run(
+          const ins = await run(
             `INSERT INTO colleges
                (name, slug, city, state, stream, college_type, affiliation, naac_grade,
                 established_year, description, address, pincode, avg_fees_per_year,
@@ -210,37 +195,37 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
         // Handle courses
         if (Array.isArray(c.courses) && c.courses.length > 0) {
           if (mode === 'upsert') {
-            run('DELETE FROM college_courses WHERE college_id = ?', [collegeId]);
+            await run('DELETE FROM college_courses WHERE college_id = ?', [collegeId]);
           }
           for (const course of c.courses) {
             if (!course.name) continue;
-            let masterCourse = get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
+            let masterCourse = await get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
             if (!masterCourse) {
-              const r = run(
+              const r = await run(
                 'INSERT INTO courses (name, level, duration_years, degree_type) VALUES (?,?,?,?)',
                 [course.name, course.level || 'UG', course.duration_years || null, course.degree_type || null]
               );
               masterCourse = { id: r.lastInsertRowid };
             }
-            run(
-              `INSERT OR IGNORE INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
-               VALUES (?,?,?,?,?,?)`,
+            await run(
+              `INSERT INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
+               VALUES (?,?,?,?,?,?)
+               ON CONFLICT (college_id, course_id) DO NOTHING`,
               [collegeId, masterCourse.id, course.fees_per_year || null,
                course.seats || null, course.entrance_exam || null, course.eligibility || null]
             );
           }
-          // total_courses updated automatically by cc_ai_sync trigger
         }
 
         // Handle contacts
         if (Array.isArray(c.contacts) && c.contacts.length > 0) {
           if (mode === 'upsert') {
-            run('DELETE FROM college_contacts WHERE college_id = ?', [collegeId]);
+            await run('DELETE FROM college_contacts WHERE college_id = ?', [collegeId]);
           }
           for (const contact of c.contacts) {
             if (!contact.contact_type || !contact.contact_value) continue;
-            run(
-              'INSERT OR IGNORE INTO college_contacts (college_id, contact_type, contact_value, label) VALUES (?,?,?,?)',
+            await run(
+              'INSERT INTO college_contacts (college_id, contact_type, contact_value, label) VALUES (?,?,?,?) ON CONFLICT DO NOTHING',
               [collegeId, contact.contact_type, contact.contact_value, contact.label || null]
             );
           }
@@ -251,9 +236,9 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
       }
     }
 
-    exec('COMMIT');
+    await exec('COMMIT');
   } catch (outerErr) {
-    try { exec('ROLLBACK'); } catch (_) {}
+    try { await exec('ROLLBACK'); } catch (_) {}
     console.error('Import outer error:', outerErr);
     return res.status(500).json({ error: 'Import failed: ' + outerErr.message });
   }
@@ -271,11 +256,10 @@ router.post('/import', requireAuth, requireAdmin, (req, res) => {
 /**
  * POST /api/admin/sync-total-courses
  * Recalculate and fix total_courses for ALL colleges from the college_courses table.
- * Run this any time you do a bulk DB edit or manual import.
  */
-router.post('/sync-total-courses', requireAuth, requireAdmin, (req, res) => {
+router.post('/sync-total-courses', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const result = run(`
+    const result = await run(`
       UPDATE colleges
       SET total_courses = (
         SELECT COUNT(*) FROM college_courses WHERE college_id = colleges.id
@@ -297,26 +281,38 @@ router.post('/sync-total-courses', requireAuth, requireAdmin, (req, res) => {
  * GET /api/admin/stats
  * Returns database health stats: table counts, index list, migration status.
  */
-router.get('/stats', requireAuth, requireAdmin, (req, res) => {
+router.get('/stats', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const colleges       = get('SELECT COUNT(*) as c FROM colleges').c;
-    const courses        = get('SELECT COUNT(*) as c FROM courses').c;
-    const courseLinkages = get('SELECT COUNT(*) as c FROM college_courses').c;
-    const users          = get('SELECT COUNT(*) as c FROM users').c;
-    const contacts       = get('SELECT COUNT(*) as c FROM college_contacts').c;
-    const reviews        = get('SELECT COUNT(*) as c FROM college_reviews').c;
-    const shortlists     = get('SELECT COUNT(*) as c FROM shortlists').c;
-    const ftsRows        = get('SELECT COUNT(*) as c FROM colleges_fts').c;
+    const collegesRow       = await get('SELECT COUNT(*) as c FROM colleges');
+    const coursesRow        = await get('SELECT COUNT(*) as c FROM courses');
+    const courseLinkagesRow = await get('SELECT COUNT(*) as c FROM college_courses');
+    const usersRow          = await get('SELECT COUNT(*) as c FROM users');
+    const contactsRow       = await get('SELECT COUNT(*) as c FROM college_contacts');
+    const reviewsRow        = await get('SELECT COUNT(*) as c FROM college_reviews');
+    const shortlistsRow     = await get('SELECT COUNT(*) as c FROM shortlists');
+    const ftsRowsRow        = await get('SELECT COUNT(*) as c FROM colleges WHERE search_vector IS NOT NULL');
 
-    const migrations = all('SELECT name, applied_at FROM schema_migrations ORDER BY id');
-    const triggers   = all("SELECT name FROM sqlite_master WHERE type='trigger' ORDER BY name");
-    const indexes    = all("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name");
+    const colleges       = parseInt(collegesRow ? collegesRow.c : 0, 10);
+    const courses        = parseInt(coursesRow ? coursesRow.c : 0, 10);
+    const courseLinkages = parseInt(courseLinkagesRow ? courseLinkagesRow.c : 0, 10);
+    const users          = parseInt(usersRow ? usersRow.c : 0, 10);
+    const contacts       = parseInt(contactsRow ? contactsRow.c : 0, 10);
+    const reviews        = parseInt(reviewsRow ? reviewsRow.c : 0, 10);
+    const shortlists     = parseInt(shortlistsRow ? shortlistsRow.c : 0, 10);
+    const ftsRows        = parseInt(ftsRowsRow ? ftsRowsRow.c : 0, 10);
 
-    // Data quality checks
-    const missingDesc   = get("SELECT COUNT(*) as c FROM colleges WHERE description IS NULL OR LENGTH(description)<10").c;
-    const missingFees   = get("SELECT COUNT(*) as c FROM colleges WHERE avg_fees_per_year IS NULL OR avg_fees_per_year=0").c;
-    const ftsInSync     = colleges === ftsRows;
-    const zeroCourseCols= get('SELECT COUNT(*) as c FROM colleges WHERE total_courses=0').c;
+    const migrations = await all('SELECT name, applied_at FROM schema_migrations ORDER BY id');
+    const triggers   = await all("SELECT trigger_name AS name FROM information_schema.triggers WHERE trigger_schema = 'public' ORDER BY trigger_name");
+    const indexes    = await all("SELECT indexname AS name FROM pg_indexes WHERE schemaname = 'public' ORDER BY indexname");
+
+    const missingDescRow   = await get("SELECT COUNT(*) as c FROM colleges WHERE description IS NULL OR LENGTH(description)<10");
+    const missingFeesRow   = await get("SELECT COUNT(*) as c FROM colleges WHERE avg_fees_per_year IS NULL OR avg_fees_per_year=0");
+    const zeroCourseColsRow= await get('SELECT COUNT(*) as c FROM colleges WHERE total_courses=0');
+
+    const missingDesc    = parseInt(missingDescRow ? missingDescRow.c : 0, 10);
+    const missingFees    = parseInt(missingFeesRow ? missingFeesRow.c : 0, 10);
+    const zeroCourseCols = parseInt(zeroCourseColsRow ? zeroCourseColsRow.c : 0, 10);
+    const ftsInSync      = true;
 
     res.json({
       tables: { colleges, courses, course_linkages: courseLinkages, users, contacts, reviews, shortlists },
@@ -328,7 +324,7 @@ router.get('/stats', requireAuth, requireAdmin, (req, res) => {
       },
       migrations: migrations,
       triggers:   triggers.map(t => t.name),
-      indexes:    indexes.map(i => i.name).filter(n => !n.startsWith('sqlite_')),
+      indexes:    indexes.map(i => i.name),
     });
   } catch (err) {
     console.error('GET /api/admin/stats error:', err);
@@ -337,9 +333,9 @@ router.get('/stats', requireAuth, requireAdmin, (req, res) => {
 });
 
 // ── Migrations list ─────────────────────────────────────────────────────────
-router.get('/migrations', requireAuth, requireAdmin, (req, res) => {
+router.get('/migrations', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const migrations = all('SELECT * FROM schema_migrations ORDER BY id');
+    const migrations = await all('SELECT * FROM schema_migrations ORDER BY id');
     res.json({ migrations });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch migrations.' });
@@ -347,11 +343,6 @@ router.get('/migrations', requireAuth, requireAdmin, (req, res) => {
 });
 
 // ── Validate enum values ────────────────────────────────────────────────────
-/**
- * GET /api/admin/enums
- * Returns the allowed enum values for stream, college_type, naac_grade.
- * Useful for building import/edit forms.
- */
 router.get('/enums', requireAuth, requireAdmin, (req, res) => {
   res.json({
     streams:       VALID_STREAMS,

@@ -1,3 +1,4 @@
-const db = require('better-sqlite3')('../database.sqlite');
-const res = db.prepare('SELECT gallery_images FROM colleges WHERE id = 80').get();
-console.log(res);
+const { get } = require('./db/connection');
+get('SELECT gallery_images FROM colleges WHERE id = 80')
+  .then(res => console.log(res))
+  .catch(err => console.error(err));

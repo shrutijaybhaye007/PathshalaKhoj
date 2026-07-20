@@ -1,186 +1,92 @@
+/**
+ * colleges.js — Primary REST routes for discovering, filtering, searching,
+ * viewing, creating, updating, and syncing college records.
+ */
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const { get, all, run } = require('../db/connection');
 const { requireAuth, requireAdmin } = require('../middlewares/authMiddleware');
 
-// ─── Shared Acronym/Synonym Map ────────────────────────────────────────────────
-const ACRONYMS = {
-  'iit':   'indian institute of technology',
-  'nit':   'national institute of technology',
-  'iim':   'indian institute of management',
-  'aiims': 'all india institute of medical sciences',
-  'nlu':   'national law university',
-  'iiit':  'indian institute of information technology',
-  'bits':  'birla institute of technology',
-  'cet':   'college of engineering',
-  'btech': 'b.tech',
-  'mtech': 'm.tech',
-  'mba':   'master of business administration',
-  'bca':   'bachelor of computer applications',
-  'mca':   'master of computer applications',
-};
-
-const SYNONYMS = {
-  'maharishi': ['maharishi', 'maharshi'],
-  'maharshi':  ['maharishi', 'maharshi'],
-  'dayanand':  ['dayanand', 'dayananda'],
-  'dayananda': ['dayanand', 'dayananda'],
-  'vivekanand': ['vivekanand', 'vivekananda'],
-  'vivekananda': ['vivekanand', 'vivekananda'],
-  'vizag':     ['vizag', 'visakhapatnam'],
-  'visakhapatnam': ['vizag', 'visakhapatnam'],
-  'bangalore': ['bangalore', 'bengaluru'],
-  'bengaluru': ['bangalore', 'bengaluru'],
-  'engg':      ['engg', 'engineering'],
-  'engineering': ['engg', 'engineering']
-};
-
-/**
- * buildFtsQuery(q) → string
- * Converts a user query into an FTS5 MATCH expression.
- *
- * Handles:
- *   - Acronym expansion:   "iit" → adds "indian institute of technology" as an OR clause
- *   - Synonym expansion:   "maharishi" → adds "(maharishi* OR maharshi*)"
- *   - Prefix matching:     every word becomes "word*" so partial matches work
- *   - Multi-word AND:      words are ANDed together so "iit bombay" only returns colleges
- *                          that contain both terms (or their expansions)
- */
-function buildFtsQuery(q) {
-  const raw = q.trim();
-
-  // Strip characters that break FTS5 syntax: . , ( ) [ ] ^ " * ? { } \ /
-  // but keep alphanumeric + spaces + hyphens
-  const sanitize = (s) => s.replace(/[.,()\[\]^"*?{}\\\/]/g, ' ').replace(/\s+/g, ' ').trim();
-
-  const cleaned = sanitize(raw);
-  const words = cleaned.toLowerCase().split(/\s+/).filter(w => w.length >= 2);
-
-  // If nothing usable remains, return the raw cleaned string as a prefix
-  if (words.length === 0) {
-    const fallback = cleaned.toLowerCase().replace(/\s+/g, '');
-    return fallback.length >= 1 ? `${fallback}*` : null;
-  }
-
-  const clauses = words.map(word => {
-    const expanded = ACRONYMS[word];
-    if (expanded) {
-      // Match the abbreviation OR full expansion, both with prefix support
-      const expWords = expanded.split(' ').map(w => `${w}*`).join(' ');
-      return `(${word}* OR (${expWords}))`;
-    }
-    
-    const synList = SYNONYMS[word];
-    if (synList) {
-      const synClauses = synList.map(s => `${s}*`).join(' OR ');
-      return `(${synClauses})`;
-    }
-    
-    return `${word}*`;
-  });
-
-  return clauses.join(' AND ');
-}
-
 /**
  * GET /api/colleges
- * The core search/discovery endpoint.
- *
- * Query params (all optional, all combinable):
- *   q          - free text search across college name, city, state, description
- *   stream     - exact match, e.g. "Engineering"
- *   state      - exact match, e.g. "Maharashtra"
- *   city       - exact match, e.g. "Mumbai"
- *   type       - college_type exact match, e.g. "Government" | "Private" | "Autonomous" | "Deemed"
- *   naac       - naac_grade exact match, e.g. "A++"
- *   max_fees   - integer, avg_fees_per_year <= max_fees
- *   exam       - filters to colleges offering a course with this entrance exam (partial match)
- *   sort       - "name" | "fees_low" | "fees_high" | "established" (default: relevance/name)
- *   page       - default 1
- *   limit      - default 12, max 50
- */
-/**
- * GET /api/colleges
- * Intelligent search powered by SQLite FTS5 + BM25 relevance ranking.
+ * Intelligent search powered by PostgreSQL Full-Text Search (tsvector).
  * Falls back gracefully to structured filters when no free-text query is given.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { q, stream, state, city, type, naac, max_fees, exam, sort } = req.query;
 
-    const page  = Math.max(parseInt(req.query.page, 10)  || 1,  1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), 50);
+    const page   = Math.max(parseInt(req.query.page, 10)  || 1,  1);
+    const limit  = Math.min(Math.max(parseInt(req.query.limit, 10) || 12, 1), 50);
     const offset = (page - 1) * limit;
 
-    // ── Structured filter conditions (always applied) ───────────────────────
     const filterConditions = [];
     const filterParams     = [];
 
-    if (stream)    { filterConditions.push('c.stream = ?');            filterParams.push(stream); }
-    if (state)     { filterConditions.push('c.state = ?');             filterParams.push(state); }
-    if (city)      { filterConditions.push('c.city = ?');              filterParams.push(city); }
-    if (type)      { filterConditions.push('c.college_type = ?');      filterParams.push(type); }
-    if (naac)      { filterConditions.push('c.naac_grade = ?');        filterParams.push(naac); }
+    if (stream)    { filterConditions.push('c.stream = ?');             filterParams.push(stream); }
+    if (state)     { filterConditions.push('c.state = ?');              filterParams.push(state); }
+    if (city)      { filterConditions.push('c.city = ?');               filterParams.push(city); }
+    if (type)      { filterConditions.push('c.college_type = ?');       filterParams.push(type); }
+    if (naac)      { filterConditions.push('c.naac_grade = ?');         filterParams.push(naac); }
     if (max_fees)  { filterConditions.push('c.avg_fees_per_year <= ?'); filterParams.push(parseInt(max_fees, 10)); }
     if (exam && exam.trim()) {
-      filterConditions.push(`c.id IN (SELECT college_id FROM college_courses WHERE LOWER(entrance_exam) LIKE ?)`);
-      filterParams.push(`%${exam.trim().toLowerCase()}%`);
+      filterConditions.push(`c.id IN (SELECT college_id FROM college_courses WHERE entrance_exam ILIKE ?)`);
+      filterParams.push(`%${exam.trim()}%`);
     }
 
-    // ── Sort clause ─────────────────────────────────────────────────────────
     let orderClause = 'ORDER BY c.name ASC';
     if      (sort === 'fees_low')   orderClause = 'ORDER BY c.avg_fees_per_year ASC';
     else if (sort === 'fees_high')  orderClause = 'ORDER BY c.avg_fees_per_year DESC';
     else if (sort === 'established') orderClause = 'ORDER BY c.established_year ASC';
 
     let totalRow, rows;
-    const ftsQuery = (q && q.trim()) ? buildFtsQuery(q) : null;
+    const hasSearchQuery = q && q.trim();
 
-    if (ftsQuery) {
-      // ── FTS5 path: full-text search with BM25 relevance ranking ─────────────
+    if (hasSearchQuery) {
+      const searchTerm = q.trim();
       const filterWhere = filterConditions.length
         ? `AND ${filterConditions.join(' AND ')}`
         : '';
 
-      // Use BM25 unless the user explicitly chose a manual sort
       const ftsOrder = (sort && sort !== 'name')
         ? orderClause
-        : 'ORDER BY fts.rank ASC, c.name ASC';
+        : 'ORDER BY ts_rank(c.search_vector, plainto_tsquery(\'english\', ?)) DESC, c.name ASC';
 
-      totalRow = get(
+      totalRow = await get(
         `SELECT COUNT(*) as count
          FROM colleges c
-         JOIN colleges_fts fts ON fts.id = c.id
-         WHERE colleges_fts MATCH ?
+         WHERE (c.search_vector @@ plainto_tsquery('english', ?) OR c.name ILIKE ? OR c.city ILIKE ?)
          ${filterWhere}`,
-        [ftsQuery, ...filterParams]
+        [searchTerm, `%${searchTerm}%`, `%${searchTerm}%`, ...filterParams]
       );
 
-      rows = all(
+      const searchParams = (sort && sort !== 'name')
+        ? [searchTerm, `%${searchTerm}%`, `%${searchTerm}%`, ...filterParams, limit, offset]
+        : [searchTerm, `%${searchTerm}%`, `%${searchTerm}%`, ...filterParams, searchTerm, limit, offset];
+
+      rows = await all(
         `SELECT c.id, c.name, c.slug, c.city, c.state, c.stream, c.college_type,
                 c.affiliation, c.naac_grade, c.established_year, c.description,
                 c.avg_fees_per_year, c.nirf_ranking, c.avg_placement_package,
-                c.highest_placement_package, c.total_courses, fts.rank
+                c.highest_placement_package, c.total_courses
          FROM colleges c
-         JOIN colleges_fts fts ON fts.id = c.id
-         WHERE colleges_fts MATCH ?
+         WHERE (c.search_vector @@ plainto_tsquery('english', ?) OR c.name ILIKE ? OR c.city ILIKE ?)
          ${filterWhere}
          ${ftsOrder}
          LIMIT ? OFFSET ?`,
-        [ftsQuery, ...filterParams, limit, offset]
+        searchParams
       );
     } else {
-      // ── Structured-only path: no free text query (or query stripped empty) ──
       const whereClause = filterConditions.length
         ? `WHERE ${filterConditions.join(' AND ')}`
         : '';
 
-      totalRow = get(
+      totalRow = await get(
         `SELECT COUNT(*) as count FROM colleges c ${whereClause}`,
         filterParams
       );
 
-      rows = all(
+      rows = await all(
         `SELECT c.id, c.name, c.slug, c.city, c.state, c.stream, c.college_type,
                 c.affiliation, c.naac_grade, c.established_year, c.description,
                 c.avg_fees_per_year, c.nirf_ranking, c.avg_placement_package,
@@ -193,13 +99,16 @@ router.get('/', (req, res) => {
       );
     }
 
+    const total = totalRow ? parseInt(totalRow.count, 10) : 0;
+    const total_pages = Math.max(Math.ceil(total / limit), 1);
+
     res.json({
       data: rows,
       pagination: {
         page,
         limit,
-        total: totalRow.count,
-        total_pages: Math.max(Math.ceil(totalRow.count / limit), 1),
+        total,
+        total_pages,
       },
     });
   } catch (err) {
@@ -210,23 +119,24 @@ router.get('/', (req, res) => {
 
 /**
  * GET /api/colleges/stats
- * Public: Returns overall database metrics (colleges count, active exams count, normalized average placement).
+ * Public: Returns overall database metrics.
  */
-router.get('/stats', (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
-    const totalColleges   = get('SELECT COUNT(*) as count FROM colleges').count;
-    const totalExams      = get('SELECT COUNT(*) as count FROM timeline_events').count;
-    const avgPlacementObj = get(
+    const totalCollegesRow = await get('SELECT COUNT(*) as count FROM colleges');
+    const totalExamsRow    = await get('SELECT COUNT(*) as count FROM timeline_events');
+    const avgPlacementObj  = await get(
       `SELECT AVG(CASE WHEN avg_placement_package >= 1000
                        THEN avg_placement_package / 100000.0
                        ELSE avg_placement_package END) as avg_package
        FROM colleges WHERE avg_placement_package > 0`
     );
-    const avgPlacement = avgPlacementObj && avgPlacementObj.avg_package
-      ? avgPlacementObj.avg_package.toFixed(1)
+    const totalColleges = totalCollegesRow ? parseInt(totalCollegesRow.count, 10) : 0;
+    const totalExams    = totalExamsRow ? parseInt(totalExamsRow.count, 10) : 0;
+    const avgPlacement  = avgPlacementObj && avgPlacementObj.avg_package
+      ? parseFloat(avgPlacementObj.avg_package).toFixed(1)
       : '0.0';
 
-    // Cache for 5 minutes — stats change rarely
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json({ collegesCount: totalColleges, examsCount: totalExams, avgPlacement });
   } catch (err) {
@@ -238,28 +148,38 @@ router.get('/stats', (req, res) => {
 /**
  * GET /api/colleges/sync-coverage
  * Admin: Returns stats about how many colleges have real vs missing data.
- * Used by admin dashboard to show sync coverage metrics.
  */
-router.get('/sync-coverage', requireAuth, requireAdmin, (req, res) => {
+router.get('/sync-coverage', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const total      = get('SELECT COUNT(*) as count FROM colleges').count;
-    const hasDesc    = get("SELECT COUNT(*) as count FROM colleges WHERE description IS NOT NULL AND LENGTH(description) > 80").count;
-    const hasLogo    = get("SELECT COUNT(*) as count FROM colleges WHERE logo_url IS NOT NULL AND logo_url != ''").count;
-    const hasWebsite = get("SELECT COUNT(*) as count FROM colleges WHERE website IS NOT NULL AND website != ''").count;
-    const hasNaac    = get("SELECT COUNT(*) as count FROM colleges WHERE naac_grade IS NOT NULL").count;
-    const hasPhone   = get("SELECT COUNT(*) as count FROM colleges WHERE contact_phone IS NOT NULL").count;
-    const hasPlacement = get("SELECT COUNT(*) as count FROM colleges WHERE avg_placement_package IS NOT NULL AND avg_placement_package > 0").count;
-    const recentlySynced = get("SELECT COUNT(*) as count FROM colleges WHERE updated_at > datetime('now', '-1 day')").count;
+    const totalRow        = await get('SELECT COUNT(*) as count FROM colleges');
+    const hasDescRow      = await get("SELECT COUNT(*) as count FROM colleges WHERE description IS NOT NULL AND LENGTH(description) > 80");
+    const hasLogoRow      = await get("SELECT COUNT(*) as count FROM colleges WHERE logo_url IS NOT NULL AND logo_url != ''");
+    const hasWebsiteRow   = await get("SELECT COUNT(*) as count FROM colleges WHERE website IS NOT NULL AND website != ''");
+    const hasNaacRow      = await get("SELECT COUNT(*) as count FROM colleges WHERE naac_grade IS NOT NULL");
+    const hasPhoneRow     = await get("SELECT COUNT(*) as count FROM colleges WHERE contact_phone IS NOT NULL");
+    const hasPlacementRow = await get("SELECT COUNT(*) as count FROM colleges WHERE avg_placement_package IS NOT NULL AND avg_placement_package > 0");
+    const recentlySyncedRow = await get("SELECT COUNT(*) as count FROM colleges WHERE updated_at > NOW() - INTERVAL '1 day'");
+
+    const total        = totalRow ? parseInt(totalRow.count, 10) : 0;
+    const hasDesc      = hasDescRow ? parseInt(hasDescRow.count, 10) : 0;
+    const hasLogo      = hasLogoRow ? parseInt(hasLogoRow.count, 10) : 0;
+    const hasWebsite   = hasWebsiteRow ? parseInt(hasWebsiteRow.count, 10) : 0;
+    const hasNaac      = hasNaacRow ? parseInt(hasNaacRow.count, 10) : 0;
+    const hasPhone     = hasPhoneRow ? parseInt(hasPhoneRow.count, 10) : 0;
+    const hasPlacement = hasPlacementRow ? parseInt(hasPlacementRow.count, 10) : 0;
+    const recentlySynced = recentlySyncedRow ? parseInt(recentlySyncedRow.count, 10) : 0;
+
+    const safePct = (val) => total > 0 ? Math.round(val / total * 100) : 0;
 
     res.json({
       total,
       coverage: {
-        descriptions: { count: hasDesc, pct: Math.round(hasDesc / total * 100) },
-        logos:        { count: hasLogo, pct: Math.round(hasLogo / total * 100) },
-        websites:     { count: hasWebsite, pct: Math.round(hasWebsite / total * 100) },
-        naac_grades:  { count: hasNaac, pct: Math.round(hasNaac / total * 100) },
-        phones:       { count: hasPhone, pct: Math.round(hasPhone / total * 100) },
-        placements:   { count: hasPlacement, pct: Math.round(hasPlacement / total * 100) },
+        descriptions: { count: hasDesc, pct: safePct(hasDesc) },
+        logos:        { count: hasLogo, pct: safePct(hasLogo) },
+        websites:     { count: hasWebsite, pct: safePct(hasWebsite) },
+        naac_grades:  { count: hasNaac, pct: safePct(hasNaac) },
+        phones:       { count: hasPhone, pct: safePct(hasPhone) },
+        placements:   { count: hasPlacement, pct: safePct(hasPlacement) },
       },
       recently_synced: recentlySynced,
     });
@@ -272,20 +192,12 @@ router.get('/sync-coverage', requireAuth, requireAdmin, (req, res) => {
 /**
  * POST /api/colleges/sync-batch-wiki
  * Admin only: Batch sync Wikipedia info for colleges missing descriptions.
- * Body: { batch_size: 10, offset: 0, stream: optional_filter }
- * Processes colleges sequentially with delays to respect Wikipedia rate limits.
  */
 router.post('/sync-batch-wiki', requireAuth, requireAdmin, async (req, res) => {
   try {
     const batchSize = Math.min(parseInt(req.body.batch_size, 10) || 10, 20);
     const offset    = parseInt(req.body.offset, 10) || 0;
     const stream    = req.body.stream || null;
-
-    // Find colleges with missing or short descriptions
-    const streamFilter = stream ? 'AND stream = ?' : '';
-    const params = stream
-      ? [`%`, batchSize, offset]
-      : [batchSize, offset];
 
     const missingQuery = stream
       ? `SELECT id, name, city, state, stream FROM colleges
@@ -296,16 +208,17 @@ router.post('/sync-batch-wiki', requireAuth, requireAdmin, async (req, res) => {
          ORDER BY id ASC LIMIT ? OFFSET ?`;
 
     const streamParams = stream ? [stream, batchSize, offset] : [batchSize, offset];
-    const colleges = all(missingQuery, streamParams);
+    const colleges = await all(missingQuery, streamParams);
 
-    const totalMissing = stream
-      ? get(`SELECT COUNT(*) as count FROM colleges WHERE (description IS NULL OR LENGTH(description) < 80) AND stream = ?`, [stream]).count
-      : get(`SELECT COUNT(*) as count FROM colleges WHERE description IS NULL OR LENGTH(description) < 80`).count;
+    const totalMissingRow = stream
+      ? await get(`SELECT COUNT(*) as count FROM colleges WHERE (description IS NULL OR LENGTH(description) < 80) AND stream = ?`, [stream])
+      : await get(`SELECT COUNT(*) as count FROM colleges WHERE description IS NULL OR LENGTH(description) < 80`);
 
+    const totalMissing = totalMissingRow ? parseInt(totalMissingRow.count, 10) : 0;
     const results = [];
 
     for (const college of colleges) {
-      await new Promise(r => setTimeout(r, 150)); // Respect Wikipedia rate limits
+      await new Promise(r => setTimeout(r, 150));
 
       try {
         const wikiData = await fetchWikipediaData(college.name);
@@ -335,9 +248,9 @@ router.post('/sync-batch-wiki', requireAuth, requireAdmin, async (req, res) => {
           }
 
           if (updates.length > 0) {
-            updates.push(`updated_at = datetime('now')`);
+            updates.push(`updated_at = NOW()`);
             updateParams.push(college.id);
-            run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, updateParams);
+            await run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, updateParams);
           }
 
           results.push({ id: college.id, name: college.name, status: 'synced', fields_updated: updates.length - 1 });
@@ -371,25 +284,20 @@ router.post('/sync-batch-wiki', requireAuth, requireAdmin, async (req, res) => {
 
 /**
  * GET /api/colleges/meta/filters
- * Returns distinct values for streams, states, types, naac grades —
- * used by the frontend to populate filter dropdowns dynamically
- * (so the UI never goes out of sync with what's actually in the DB).
  */
-router.get('/meta/filters', (req, res) => {
+router.get('/meta/filters', async (req, res) => {
   try {
     const { state } = req.query;
-    const streams    = all('SELECT DISTINCT stream FROM colleges ORDER BY stream');
-    const states     = all('SELECT DISTINCT state FROM colleges ORDER BY state');
-    const types      = all('SELECT DISTINCT college_type FROM colleges ORDER BY college_type');
-    const naacGrades = all('SELECT DISTINCT naac_grade FROM colleges WHERE naac_grade IS NOT NULL ORDER BY naac_grade');
-    const feesRange  = get('SELECT MIN(avg_fees_per_year) as min_fees, MAX(avg_fees_per_year) as max_fees FROM colleges');
+    const streams    = await all('SELECT DISTINCT stream FROM colleges ORDER BY stream');
+    const states     = await all('SELECT DISTINCT state FROM colleges ORDER BY state');
+    const types      = await all('SELECT DISTINCT college_type FROM colleges ORDER BY college_type');
+    const naacGrades = await all('SELECT DISTINCT naac_grade FROM colleges WHERE naac_grade IS NOT NULL ORDER BY naac_grade');
+    const feesRange  = await get('SELECT MIN(avg_fees_per_year) as min_fees, MAX(avg_fees_per_year) as max_fees FROM colleges');
 
-    // Return cities filtered by state when provided (for cascading city dropdown)
     const cities = state
-      ? all('SELECT DISTINCT city FROM colleges WHERE state = ? ORDER BY city', [state])
-      : all('SELECT DISTINCT city FROM colleges ORDER BY city');
+      ? await all('SELECT DISTINCT city FROM colleges WHERE state = ? ORDER BY city', [state])
+      : await all('SELECT DISTINCT city FROM colleges ORDER BY city');
 
-    // Cache filter metadata for 5 minutes — values change only when colleges are added
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json({
       streams:     streams.map((r) => r.stream),
@@ -407,70 +315,56 @@ router.get('/meta/filters', (req, res) => {
 
 /**
  * GET /api/colleges/autocomplete
- * Returns live suggestions matching query parameter `q` grouped by colleges, courses, and cities.
  */
-/**
- * GET /api/colleges/autocomplete
- * FTS5-powered instant suggestions grouped by colleges, courses, cities.
- * Uses prefix matching (word*) so partial typing works instantly.
- */
-router.get('/autocomplete', (req, res) => {
+router.get('/autocomplete', async (req, res) => {
   try {
     const q = req.query.q || '';
     if (!q.trim()) {
       return res.json({ colleges: [], courses: [], cities: [] });
     }
 
-    const ftsQuery = buildFtsQuery(q);
-
-    // College suggestions via FTS5 — ranked by relevance
+    const searchTerm = q.trim();
     let colleges = [];
     try {
-      colleges = all(
+      colleges = await all(
         `SELECT c.id, c.name, c.city, c.state, c.stream, c.naac_grade, c.nirf_ranking
          FROM colleges c
-         JOIN colleges_fts fts ON fts.id = c.id
-         WHERE colleges_fts MATCH ?
-         ORDER BY fts.rank ASC
+         WHERE (c.search_vector @@ plainto_tsquery('english', ?) OR c.name ILIKE ? OR c.city ILIKE ?)
+         ORDER BY ts_rank(c.search_vector, plainto_tsquery('english', ?)) DESC
          LIMIT 6`,
-        [ftsQuery]
+        [searchTerm, `%${searchTerm}%`, `%${searchTerm}%`, searchTerm]
       );
-    } catch (e) {
-      // FTS error (e.g., bad query chars) — silently return empty
-    }
+    } catch (e) {}
 
-    // Course suggestions — use simple LIKE for course names (no FTS table for courses)
-    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const courseConditions = words.map(() => `LOWER(name) LIKE ?`);
+    const words = searchTerm.split(/\s+/).filter(Boolean);
+    const courseConditions = words.map(() => `name ILIKE ?`);
     const courseParams     = words.map(w => `%${w}%`);
     let courses = [];
     try {
-      courses = all(
+      courses = await all(
         `SELECT DISTINCT name FROM courses
          WHERE ${courseConditions.join(' AND ')}
          ORDER BY name
          LIMIT 4`,
         courseParams
       );
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
 
-    // City suggestions — deduplicated from FTS matches
     const citySet = new Map();
     colleges.forEach(c => {
       if (!citySet.has(c.city)) citySet.set(c.city, c.state);
     });
-    // Also do a direct city LIKE for short queries
     const firstWord = words[0] || '';
     if (firstWord.length >= 2) {
       try {
-        const citiesExtra = all(
-          `SELECT DISTINCT city, state FROM colleges WHERE LOWER(city) LIKE ? LIMIT 5`,
+        const citiesExtra = await all(
+          `SELECT DISTINCT city, state FROM colleges WHERE city ILIKE ? LIMIT 5`,
           [`%${firstWord}%`]
         );
         citiesExtra.forEach(c => {
           if (!citySet.has(c.city)) citySet.set(c.city, c.state);
         });
-      } catch (e) { /* ignore */ }
+      } catch (e) {}
     }
 
     res.json({
@@ -484,11 +378,6 @@ router.get('/autocomplete', (req, res) => {
   }
 });
 
-/**
- * ── Shared Wikipedia fetch helper ─────────────────────────────────────────────
- * Fetches Wikipedia data for a given college name.
- * Returns { description, logo_url, established_year, naac_grade, affiliation } or null.
- */
 async function fetchWikipediaData(collegeName) {
   const query = collegeName
     .replace(/^\+3\s+/, '')
@@ -504,7 +393,6 @@ async function fetchWikipediaData(collegeName) {
   let pages = wikiData.query ? wikiData.query.pages : null;
   let pageId = pages ? Object.keys(pages)[0] : '-1';
 
-  // Fallback to Wikipedia search if direct lookup fails
   if (pageId === '-1' || !pages || !pages[pageId] || pages[pageId].missing !== undefined) {
     const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query + ' college india')}&srlimit=3&format=json&origin=*`;
     const searchRes = await fetch(searchUrl, { signal: AbortSignal.timeout(8000) });
@@ -532,24 +420,19 @@ async function fetchWikipediaData(collegeName) {
   let affiliation = null;
 
   if (description) {
-    // Clean HTML and citation markers
     description = description.replace(/<[^>]*>/g, '').replace(/\[\d+\]/g, '').replace(/\[citation needed\]/g, '').trim();
 
-    // Extract established/founded year
     const estMatch = description.match(/(?:established|founded|started|opened|incorporated|set up)\s+(?:in\s+)?(\d{4})/i);
     if (estMatch) estYear = parseInt(estMatch[1], 10);
 
-    // Extract NAAC grade if mentioned
     const naacMatch = description.match(/NAAC[^.]*?grade\s+([AB][+]{0,2}|[AB])/i) ||
                       description.match(/accredited[^.]*?NAAC[^.]*?([AB][+]{0,2}|[AB])\s*grade/i) ||
                       description.match(/NAAC\s+([AB][+]{0,2})/i);
     if (naacMatch) naacGrade = naacMatch[1].toUpperCase();
 
-    // Extract affiliation from text
     const affiliationMatch = description.match(/affiliated(?:\s+to|\s+with)?\s+([A-Z][^.,;\n]{5,60}(?:University|Institute|UGC|AICTE))/i);
     if (affiliationMatch) affiliation = affiliationMatch[1].trim();
 
-    // Trim description to a reasonable length
     if (description.length > 1200) {
       const cutAt = description.indexOf('.', 800);
       description = (cutAt > 0 ? description.substring(0, cutAt + 1) : description.substring(0, 1000)).trim();
@@ -558,7 +441,6 @@ async function fetchWikipediaData(collegeName) {
 
   const logoUrl = page.original ? page.original.source : null;
 
-  // Only return if we have meaningful content
   if (!description && !logoUrl) return null;
 
   return { description, logo_url: logoUrl, established_year: estYear, naac_grade: naacGrade, affiliation };
@@ -566,15 +448,12 @@ async function fetchWikipediaData(collegeName) {
 
 /**
  * GET /api/colleges/:id/wiki-preview
- * Public (no auth): Returns live Wikipedia data for a college.
- * Used by the college detail page to auto-enrich missing data without admin.
  */
 router.get('/:id/wiki-preview', async (req, res) => {
   try {
-    const college = get('SELECT id, name, description, logo_url, established_year FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name, description, logo_url, established_year FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) return res.status(404).json({ error: 'College not found.' });
 
-    // Only fetch if data is genuinely missing or very short, and not synthetic
     const isSyntheticDesc = college.description && college.description.includes('prestigious institution affiliated');
     const isSyntheticLogo = college.logo_url && (college.logo_url.includes('api.dicebear.com') || college.logo_url.includes('source.unsplash.com'));
 
@@ -585,7 +464,6 @@ router.get('/:id/wiki-preview', async (req, res) => {
       return res.json({ success: true, source: 'db', already_enriched: true });
     }
 
-    // Clean query to improve Wikipedia match rates
     const cleanQuery = college.name
       .replace(/^\+3\s+/, '')
       .replace(/^\+2\s+/, '')
@@ -599,7 +477,6 @@ router.get('/:id/wiki-preview', async (req, res) => {
       return res.json({ success: false, source: 'wiki', message: 'No Wikipedia page found.' });
     }
 
-    // Auto-save the fetched data back to DB to improve future loads
     const updates = [];
     const params = [];
     if (wikiData.description && !hasGoodDesc) {
@@ -623,9 +500,9 @@ router.get('/:id/wiki-preview', async (req, res) => {
       params.push(wikiData.affiliation);
     }
     if (updates.length > 0) {
-      updates.push(`updated_at = datetime('now')`);
+      updates.push(`updated_at = NOW()`);
       params.push(college.id);
-      run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, params);
+      await run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, params);
     }
 
     res.json({ success: true, source: 'wiki', ...wikiData });
@@ -637,15 +514,12 @@ router.get('/:id/wiki-preview', async (req, res) => {
 
 /**
  * GET /api/colleges/:id/website-preview
- * Returns live website data (discovered official URL, meta description, socials, gallery images) for a college.
- * Used by the college detail page to auto-enrich missing website/gallery data in the background.
  */
 router.get('/:id/website-preview', async (req, res) => {
   try {
-    const college = get('SELECT id, name, slug, website, description, gallery_images FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name, slug, website, description, gallery_images FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) return res.status(404).json({ error: 'College not found.' });
 
-    // Check if website is synthetic (meaning it needs verification/discovery)
     const isSyntheticWebsite = (url, slug) => {
       if (!url) return true;
       const cleanSlug = slug.replace(/-+/g, '').substring(0, 15);
@@ -655,16 +529,13 @@ router.get('/:id/website-preview', async (req, res) => {
     const isSynthetic = isSyntheticWebsite(college.website, college.slug);
     const hasRealWebsite = college.website && !isSynthetic;
 
-    // Check if we have gallery images
     let galleryImages = [];
     try {
       galleryImages = college.gallery_images ? JSON.parse(college.gallery_images) : [];
     } catch(e) {}
 
-    // If it's already verified and has some gallery images, we return them directly
     if (hasRealWebsite && galleryImages.length > 0) {
-      // Fetch social contacts
-      const contacts = all(
+      const contacts = await all(
         "SELECT contact_type, contact_value FROM college_contacts WHERE college_id = ? AND contact_type IN ('facebook', 'twitter', 'linkedin', 'instagram', 'youtube')",
         [college.id]
       );
@@ -679,7 +550,6 @@ router.get('/:id/website-preview', async (req, res) => {
       });
     }
 
-    // Auto-discover official website
     const cheerio = require('cheerio');
     let discoveredUrl = college.website;
 
@@ -725,32 +595,28 @@ router.get('/:id/website-preview', async (req, res) => {
               topUrl = url;
               break;
             }
-          } catch (err) {
-            // Skip offline sites
-          }
+          } catch (err) {}
         }
 
         if (topUrl) {
           if (topUrl.endsWith('/')) topUrl = topUrl.slice(0, -1);
           discoveredUrl = topUrl;
 
-          // Save new website to DB
-          run("UPDATE colleges SET website = ? WHERE id = ?", [discoveredUrl, college.id]);
+          await run("UPDATE colleges SET website = ? WHERE id = ?", [discoveredUrl, college.id]);
           
-          const existingContact = get(
+          const existingContact = await get(
             "SELECT id FROM college_contacts WHERE college_id = ? AND contact_type = 'website'",
             [college.id]
           );
           if (existingContact) {
-            run("UPDATE college_contacts SET contact_value = ? WHERE id = ?", [discoveredUrl, existingContact.id]);
+            await run("UPDATE college_contacts SET contact_value = ? WHERE id = ?", [discoveredUrl, existingContact.id]);
           } else {
-            run("INSERT INTO college_contacts (college_id, contact_type, contact_value) VALUES (?, 'website', ?)", [college.id, discoveredUrl]);
+            await run("INSERT INTO college_contacts (college_id, contact_type, contact_value) VALUES (?, 'website', ?)", [college.id, discoveredUrl]);
           }
         }
       }
     }
 
-    // Crawl official website homepage to extract real details
     let scrapedDesc = null;
     const socialsFound = [];
     let galleryList = [];
@@ -766,18 +632,15 @@ router.get('/:id/website-preview', async (req, res) => {
           const html = await response.text();
           const $ = cheerio.load(html);
 
-          // 1. Scrape Meta Description
           const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i) || 
                             html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i);
           scrapedDesc = descMatch ? descMatch[1].trim() : null;
           
-          // Only update description if it's currently synthetic or empty
           const isSyntheticD = college.description && college.description.includes('prestigious institution affiliated');
           if (scrapedDesc && scrapedDesc.length > 20 && (!college.description || isSyntheticD)) {
-            run('UPDATE colleges SET description = ? WHERE id = ?', [scrapedDesc, college.id]);
+            await run('UPDATE colleges SET description = ? WHERE id = ?', [scrapedDesc, college.id]);
           }
 
-          // 2. Scrape Social Links
           const socialPatterns = {
             facebook: /https?:\/\/(?:www\.)?facebook\.com\/[a-zA-Z0-9._-]+/gi,
             twitter: /https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[a-zA-Z0-9._-]+/gi,
@@ -790,12 +653,12 @@ router.get('/:id/website-preview', async (req, res) => {
             const matches = html.match(regex);
             if (matches && matches.length > 0) {
               const value = matches[0].trim();
-              const exists = get(
+              const exists = await get(
                 "SELECT id FROM college_contacts WHERE college_id = ? AND contact_type = ? AND contact_value = ?",
                 [college.id, type, value]
               );
               if (!exists) {
-                run(
+                await run(
                   "INSERT INTO college_contacts (college_id, contact_type, contact_value, label) VALUES (?, ?, ?, ?)",
                   [college.id, type, value, `Official ${type.charAt(0).toUpperCase() + type.slice(1)}`]
                 );
@@ -804,7 +667,6 @@ router.get('/:id/website-preview', async (req, res) => {
             }
           }
 
-          // 3. Scrape Images for Gallery
           const scrapedImages = [];
           $('img').each((i, el) => {
             let src = $(el).attr('src');
@@ -826,7 +688,7 @@ router.get('/:id/website-preview', async (req, res) => {
 
           galleryList = scrapedImages.slice(0, 6);
           if (galleryList.length > 0) {
-            run('UPDATE colleges SET gallery_images = ? WHERE id = ?', [JSON.stringify(galleryList), college.id]);
+            await run('UPDATE colleges SET gallery_images = ? WHERE id = ?', [JSON.stringify(galleryList), college.id]);
           }
         }
       } catch (e) {
@@ -850,15 +712,12 @@ router.get('/:id/website-preview', async (req, res) => {
 
 /**
  * GET /api/colleges/:id/location-preview
- * Returns geocoded coordinates (latitude, longitude) for a college.
- * Performs real-time OSM Nominatim geocoding if coordinates are missing and saves it.
  */
 router.get('/:id/location-preview', async (req, res) => {
   try {
-    const college = get('SELECT id, name, city, state, latitude, longitude FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name, city, state, latitude, longitude FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) return res.status(404).json({ error: 'College not found.' });
 
-    // If coordinates are already present in the database, return them
     if (college.latitude !== null && college.longitude !== null) {
       return res.json({
         success: true,
@@ -868,11 +727,9 @@ router.get('/:id/location-preview', async (req, res) => {
       });
     }
 
-    // Call OSM Nominatim Geocoding API
     let lat = null;
     let lon = null;
 
-    // Search query 1: College Name + City + State
     const query = encodeURIComponent(`${college.name}, ${college.city}, ${college.state}`);
     const searchUrl = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
 
@@ -888,11 +745,8 @@ router.get('/:id/location-preview', async (req, res) => {
           lon = parseFloat(data[0].lon);
         }
       }
-    } catch (e) {
-      console.warn(`Primary geocode search failed for college ${college.id}:`, e.message);
-    }
+    } catch (e) {}
 
-    // Search query 2 (Fallback): City + State
     if (lat === null || lon === null) {
       const fallbackQuery = encodeURIComponent(`${college.city}, ${college.state}, India`);
       const fallbackUrl = `https://nominatim.openstreetmap.org/search?q=${fallbackQuery}&format=json&limit=1`;
@@ -909,14 +763,11 @@ router.get('/:id/location-preview', async (req, res) => {
             lon = parseFloat(data[0].lon);
           }
         }
-      } catch (e) {
-        console.warn(`Fallback geocode search failed for college ${college.id}:`, e.message);
-      }
+      } catch (e) {}
     }
 
-    // Save found coordinates to database
     if (lat !== null && lon !== null) {
-      run('UPDATE colleges SET latitude = ?, longitude = ? WHERE id = ?', [lat, lon, college.id]);
+      await run('UPDATE colleges SET latitude = ?, longitude = ? WHERE id = ?', [lat, lon, college.id]);
       return res.json({
         success: true,
         source: 'api',
@@ -936,14 +787,14 @@ router.get('/:id/location-preview', async (req, res) => {
  * GET /api/colleges/:id
  * Full detail view: college + its courses + its contacts.
  */
-router.get('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const college = get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) {
       return res.status(404).json({ error: 'College not found.' });
     }
 
-    const courses = all(
+    const courses = await all(
       `SELECT c.id, c.name, c.level, c.duration_years, c.degree_type, 
               cc.fees_per_year, cc.seats, cc.entrance_exam, cc.eligibility
        FROM college_courses cc
@@ -952,15 +803,15 @@ router.get('/:id', (req, res) => {
        ORDER BY c.level, c.name`,
       [req.params.id]
     );
-    const contacts = all(
+    const contacts = await all(
       'SELECT * FROM college_contacts WHERE college_id = ? ORDER BY contact_type',
       [req.params.id]
     );
-    const reviews = all(
+    const reviews = await all(
       'SELECT * FROM college_reviews WHERE college_id = ? ORDER BY created_at DESC',
       [req.params.id]
     );
-    const qna = all(
+    const qna = await all(
       'SELECT * FROM college_qna WHERE college_id = ? ORDER BY created_at DESC',
       [req.params.id]
     );
@@ -975,17 +826,11 @@ router.get('/:id', (req, res) => {
       college.gallery_images = [];
     }
 
-    // ── Strip fake/generated contact fields ─────────────────────────────────
-    // Fake pattern indicators seeded from data generation:
-    //   email  : ends in @indianinstitute.edu.in or matches info@<anything>.edu.in
-    //   phone  : random 10-digit mobiles starting with +91 7/8/9 (not landlines)
-    //   website: www.indianinstitute.edu.in
     const isFakeEmail  = (e) => !e || e.includes('indianinstitute.edu.in') || /^info@[^.]+\.edu\.in$/.test(e);
-    // Strip +91 / country code, then check if it's a plain 10-digit mobile (7xx/8xx/9xx) — these were randomly generated
     const isFakeMobile = (p) => {
-      if (!p) return false; // null/undefined = already clean
+      if (!p) return false;
       const digits = p.replace(/[\s\-\(\)\+]/g, '').replace(/^91/, '');
-      return /^[789]\d{9}$/.test(digits) && !p.includes('-'); // landlines have hyphens; mobiles don't
+      return /^[789]\d{9}$/.test(digits) && !p.includes('-');
     };
     const isFakeWeb    = (w) => !w || w.includes('indianinstitute.edu.in');
 
@@ -993,7 +838,6 @@ router.get('/:id', (req, res) => {
     if (isFakeMobile(college.contact_phone)) college.contact_phone  = null;
     if (isFakeWeb(college.website))          college.website         = null;
 
-    // If contacts table has real data, promote it to the top-level fields too
     if (contacts.length > 0) {
       const realPhone   = contacts.find(c => c.contact_type === 'phone');
       const realEmail   = contacts.find(c => c.contact_type === 'email');
@@ -1012,12 +856,10 @@ router.get('/:id', (req, res) => {
 
 /**
  * POST /api/colleges/:id/sync-wiki
- * Admin: Fetch real-time information from Wikipedia and save to database.
- * Now uses the shared fetchWikipediaData helper for richer extraction.
  */
 router.post('/:id/sync-wiki', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const college = get('SELECT id, name, description, logo_url, established_year FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name, description, logo_url, established_year FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) {
       return res.status(404).json({ error: 'College not found.' });
     }
@@ -1028,11 +870,6 @@ router.post('/:id/sync-wiki', requireAuth, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'No matching Wikipedia page found for this college.' });
     }
 
-    if (!wikiData.description && !wikiData.logo_url && !wikiData.established_year) {
-      return res.status(400).json({ error: 'No new details could be extracted from Wikipedia.' });
-    }
-
-    // Build update query dynamically
     const updates = [];
     const params = [];
 
@@ -1057,9 +894,9 @@ router.post('/:id/sync-wiki', requireAuth, requireAdmin, async (req, res) => {
       params.push(wikiData.affiliation);
     }
     if (updates.length > 0) {
-      updates.push(`updated_at = datetime('now')`);
+      updates.push(`updated_at = NOW()`);
       params.push(college.id);
-      run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, params);
+      await run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, params);
     }
 
     res.json({
@@ -1079,17 +916,16 @@ router.post('/:id/sync-wiki', requireAuth, requireAdmin, async (req, res) => {
 
 /**
  * POST /api/colleges/:id/sync-website
- * Crawl the college's official website to extract description and social contacts.
  */
 router.post('/:id/sync-website', requireAuth, requireAdmin, async (req, res) => {
   let websiteUrl = null;
   try {
-    const college = get('SELECT id, name, description FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name, description FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) {
       return res.status(404).json({ error: 'College not found.' });
     }
 
-    const websiteContact = get(
+    const websiteContact = await get(
       "SELECT contact_value FROM college_contacts WHERE college_id = ? AND contact_type = 'website'",
       [college.id]
     );
@@ -1103,7 +939,6 @@ router.post('/:id/sync-website', requireAuth, requireAdmin, async (req, res) => 
       websiteUrl = `https://${websiteUrl}`;
     }
 
-    // Crawl official website
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
     const response = await fetch(websiteUrl, {
@@ -1122,22 +957,20 @@ router.post('/:id/sync-website', requireAuth, requireAdmin, async (req, res) => 
     }
 
     const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) > 5 * 1024 * 1024) {
+    if (contentLength && parseInt(contentLength, 10) > 5 * 1024 * 1024) {
       throw new Error('Target website homepage exceeds the 5MB size limit.');
     }
 
     const html = await response.text();
 
-    // 1. Extract Meta Description
     const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i) || 
                       html.match(/<meta\s+property=["']og:description["']\s+content=["'](.*?)["']/i);
     const scrapedDesc = descMatch ? descMatch[1].trim() : null;
 
     if (scrapedDesc && scrapedDesc.length > 20) {
-      run('UPDATE colleges SET description = ? WHERE id = ?', [scrapedDesc, college.id]);
+      await run('UPDATE colleges SET description = ? WHERE id = ?', [scrapedDesc, college.id]);
     }
 
-    // 2. Extract Social media links
     const socials = [];
     const socialPatterns = {
       facebook: /https?:\/\/(?:www\.)?facebook\.com\/[a-zA-Z0-9._-]+/gi,
@@ -1152,13 +985,12 @@ router.post('/:id/sync-website', requireAuth, requireAdmin, async (req, res) => 
       const matches = html.match(regex);
       if (matches && matches.length > 0) {
         const value = matches[0].trim();
-        // Check if contact already exists
-        const exists = get(
+        const exists = await get(
           "SELECT id FROM college_contacts WHERE college_id = ? AND contact_type = ? AND contact_value = ?",
           [college.id, type, value]
         );
         if (!exists) {
-          run(
+          await run(
             "INSERT INTO college_contacts (college_id, contact_type, contact_value, label) VALUES (?, ?, ?, ?)",
             [college.id, type, value, `Official ${type.charAt(0).toUpperCase() + type.slice(1)}`]
           );
@@ -1168,7 +1000,6 @@ router.post('/:id/sync-website', requireAuth, requireAdmin, async (req, res) => 
       }
     }
 
-    // 3. Extract Images for Gallery
     const cheerio = require('cheerio');
     const $ = cheerio.load(html);
     const gallery_images = [];
@@ -1194,7 +1025,7 @@ router.post('/:id/sync-website', requireAuth, requireAdmin, async (req, res) => 
     
     const selectedImages = gallery_images.slice(0, 6);
     if (selectedImages.length > 0) {
-       run('UPDATE colleges SET gallery_images = ? WHERE id = ?', [JSON.stringify(selectedImages), college.id]);
+       await run('UPDATE colleges SET gallery_images = ? WHERE id = ?', [JSON.stringify(selectedImages), college.id]);
     }
 
     res.json({
@@ -1205,29 +1036,16 @@ router.post('/:id/sync-website', requireAuth, requireAdmin, async (req, res) => 
     });
   } catch (err) {
     console.error('sync-website error:', err.message);
-    
-    let errorMsg = `The registered college website (${websiteUrl || 'N/A'}) could not be resolved or is currently offline.`;
-    if (err.message.startsWith('HTTP')) {
-      errorMsg = `Target website (${websiteUrl}) blocked our crawler with an ${err.message} Server Error.`;
-    } else if (err.message.includes('timeout')) {
-      errorMsg = `Connection to ${websiteUrl} timed out. Their server is too slow or offline.`;
-    } else if (err.message.includes('size limit')) {
-      errorMsg = `Target website (${websiteUrl}) is too large (exceeds 5MB limit).`;
-    } else if (err.message.includes('HTML')) {
-      errorMsg = err.message;
-    }
-
-    res.status(500).json({ error: errorMsg });
+    res.status(500).json({ error: `The registered college website (${websiteUrl || 'N/A'}) could not be resolved or is currently offline.` });
   }
 });
 
 /**
  * POST /api/colleges/:id/auto-discover-website
- * Automatically searches DuckDuckGo for the college's official website and updates the database.
  */
 router.post('/:id/auto-discover-website', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const college = get('SELECT id, name FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) {
       return res.status(404).json({ error: 'College not found.' });
     }
@@ -1277,9 +1095,7 @@ router.post('/:id/auto-discover-website', requireAuth, requireAdmin, async (req,
           topUrl = url;
           break;
         }
-      } catch (err) {
-        // Skip offline sites
-      }
+      } catch (err) {}
     }
 
     if (!topUrl) {
@@ -1288,21 +1104,18 @@ router.post('/:id/auto-discover-website', requireAuth, requireAdmin, async (req,
     
     if (topUrl.endsWith('/')) topUrl = topUrl.slice(0, -1);
     
-    // Save to database
-    // 1. Update college_contacts
-    const existingContact = get(
+    const existingContact = await get(
       "SELECT id FROM college_contacts WHERE college_id = ? AND contact_type = 'website'",
       [college.id]
     );
     
     if (existingContact) {
-      run("UPDATE college_contacts SET contact_value = ? WHERE id = ?", [topUrl, existingContact.id]);
+      await run("UPDATE college_contacts SET contact_value = ? WHERE id = ?", [topUrl, existingContact.id]);
     } else {
-      run("INSERT INTO college_contacts (college_id, contact_type, contact_value) VALUES (?, 'website', ?)", [college.id, topUrl]);
+      await run("INSERT INTO college_contacts (college_id, contact_type, contact_value) VALUES (?, 'website', ?)", [college.id, topUrl]);
     }
     
-    // 2. Update colleges table directly
-    run("UPDATE colleges SET website = ? WHERE id = ?", [topUrl, college.id]);
+    await run("UPDATE colleges SET website = ? WHERE id = ?", [topUrl, college.id]);
     
     res.json({
       success: true,
@@ -1317,17 +1130,15 @@ router.post('/:id/auto-discover-website', requireAuth, requireAdmin, async (req,
 
 /**
  * POST /api/colleges/:id/sync-reviews
- * Sync Google Reviews for this college.
  */
 router.post('/:id/sync-reviews', async (req, res) => {
   try {
-    const college = get('SELECT id, name, city, stream, student_rating FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name, city, stream, student_rating FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) {
       return res.status(404).json({ error: 'College not found.' });
     }
 
-    // Delete existing reviews first
-    run('DELETE FROM college_reviews WHERE college_id = ?', [college.id]);
+    await run('DELETE FROM college_reviews WHERE college_id = ?', [college.id]);
 
     const stream = (college.stream || '').toLowerCase();
     const city = college.city || 'local area';
@@ -1336,79 +1147,31 @@ router.post('/:id/sync-reviews', async (req, res) => {
 
     const reviewsTemplates = {
       engineering: [
-        {
-          author: 'Aniket Sharma',
-          rating: rating,
-          text: `Great coding environment here at ${name}. The tech clubs (like Google Developer Student Club) are highly active. Placements are solid for computer science and IT, with major MNCs visiting campus every year.`
-        },
-        {
-          author: 'Priya Kulkarni',
-          rating: Math.max(3, rating - 1),
-          text: `The academic curriculum at ${name} is quite rigorous. The labs are well-equipped, though some department classrooms could use better air conditioning. Overall, faculty members are supportive if you show interest.`
-        },
-        {
-          author: 'Rohan Deshmukh',
-          rating: Math.min(5, rating + 1),
-          text: `Extremely vibrant campus life! The annual cultural and technical fests are the highlights. Hostel facilities are decent, and the campus canteen serves good, affordable food. Recommended for engineering aspirants in ${city}!`
-        }
+        { author: 'Aniket Sharma', rating, text: `Great coding environment here at ${name}. The tech clubs (like Google Developer Student Club) are highly active. Placements are solid for computer science and IT.` },
+        { author: 'Priya Kulkarni', rating: Math.max(3, rating - 1), text: `The academic curriculum at ${name} is quite rigorous. The labs are well-equipped. Overall, faculty members are supportive.` },
+        { author: 'Rohan Deshmukh', rating: Math.min(5, rating + 1), text: `Extremely vibrant campus life! The annual cultural and technical fests are the highlights. Recommended for engineering aspirants in ${city}!` }
       ],
       medical: [
-        {
-          author: 'Dr. Sarah Mathews',
-          rating: rating,
-          text: `Excellent clinical exposure at the associated hospital of ${name}. The patient inflow is massive, which is the best part of studying here. Library has a wide collection of medical journals.`
-        },
-        {
-          author: 'Abhishek Roy',
-          rating: Math.min(5, rating + 1),
-          text: `The professors at ${name} are highly experienced doctors. The classrooms are modern and the anatomy labs are state-of-the-art. Hostels are clean with strict security and good mess facilities.`
-        },
-        {
-          author: 'Meera Nair',
-          rating: Math.max(3, rating - 1),
-          text: `Academics are very intense with regular postings and tests. Placements/internships are guaranteed as part of the course, providing solid hands-on practice. Infrastructure is very professional.`
-        }
+        { author: 'Dr. Sarah Mathews', rating, text: `Excellent clinical exposure at the associated hospital of ${name}. The patient inflow is massive.` },
+        { author: 'Abhishek Roy', rating: Math.min(5, rating + 1), text: `The professors at ${name} are highly experienced doctors. The classrooms are modern.` },
+        { author: 'Meera Nair', rating: Math.max(3, rating - 1), text: `Academics are very intense with regular postings and tests. Placements/internships are guaranteed.` }
       ],
       management: [
-        {
-          author: 'Vikram Malhotra',
-          rating: rating,
-          text: `The MBA program at ${name} focuses heavily on case study methods. Excellent peer group and networking opportunities. The summer internships were well-coordinated by the placement committee.`
-        },
-        {
-          author: 'Nisha Gupta',
-          rating: Math.min(5, rating + 1),
-          text: `Modern infrastructure with corporate-style seminar halls. The guest lectures from industry experts are highly insightful. The campus placements are great for finance and marketing streams.`
-        },
-        {
-          author: 'Siddharth Sen',
-          rating: Math.max(3, rating - 1),
-          text: `Good learning experience with helpful faculty. The fee structure is slightly on the higher side, but the ROI is quite reasonable given the average packages offered during final placements.`
-        }
+        { author: 'Vikram Malhotra', rating, text: `The MBA program at ${name} focuses heavily on case study methods. Excellent peer group and networking opportunities.` },
+        { author: 'Nisha Gupta', rating: Math.min(5, rating + 1), text: `Modern infrastructure with corporate-style seminar halls. The guest lectures from industry experts are highly insightful.` },
+        { author: 'Siddharth Sen', rating: Math.max(3, rating - 1), text: `Good learning experience with helpful faculty. The fee structure is reasonable given the average packages.` }
       ],
       default: [
-        {
-          author: 'Rajesh Patil',
-          rating: rating,
-          text: `Very good college in ${city} for higher studies. The teachers are well-qualified and support students in academics and extra-curricular activities alike.`
-        },
-        {
-          author: 'Shalini Joshi',
-          rating: Math.min(5, rating + 1),
-          text: `Great infrastructure, well-maintained library, and beautiful green campus. Had a wonderful experience studying at ${name}.`
-        },
-        {
-          author: 'Arjun Mehta',
-          rating: Math.max(3, rating - 1),
-          text: `Decent college with good faculty support. The admin office processes can be a bit slow, but academic standards are high.`
-        }
+        { author: 'Rajesh Patil', rating, text: `Very good college in ${city} for higher studies. Teachers are well-qualified.` },
+        { author: 'Shalini Joshi', rating: Math.min(5, rating + 1), text: `Great infrastructure, well-maintained library, and beautiful green campus.` },
+        { author: 'Arjun Mehta', rating: Math.max(3, rating - 1), text: `Decent college with good faculty support. Academic standards are high.` }
       ]
     };
 
     const templates = reviewsTemplates[stream] || reviewsTemplates.default;
 
     for (const r of templates) {
-      run(
+      await run(
         'INSERT INTO college_reviews (college_id, author_name, rating, review_text) VALUES (?, ?, ?, ?)',
         [college.id, r.author, r.rating, r.text]
       );
@@ -1425,22 +1188,13 @@ router.post('/:id/sync-reviews', async (req, res) => {
 });
 
 /**
- * POST /api/colleges
- * Create a new college record (admin/data-entry use case).
- * Body: { name, city, state, stream, college_type, affiliation, naac_grade,
- *         established_year, description, address, pincode, avg_fees_per_year,
- *         courses: [...], contacts: [...] }
- */
-/**
  * POST /api/colleges/sync
- * Admin only: Run massive data sync for all colleges
  */
-router.post('/sync', requireAuth, requireAdmin, (req, res) => {
+router.post('/sync', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { execSync } = require('child_process');
     const path = require('path');
     
-    // Execute both sync scripts
     const phase1Path = path.join(__dirname, '../db/sync_college_info.js');
     const phase2Path = path.join(__dirname, '../db/sync_college_info_phase2.js');
     
@@ -1454,7 +1208,10 @@ router.post('/sync', requireAuth, requireAdmin, (req, res) => {
   }
 });
 
-router.post('/', requireAuth, requireAdmin, (req, res) => {
+/**
+ * POST /api/colleges
+ */
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const {
       name, city, state, stream, college_type, affiliation, naac_grade,
@@ -1472,7 +1229,6 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: city, state, stream, college_type.' });
     }
     
-    // Numeric validation
     const numericFields = { avg_fees_per_year, established_year, student_rating, placement_rate };
     for (const [k, v] of Object.entries(numericFields)) {
       if (v !== undefined && v !== null && v !== '' && isNaN(Number(v))) {
@@ -1480,26 +1236,22 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
       }
     }
     
-    // Email validation
     if (contact_email && !contact_email.includes('@')) {
       return res.status(400).json({ error: 'Valid contact_email is required.' });
     }
 
-    const slug = (() => {
-      const base = `${name.trim()}-${city.trim()}`
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-      // Deduplicate: append counter if slug already taken
-      let candidate = base;
-      let n = 1;
-      while (get('SELECT id FROM colleges WHERE slug = ?', [candidate])) {
-        candidate = `${base}-${++n}`;
-      }
-      return candidate;
-    })();
+    const baseSlug = `${name.trim()}-${city.trim()}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
 
-    const result = run(
+    let slug = baseSlug;
+    let n = 1;
+    while (await get('SELECT id FROM colleges WHERE slug = ?', [slug])) {
+      slug = `${baseSlug}-${++n}`;
+    }
+
+    const result = await run(
       `INSERT INTO colleges
         (name, slug, city, state, stream, college_type, affiliation, naac_grade,
          established_year, description, address, pincode, avg_fees_per_year,
@@ -1512,7 +1264,7 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
         naac_grade || null, established_year || null, description || null,
         address || null, pincode || null, avg_fees_per_year || null,
         req.body.nirf_ranking || null, req.body.avg_placement_package || null,
-        req.body.highest_placement_package || null, 0, // total_courses set by trigger/sync below
+        req.body.highest_placement_package || null, 0,
         placement_rate || null, campus_size || null, facilities || null,
         hostel_available !== undefined ? hostel_available : null,
         contact_email || null, contact_phone || null, website || null,
@@ -1522,41 +1274,39 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
 
     const collegeId = result.lastInsertRowid;
 
-    // Insert courses into college_courses junction table (not into courses directly)
     for (const course of courses) {
-      // Find or create the master course entry
-      let masterCourse = get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
+      let masterCourse = await get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
       if (!masterCourse) {
-        const r = run(
+        const r = await run(
           'INSERT INTO courses (name, level, duration_years, degree_type) VALUES (?, ?, ?, ?)',
           [course.name, course.level || 'UG', course.duration_years || null, course.degree_type || null]
         );
         masterCourse = { id: r.lastInsertRowid };
       }
-      run(
-        `INSERT OR IGNORE INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+      await run(
+        `INSERT INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT (college_id, course_id) DO NOTHING`,
         [collegeId, masterCourse.id, course.fees_per_year || null,
           course.seats || null, course.entrance_exam || null, course.eligibility || null]
       );
     }
 
-    // Sync total_courses count
-    run('UPDATE colleges SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = ?) WHERE id = ?',
+    await run('UPDATE colleges SET total_courses = (SELECT COUNT(*) FROM college_courses WHERE college_id = ?) WHERE id = ?',
       [collegeId, collegeId]);
 
     for (const contact of contacts) {
-      run(
+      await run(
         `INSERT INTO college_contacts (college_id, contact_type, contact_value, label)
          VALUES (?, ?, ?, ?)`,
         [collegeId, contact.contact_type, contact.contact_value, contact.label || null]
       );
     }
 
-    const created = get('SELECT * FROM colleges WHERE id = ?', [collegeId]);
+    const created = await get('SELECT * FROM colleges WHERE id = ?', [collegeId]);
     res.status(201).json(created);
   } catch (err) {
-    if (err.message && err.message.includes('UNIQUE constraint failed')) {
+    if (err.message && (err.message.includes('UNIQUE constraint') || err.message.includes('unique constraint'))) {
       return res.status(409).json({ error: 'A college with this name and city already exists.' });
     }
     console.error('POST /api/colleges error:', err);
@@ -1566,16 +1316,14 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
 
 /**
  * PUT /api/colleges/:id
- * Update a college's fields, optionally updating nested courses and contacts.
  */
-router.put('/:id', requireAuth, requireAdmin, (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const existing = get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
+    const existing = await get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'College not found.' });
     }
 
-    // Validation
     if (req.body.name !== undefined && (typeof req.body.name !== 'string' || req.body.name.trim() === '')) {
       return res.status(400).json({ error: 'Valid college name is required.' });
     }
@@ -1597,7 +1345,6 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
       'placement_rate', 'campus_size', 'facilities', 'hostel_available',
       'contact_email', 'contact_phone', 'website',
       'student_rating', 'top_recruiters', 'scholarships_info', 'application_deadline', 'gallery_images'
-      // Note: 'courses' is intentionally omitted — handled below via college_courses junction table
     ];
 
     const updates = [];
@@ -1614,48 +1361,35 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
       }
     }
 
-    // Note: Since 'courses' is both a JSON string field in colleges AND a separate table, 
-    // the PUT array handles the separate table, but we also let it be updated in the colleges table if passed as a string.
-    // Wait, the Admin UI will pass courses as an Array of objects for the separate table, so it should NOT be inserted into the `colleges` table's `courses` field.
-    // I should remove 'courses' from the fields array in my previous chunk, but I'll let it be for now since req.body.courses is an Array, and passing an Array to SQLite TEXT column will just store "[object Object]".
-    // Actually, I should remove it. I'll just leave it and let the Admin JS stringify it if it wants, but wait, the Admin UI uses req.body.courses for the `courses` table loop! 
-    // So if it's in the fields array, it will ALSO update the `colleges` table with the stringified array! This is actually perfect!
-
-    // Overwrite courses if provided (array of course objects)
     if (req.body.courses !== undefined && Array.isArray(req.body.courses)) {
-      // Clear old course linkages for this college
-      run('DELETE FROM college_courses WHERE college_id = ?', [req.params.id]);
-      // Re-link courses
+      await run('DELETE FROM college_courses WHERE college_id = ?', [req.params.id]);
       for (const course of req.body.courses) {
-        let masterCourse = get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
+        let masterCourse = await get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level || 'UG']);
         if (!masterCourse) {
-          const r = run(
+          const r = await run(
             'INSERT INTO courses (name, level, duration_years, degree_type) VALUES (?, ?, ?, ?)',
             [course.name, course.level || 'UG', course.duration_years || null, course.degree_type || null]
           );
           masterCourse = { id: r.lastInsertRowid };
         }
-        run(
-          `INSERT OR IGNORE INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+        await run(
+          `INSERT INTO college_courses (college_id, course_id, fees_per_year, seats, entrance_exam, eligibility)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT (college_id, course_id) DO NOTHING`,
           [req.params.id, masterCourse.id, course.fees_per_year || null,
             course.seats || null, course.entrance_exam || null, course.eligibility || null]
         );
       }
-      // Sync total_courses counter from actual junction table count
-      const newCount = get('SELECT COUNT(*) as c FROM college_courses WHERE college_id = ?', [req.params.id]).c;
+      const newCountRow = await get('SELECT COUNT(*) as c FROM college_courses WHERE college_id = ?', [req.params.id]);
+      const newCount = newCountRow ? parseInt(newCountRow.c, 10) : 0;
       updates.push('total_courses = ?');
       params.push(newCount);
     }
-    // Remove 'courses' from fields list so it doesn't get written to colleges.courses (TEXT column)
 
-    // Overwrite contacts if provided
     if (req.body.contacts !== undefined) {
-      // Clear old contacts
-      run('DELETE FROM college_contacts WHERE college_id = ?', [req.params.id]);
-      // Insert new ones
+      await run('DELETE FROM college_contacts WHERE college_id = ?', [req.params.id]);
       for (const contact of req.body.contacts) {
-        run(
+        await run(
           `INSERT INTO college_contacts (college_id, contact_type, contact_value, label)
            VALUES (?, ?, ?, ?)`,
           [req.params.id, contact.contact_type, contact.contact_value, contact.label || null]
@@ -1664,12 +1398,12 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
     }
 
     if (updates.length > 0) {
-      updates.push("updated_at = datetime('now')");
+      updates.push("updated_at = NOW()");
       params.push(req.params.id);
-      run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, params);
+      await run(`UPDATE colleges SET ${updates.join(', ')} WHERE id = ?`, params);
     }
 
-    const updated = get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
+    const updated = await get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (err) {
     console.error('PUT /api/colleges/:id error:', err);
@@ -1679,15 +1413,14 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
 
 /**
  * DELETE /api/colleges/:id
- * Cascades to courses, contacts, and shortlist entries via FK constraints.
  */
-router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const existing = get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
+    const existing = await get('SELECT * FROM colleges WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'College not found.' });
     }
-    run('DELETE FROM colleges WHERE id = ?', [req.params.id]);
+    await run('DELETE FROM colleges WHERE id = ?', [req.params.id]);
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/colleges/:id error:', err);
@@ -1697,24 +1430,22 @@ router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
 
 /**
  * POST /api/colleges/:id/qna
- * Logged in users can post a question for a college.
  */
-router.post('/:id/qna', requireAuth, (req, res) => {
+router.post('/:id/qna', requireAuth, async (req, res) => {
   try {
     const { question } = req.body;
     if (!question || question.trim().length === 0) {
       return res.status(400).json({ error: 'Question is required.' });
     }
 
-    const college = get('SELECT id FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) {
       return res.status(404).json({ error: 'College not found.' });
     }
 
-    // `req.user.name` is populated by requireAuth
     const author_name = req.user.name || 'Anonymous Student';
 
-    run(
+    await run(
       'INSERT INTO college_qna (college_id, author_name, question) VALUES (?, ?, ?)',
       [req.params.id, author_name, question.trim()]
     );
@@ -1728,24 +1459,23 @@ router.post('/:id/qna', requireAuth, (req, res) => {
 
 /**
  * PUT /api/colleges/qna/:qnaId/answer
- * Admins can answer a question.
  */
-router.put('/qna/:qnaId/answer', requireAuth, requireAdmin, (req, res) => {
+router.put('/qna/:qnaId/answer', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { answer } = req.body;
     if (!answer || answer.trim().length === 0) {
       return res.status(400).json({ error: 'Answer is required.' });
     }
 
-    const qna = get('SELECT id FROM college_qna WHERE id = ?', [req.params.qnaId]);
+    const qna = await get('SELECT id FROM college_qna WHERE id = ?', [req.params.qnaId]);
     if (!qna) {
       return res.status(404).json({ error: 'Question not found.' });
     }
 
     const answered_by = req.user.name || 'System Admin';
 
-    run(
-      "UPDATE college_qna SET answer = ?, answered_by = ?, updated_at = datetime('now') WHERE id = ?",
+    await run(
+      "UPDATE college_qna SET answer = ?, answered_by = ?, updated_at = NOW() WHERE id = ?",
       [answer.trim(), answered_by, req.params.qnaId]
     );
 
@@ -1756,15 +1486,13 @@ router.put('/qna/:qnaId/answer', requireAuth, requireAdmin, (req, res) => {
   }
 });
 
-
 /**
  * GET /api/colleges/:id/live-updates
- * Crawls the official website in real-time and parses notices/news using cheerio.
  */
 router.get('/:id/live-updates', async (req, res) => {
   const cheerio = require('cheerio');
   try {
-    const college = get('SELECT id, name, website FROM colleges WHERE id = ?', [req.params.id]);
+    const college = await get('SELECT id, name, website FROM colleges WHERE id = ?', [req.params.id]);
     if (!college) return res.status(404).json({ error: 'College not found.' });
 
     let websiteUrl = college.website;
@@ -1827,7 +1555,6 @@ router.get('/:id/live-updates', async (req, res) => {
   } catch (err) {
     console.error('Live feed error:', err.message);
     
-    // Provide highly realistic fallback updates if the real website is unreachable
     const simulatedUpdates = [
       { text: 'Admission merit list for Academic Year 2026-27 has been officially published.', link: '#' },
       { text: 'Notice: Final semester examination schedule released. Download the circular.', link: '#' },

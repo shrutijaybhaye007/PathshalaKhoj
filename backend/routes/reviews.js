@@ -9,15 +9,13 @@ const router = express.Router();
 const { get, all, run } = require('../db/connection');
 const { requireAuth } = require('../middlewares/authMiddleware');
 
-// Note: user_id, pros, cons, status columns are added via server.js migrations on startup.
-
 /**
  * GET /api/reviews/:college_id
  * Returns all approved reviews for a college, newest first.
  */
-router.get('/:college_id', (req, res) => {
+router.get('/:college_id', async (req, res) => {
   try {
-    const reviews = all(
+    const reviews = await all(
       `SELECT r.id, r.rating, r.review_text, r.pros, r.cons, r.created_at,
               COALESCE(r.author_name, u.name, 'Anonymous') AS reviewer_name
        FROM college_reviews r
@@ -43,7 +41,7 @@ router.get('/:college_id', (req, res) => {
  * Submit a review. Auth required.
  * Body: { rating (1-5), review_text, pros, cons }
  */
-router.post('/:college_id', requireAuth, (req, res) => {
+router.post('/:college_id', requireAuth, async (req, res) => {
   try {
     const { rating, review_text, pros, cons } = req.body;
 
@@ -51,11 +49,11 @@ router.post('/:college_id', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'Rating must be between 1 and 5.' });
     }
 
-    const college = get('SELECT id FROM colleges WHERE id = ?', [req.params.college_id]);
+    const college = await get('SELECT id FROM colleges WHERE id = ?', [req.params.college_id]);
     if (!college) return res.status(404).json({ error: 'College not found.' });
 
     // One review per user per college
-    const existing = get(
+    const existing = await get(
       'SELECT id FROM college_reviews WHERE college_id = ? AND user_id = ?',
       [req.params.college_id, req.user.id]
     );
@@ -63,18 +61,22 @@ router.post('/:college_id', requireAuth, (req, res) => {
       return res.status(409).json({ error: 'You have already reviewed this college.' });
     }
 
-    const result = run(
+    const result = await run(
       `INSERT INTO college_reviews (college_id, user_id, author_name, rating, review_text, pros, cons)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [req.params.college_id, req.user.id, req.user.name || 'Anonymous', rating, review_text || null, pros || null, cons || null]
     );
 
     // Update avg student_rating on the colleges table
-    const avgRow = get(
+    const avgRow = await get(
       'SELECT AVG(rating) as avg FROM college_reviews WHERE college_id = ?',
       [req.params.college_id]
     );
-    try { run('UPDATE colleges SET student_rating = ? WHERE id = ?', [avgRow.avg, req.params.college_id]); } catch(e) {}
+    try {
+      if (avgRow && avgRow.avg !== null) {
+        await run('UPDATE colleges SET student_rating = ? WHERE id = ?', [parseFloat(avgRow.avg), req.params.college_id]);
+      }
+    } catch(e) {}
 
     res.status(201).json({ id: result.lastInsertRowid, message: 'Review submitted! Thank you.' });
   } catch (err) {
@@ -87,14 +89,14 @@ router.post('/:college_id', requireAuth, (req, res) => {
  * DELETE /api/reviews/:id
  * Delete own review (or admin can delete any).
  */
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
-    const review = get('SELECT * FROM college_reviews WHERE id = ?', [req.params.id]);
+    const review = await get('SELECT * FROM college_reviews WHERE id = ?', [req.params.id]);
     if (!review) return res.status(404).json({ error: 'Review not found.' });
     if (review.user_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'You can only delete your own reviews.' });
     }
-    run('DELETE FROM college_reviews WHERE id = ?', [req.params.id]);
+    await run('DELETE FROM college_reviews WHERE id = ?', [req.params.id]);
     res.json({ message: 'Review deleted.' });
   } catch (err) {
     console.error('DELETE /api/reviews error:', err);

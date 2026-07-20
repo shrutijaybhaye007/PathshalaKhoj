@@ -5,7 +5,7 @@
  * colleges, their courses, and their contact details. Also serves the
  * static frontend so the whole app can run from a single `npm start`.
  */
-require('dotenv').config();
+require('dotenv').config({ path: require('node:path').join(__dirname, '.env') });
 
 // ─── Environment validation — fail fast rather than run insecurely ────────
 if (!process.env.JWT_SECRET) {
@@ -37,45 +37,45 @@ const { initDb }         = require('./db/init');
 const app  = express();
 const PORT = process.env.PORT || 4000;
 
-// Make sure tables exist even if someone forgets to run the seed script.
-initDb();
+async function bootstrapDb() {
+  try {
+    await initDb();
 
-// ─── Run idempotent schema migrations ─────────────────────────────────────
-// These ALTER TABLE calls are safe to run on every boot; they silently
-// succeed when the column already exists and skip when it doesn't.
-const { run: runDb } = require('./db/connection');
+    const { run: runDb } = require('./db/connection');
+    const migrations = [
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS jee_rank INTEGER",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS neet_rank INTEGER",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS cat_percentile DOUBLE PRECISION",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS board_percentage DOUBLE PRECISION",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS academic_stream TEXT",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT",
+      "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS student_rating DOUBLE PRECISION",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS top_recruiters TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS scholarships_info TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS application_deadline TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS placement_rate DOUBLE PRECISION",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS hostel_available INTEGER",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS contact_email TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS contact_phone TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS website TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS campus_size TEXT",
+      "ALTER TABLE colleges ADD COLUMN IF NOT EXISTS facilities TEXT",
+      "ALTER TABLE college_reviews ADD COLUMN IF NOT EXISTS user_id INTEGER",
+      "ALTER TABLE college_reviews ADD COLUMN IF NOT EXISTS pros TEXT",
+      "ALTER TABLE college_reviews ADD COLUMN IF NOT EXISTS cons TEXT",
+      "ALTER TABLE college_reviews ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved'"
+    ];
 
-const migrations = [
-  // Users — academic profile
-  "ALTER TABLE users ADD COLUMN jee_rank INTEGER",
-  "ALTER TABLE users ADD COLUMN neet_rank INTEGER",
-  "ALTER TABLE users ADD COLUMN cat_percentile REAL",
-  "ALTER TABLE users ADD COLUMN board_percentage REAL",
-  "ALTER TABLE users ADD COLUMN academic_stream TEXT",
-  "ALTER TABLE users ADD COLUMN password_reset_token TEXT",
-  "ALTER TABLE users ADD COLUMN password_reset_expires TEXT",
-  // Colleges — extended data
-  "ALTER TABLE colleges ADD COLUMN student_rating REAL",
-  "ALTER TABLE colleges ADD COLUMN top_recruiters TEXT",
-  "ALTER TABLE colleges ADD COLUMN scholarships_info TEXT",
-  "ALTER TABLE colleges ADD COLUMN application_deadline TEXT",
-  "ALTER TABLE colleges ADD COLUMN placement_rate REAL",
-  "ALTER TABLE colleges ADD COLUMN hostel_available INTEGER",
-  "ALTER TABLE colleges ADD COLUMN contact_email TEXT",
-  "ALTER TABLE colleges ADD COLUMN contact_phone TEXT",
-  "ALTER TABLE colleges ADD COLUMN website TEXT",
-  "ALTER TABLE colleges ADD COLUMN campus_size TEXT",
-  "ALTER TABLE colleges ADD COLUMN facilities TEXT",
-  // Reviews — extended data
-  "ALTER TABLE college_reviews ADD COLUMN user_id INTEGER",
-  "ALTER TABLE college_reviews ADD COLUMN pros TEXT",
-  "ALTER TABLE college_reviews ADD COLUMN cons TEXT",
-  "ALTER TABLE college_reviews ADD COLUMN status TEXT DEFAULT 'approved'",
-];
+    for (const sql of migrations) {
+      try { await runDb(sql); } catch (_) { /* column already exists */ }
+    }
+  } catch (err) {
+    console.warn('DB Bootstrap warning:', err.message);
+  }
+}
 
-migrations.forEach(sql => {
-  try { runDb(sql); } catch (_) { /* column already exists — expected */ }
-});
+bootstrapDb();
 
 // ─── Security: Helmet (HTTP headers) ──────────────────────────────────────
 app.use(helmet({

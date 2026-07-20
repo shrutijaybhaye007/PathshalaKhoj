@@ -10,7 +10,7 @@ const { all } = require('../db/connection');
  */
 // POST /api/predict -> returns safe/target/reach matches
 // AUTH REQUIRED: Only logged-in students can use this
-router.post('/', requireAuth, (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { stream, board, rank } = req.body;
 
@@ -19,14 +19,13 @@ router.post('/', requireAuth, (req, res) => {
     }
 
     const studentRank = parseInt(rank, 10);
-    const boardPct = parseFloat(board);
 
     // Fetch all colleges matching the stream
-    const colleges = all(
+    const colleges = await all(
       `SELECT id, name, city, state, stream, naac_grade, nirf_ranking, avg_fees_per_year, logo_url 
        FROM colleges 
        WHERE stream = ? 
-       ORDER BY nirf_ranking ASC`,
+       ORDER BY nirf_ranking ASC NULLS LAST`,
       [stream]
     );
 
@@ -50,19 +49,11 @@ router.post('/', requireAuth, (req, res) => {
         requiredRank = 200000;
       }
 
-      // Buffer ranges to determine match type
-      // Safe: Student rank is much better (lower) than required
-      // Target: Student rank is close to required
-      // Reach: Student rank is worse (higher) than required, but within 20% margin
-
       if (studentRank <= requiredRank * 0.7) {
-        // Safe Match
         if (safe.length < 5) safe.push(c);
       } else if (studentRank <= requiredRank) {
-        // Target Match
         if (target.length < 5) target.push(c);
       } else if (studentRank <= requiredRank * 1.5) {
-        // Reach Match
         if (reach.length < 5) reach.push(c);
       }
     });

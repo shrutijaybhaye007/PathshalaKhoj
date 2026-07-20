@@ -11,9 +11,9 @@ const { get, all, run } = require('../db/connection');
 /**
  * GET /api/shortlist/:sessionId
  */
-router.get('/:sessionId', (req, res) => {
+router.get('/:sessionId', async (req, res) => {
   try {
-    const rows = all(
+    const rows = await all(
       `SELECT c.id, c.name, c.city, c.state, c.stream, c.college_type,
               c.naac_grade, c.avg_fees_per_year, s.created_at as shortlisted_at
        FROM shortlists s
@@ -33,19 +33,19 @@ router.get('/:sessionId', (req, res) => {
  * POST /api/shortlist/:sessionId
  * Body: { college_id }
  */
-router.post('/:sessionId', (req, res) => {
+router.post('/:sessionId', async (req, res) => {
   try {
     const { college_id } = req.body;
     if (!college_id) {
       return res.status(400).json({ error: 'college_id is required.' });
     }
 
-    const college = get('SELECT id FROM colleges WHERE id = ?', [college_id]);
+    const college = await get('SELECT id FROM colleges WHERE id = ?', [college_id]);
     if (!college) {
       return res.status(404).json({ error: 'College not found.' });
     }
 
-    run(
+    await run(
       `INSERT INTO shortlists (session_id, college_id) VALUES (?, ?)
        ON CONFLICT(session_id, college_id) DO NOTHING`,
       [req.params.sessionId, college_id]
@@ -61,9 +61,9 @@ router.post('/:sessionId', (req, res) => {
 /**
  * DELETE /api/shortlist/:sessionId/:collegeId
  */
-router.delete('/:sessionId/:collegeId', (req, res) => {
+router.delete('/:sessionId/:collegeId', async (req, res) => {
   try {
-    const result = run(
+    const result = await run(
       'DELETE FROM shortlists WHERE session_id = ? AND college_id = ?',
       [req.params.sessionId, req.params.collegeId]
     );

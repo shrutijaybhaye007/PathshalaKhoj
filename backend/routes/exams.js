@@ -8,9 +8,9 @@ const router = express.Router();
  * GET /api/exams
  * Public endpoint to fetch all upcoming exams / counseling timeline events.
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const exams = all('SELECT * FROM timeline_events ORDER BY id ASC');
+    const exams = await all('SELECT * FROM timeline_events ORDER BY id ASC');
     res.json(exams);
   } catch (err) {
     console.error('GET /api/exams error:', err);
@@ -22,7 +22,7 @@ router.get('/', (req, res) => {
  * POST /api/exams
  * Create a new timeline event (Admin only).
  */
-router.post('/', requireAuth, requireAdmin, (req, res) => {
+router.post('/', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { exam_name, stream, dates_details, status, badge_filter, post_exam_note } = req.body;
     if (!exam_name || !stream || !dates_details || !status || !badge_filter) {
@@ -31,13 +31,13 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
       });
     }
 
-    const result = run(
+    const result = await run(
       `INSERT INTO timeline_events (exam_name, stream, dates_details, status, badge_filter, post_exam_note)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [exam_name, stream, dates_details, status, badge_filter, post_exam_note || null]
     );
 
-    const created = get('SELECT * FROM timeline_events WHERE id = ?', [result.lastInsertRowid]);
+    const created = await get('SELECT * FROM timeline_events WHERE id = ?', [result.lastInsertRowid]);
     res.status(201).json(created);
   } catch (err) {
     console.error('POST /api/exams error:', err);
@@ -49,9 +49,9 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
  * PUT /api/exams/:id
  * Update an existing timeline event (Admin only).
  */
-router.put('/:id', requireAuth, requireAdmin, (req, res) => {
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const existing = get('SELECT * FROM timeline_events WHERE id = ?', [req.params.id]);
+    const existing = await get('SELECT * FROM timeline_events WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'Timeline event not found.' });
     }
@@ -71,12 +71,12 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'No fields provided to update.' });
     }
 
-    updates.push("updated_at = datetime('now')");
+    updates.push("updated_at = NOW()");
     params.push(req.params.id);
 
-    run(`UPDATE timeline_events SET ${updates.join(', ')} WHERE id = ?`, params);
+    await run(`UPDATE timeline_events SET ${updates.join(', ')} WHERE id = ?`, params);
 
-    const updated = get('SELECT * FROM timeline_events WHERE id = ?', [req.params.id]);
+    const updated = await get('SELECT * FROM timeline_events WHERE id = ?', [req.params.id]);
     res.json(updated);
   } catch (err) {
     console.error('PUT /api/exams/:id error:', err);
@@ -88,13 +88,13 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
  * DELETE /api/exams/:id
  * Delete a timeline event (Admin only).
  */
-router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const existing = get('SELECT * FROM timeline_events WHERE id = ?', [req.params.id]);
+    const existing = await get('SELECT * FROM timeline_events WHERE id = ?', [req.params.id]);
     if (!existing) {
       return res.status(404).json({ error: 'Timeline event not found.' });
     }
-    run('DELETE FROM timeline_events WHERE id = ?', [req.params.id]);
+    await run('DELETE FROM timeline_events WHERE id = ?', [req.params.id]);
     res.status(204).send();
   } catch (err) {
     console.error('DELETE /api/exams/:id error:', err);

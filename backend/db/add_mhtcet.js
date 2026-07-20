@@ -1,11 +1,18 @@
 const { run } = require('./connection');
 
-function addMhtcet() {
+async function addMhtcet() {
   console.log('Adding MHT CET to database...');
   try {
-    run(
-      `INSERT OR REPLACE INTO timeline_events (id, exam_name, stream, dates_details, status, badge_filter, post_exam_note)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    await run(
+      `INSERT INTO timeline_events (id, exam_name, stream, dates_details, status, badge_filter, post_exam_note)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (id) DO UPDATE SET
+         exam_name = EXCLUDED.exam_name,
+         stream = EXCLUDED.stream,
+         dates_details = EXCLUDED.dates_details,
+         status = EXCLUDED.status,
+         badge_filter = EXCLUDED.badge_filter,
+         post_exam_note = EXCLUDED.post_exam_note`,
       [
         15,
         'MHT CET 2026',
@@ -22,4 +29,8 @@ function addMhtcet() {
   }
 }
 
-addMhtcet();
+if (require.main === module) {
+  addMhtcet().catch(console.error);
+}
+
+module.exports = { addMhtcet };

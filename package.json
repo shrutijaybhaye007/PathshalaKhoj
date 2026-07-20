@@ -1,0 +1,16 @@
+{
+  "name": "pathshalakhoj",
+  "version": "2.0.0",
+  "description": "PathshalaKhoj — India College Finder",
+  "private": true,
+  "main": "backend/server.js",
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "build": "cd backend && npm install",
+    "start": "cd backend && npm run migrate:pg && npm start",
+    "migrate:pg": "cd backend && npm run migrate:pg"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
