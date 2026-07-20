@@ -1,6 +1,7 @@
 const { get, all, run, exec } = require('./connection');
 const fs = require('fs');
 const path = require('path');
+const { cleanCollegeName } = require('./refine_db');
 
 const getRandomRating = () => parseFloat((3.5 + Math.random() * 1.4).toFixed(1));
 const getRandomFees = () => Math.floor(Math.random() * 1450000) + 50000;
@@ -57,8 +58,7 @@ async function seedMassive() {
 
         const collegesToInsert = [];
         for (const item of rawData) {
-            let rawName = item.college || "Unknown College";
-            rawName = rawName.replace(/\s*\(Id:.*?\)\s*/i, '').trim();
+            let rawName = cleanCollegeName(item.college || "Unknown College");
 
             const city = item.district || "Unknown City";
             const state = item.state || "Unknown State";
