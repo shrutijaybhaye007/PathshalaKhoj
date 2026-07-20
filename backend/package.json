@@ -9,6 +9,7 @@
     "dev": "nodemon server.js",
     "seed": "node db/seed.js",
     "seed:admin": "node db/seed-admin.js",
+    "refine": "node db/refine_db.js",
     "migrate:pg": "node db/migrate-to-pg.js",
     "test:smoke": "node smoke.test.js"
   },
