@@ -370,19 +370,19 @@ async function init() {
 // ─── Hero stats ──────────────────────────────────────────────────────────────
 async function loadHeroStats() {
   try {
-    const [metaRes, countRes] = await Promise.all([
+    const [metaRes, statsRes] = await Promise.all([
       fetch(`${API_BASE}/colleges/meta/filters`),
-      fetch(`${API_BASE}/colleges?limit=1`),
+      fetch(`${API_BASE}/colleges/stats`),
     ]);
     const meta  = await metaRes.json();
-    const count = await countRes.json();
-    const total   = count.pagination.total;
-    const streams = meta.streams.length;
+    const stats = await statsRes.json();
+    const total   = (stats && stats.collegesCount) ? Number(stats.collegesCount).toLocaleString('en-IN') : '133+';
+    const streams = (meta && meta.streams) ? meta.streams.length : 9;
     const statText = `${total} institutions · ${streams} streams · 2026 admissions`;
-    el.eyebrowText.textContent = statText;
+    if (el.eyebrowText) el.eyebrowText.textContent = statText;
     if (el.navStatsText) el.navStatsText.textContent = `${total} colleges live`;
   } catch {
-    el.eyebrowText.textContent = 'Updated for 2026 admissions';
+    if (el.eyebrowText) el.eyebrowText.textContent = 'Updated for 2026 admissions';
     if (el.navStatsText) el.navStatsText.textContent = 'Live';
   }
 }
