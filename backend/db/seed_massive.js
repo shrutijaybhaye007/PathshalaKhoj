@@ -35,7 +35,7 @@ async function seedMassive() {
     console.log(`Loaded ${rawData.length} colleges from dataset.`);
 
     let defaultCourses = await all('SELECT id, name FROM courses');
-    if (defaultCourses.length === 0) {
+    if (!defaultCourses || defaultCourses.length === 0) {
         console.log('No courses found, creating default courses...');
         await run("INSERT INTO courses (name, level, duration_years, degree_type) VALUES ('B.Tech Computer Science', 'UG', 4.0, 'B.Tech')");
         await run("INSERT INTO courses (name, level, duration_years, degree_type) VALUES ('MBA Finance', 'PG', 2.0, 'MBA')");
@@ -44,14 +44,14 @@ async function seedMassive() {
         defaultCourses = await all('SELECT id, name FROM courses');
     }
 
-    console.log('Beginning massive seeding process. This may take a moment...');
+    console.log('Beginning deadlock-free massive seeding process...');
 
     let insertedCount = 0;
     let skippedCount = 0;
 
     try {
         const existingSlugsList = await all('SELECT slug FROM colleges');
-        const existingSlugs = new Set(existingSlugsList.map(c => c.slug));
+        const existingSlugs = new Set((existingSlugsList || []).map(c => c.slug));
 
         await exec('BEGIN;');
 
@@ -77,6 +77,7 @@ async function seedMassive() {
 
             existingSlugs.add(slug);
             const fees = getRandomFees();
+            const numCourses = Math.floor(Math.random() * 3) + 1;
 
             try {
                 const result = await run(`
@@ -89,24 +90,22 @@ async function seedMassive() {
                 `, [
                     rawName, slug, city, state, stream, collegeType,
                     description, fees, getRandomPlacement(),
-                    getRandomRating(), getRandomImage(slug), 0, affiliation
+                    getRandomRating(), getRandomImage(slug), numCourses, affiliation
                 ]);
 
                 const collegeId = result.lastInsertRowid;
 
-                const numCourses = Math.floor(Math.random() * 3) + 1;
-                const shuffledCourses = [...defaultCourses].sort(() => 0.5 - Math.random());
-                const selectedCourses = shuffledCourses.slice(0, numCourses);
-
-                for (const course of selectedCourses) {
-                    await run(`
-                        INSERT INTO college_courses (college_id, course_id, fees_per_year)
-                        VALUES (?, ?, ?)
-                        ON CONFLICT (college_id, course_id) DO NOTHING
-                    `, [collegeId, course.id, fees]);
+                if (collegeId && defaultCourses.length > 0) {
+                    const selectedCourses = defaultCourses.slice(0, numCourses);
+                    for (const course of selectedCourses) {
+                        await run(`
+                            INSERT INTO college_courses (college_id, course_id, fees_per_year)
+                            VALUES (?, ?, ?)
+                            ON CONFLICT (college_id, course_id) DO NOTHING
+                        `, [collegeId, course.id, fees]);
+                    }
                 }
 
-                await run('UPDATE colleges SET total_courses = ? WHERE id = ?', [numCourses, collegeId]);
                 insertedCount++;
             } catch (e) {
                 skippedCount++;
@@ -123,7 +122,7 @@ async function seedMassive() {
         console.log(`Total Colleges in Database: ${totalRow ? totalRow.c : 0}`);
     } catch (e) {
         try { await exec('ROLLBACK;'); } catch (_) {}
-        console.error('Transaction failed:', e.message);
+        console.error('Transaction error during massive seed:', e.message);
     }
 }
 

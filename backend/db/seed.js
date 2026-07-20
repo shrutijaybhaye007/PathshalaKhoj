@@ -4043,8 +4043,12 @@ const colleges = [
 async function seed() {
   await initDb();
 
-  // Wipe existing data and reset identity sequences (children first due to FK constraints)
-  await exec('TRUNCATE TABLE college_contacts, college_courses, shortlists, college_reviews, college_qna, applications, courses, colleges RESTART IDENTITY CASCADE;');
+  try {
+    const checkCount = await get('SELECT COUNT(*) as count FROM colleges');
+    if (!checkCount || parseInt(checkCount.count, 10) === 0) {
+      await exec('TRUNCATE TABLE college_contacts, college_courses, shortlists, college_reviews, college_qna, applications, courses, colleges RESTART IDENTITY CASCADE;');
+    }
+  } catch (e) {}
 
   const uniqueColleges = [];
   const seenSlugs = new Set();
