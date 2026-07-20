@@ -41,23 +41,38 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileOverlay.className = 'mobile-menu-overlay';
     document.body.appendChild(mobileOverlay);
 
+    // Create close button inside the nav panel
+    const mobileCloseBtn = document.createElement('button');
+    mobileCloseBtn.type = 'button';
+    mobileCloseBtn.className = 'mobile-nav-close';
+    mobileCloseBtn.setAttribute('aria-label', 'Close menu');
+    mobileCloseBtn.innerHTML = '&#x2715;'; // ✕
+    headerNav.insertBefore(mobileCloseBtn, headerNav.firstChild);
+
     function openMobileMenu() {
       headerNav.classList.add('menu-open');
       mobileOverlay.classList.add('open');
       document.body.style.overflow = 'hidden';
+      mobileCloseBtn.focus();
     }
     function closeMobileMenu() {
       headerNav.classList.remove('menu-open');
       mobileOverlay.classList.remove('open');
       document.body.style.overflow = '';
+      mobileMenuBtn.focus();
     }
 
     mobileMenuBtn.addEventListener('click', () => {
       headerNav.classList.contains('menu-open') ? closeMobileMenu() : openMobileMenu();
     });
+    mobileCloseBtn.addEventListener('click', closeMobileMenu);
     mobileOverlay.addEventListener('click', closeMobileMenu);
-    // Close on nav link click (single-page style)
-    headerNav.querySelectorAll('a, button').forEach(el => {
+    // Escape key closes menu
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && headerNav.classList.contains('menu-open')) closeMobileMenu();
+    });
+    // Close on nav link click (single-page style) — excluding the close button itself
+    headerNav.querySelectorAll('a').forEach(el => {
       el.addEventListener('click', closeMobileMenu);
     });
   }
@@ -154,6 +169,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Global Sign In Redirect ---
   const navLoginBtn = document.getElementById('navLoginBtn');
   if (navLoginBtn) {
+    // Upgrade to pill-style sign-in button
+    navLoginBtn.classList.add('btn-signin');
     navLoginBtn.addEventListener('click', () => {
       // If we are on index.html, it handles modal. Otherwise redirect.
       if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {

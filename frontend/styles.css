@@ -3367,3 +3367,181 @@ body, header, .site-header, .college-card, .dash-stat-card,
   color: #ef4444;
 }
 
+/* ============================================================
+   BACK TO TOP BUTTON
+   ============================================================ */
+.back-to-top {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  z-index: 90;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--grad-gold);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(245,166,35,0.4);
+  transition: transform var(--t-base) var(--ease-spring), box-shadow var(--t-base) var(--ease), opacity var(--t-base);
+  animation: fadeUp 0.3s var(--ease) both;
+}
+.back-to-top:hover {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 8px 24px rgba(245,166,35,0.5);
+}
+.back-to-top:active {
+  transform: scale(0.95);
+}
+@media (max-width: 600px) {
+  .back-to-top { bottom: 20px; right: 16px; width: 40px; height: 40px; }
+}
+
+/* ============================================================
+   SIGN IN BUTTON — NAV
+   ============================================================ */
+.btn-signin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  background: var(--gold-dim);
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast), box-shadow var(--t-fast);
+  white-space: nowrap;
+}
+.btn-signin:hover {
+  background: var(--gold);
+  color: #fff;
+  box-shadow: var(--shadow-gold);
+}
+[data-theme="light"] .btn-signin {
+  background: var(--indigo-dim);
+  border-color: var(--indigo);
+  color: var(--indigo);
+}
+[data-theme="light"] .btn-signin:hover {
+  background: var(--indigo);
+  color: #fff;
+}
+
+/* ============================================================
+   SITE FOOTER — PROPER CSS CLASS
+   (replaces inline styles on footer element)
+   ============================================================ */
+.site-footer {
+  background: var(--brand);
+  color: #fff;
+  padding: 60px 24px 30px;
+  margin-top: 60px;
+}
+.site-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 40px;
+  margin-bottom: 40px;
+}
+.site-footer-brand h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.site-footer-brand p {
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.site-footer-col h4 {
+  font-size: 16px;
+  margin-bottom: 16px;
+  color: #fff;
+  font-weight: 600;
+}
+.site-footer-col ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.site-footer-col ul li a {
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+.site-footer-col ul li a:hover { color: #fff; }
+.site-footer-col ul li a.footer-highlight {
+  color: var(--gold);
+  font-weight: bold;
+}
+.site-footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 24px;
+  text-align: center;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+}
+
+/* ============================================================
+   MOBILE NAV — CLOSE BUTTON INSIDE MENU
+   ============================================================ */
+.mobile-nav-close {
+  display: none;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border-2);
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--t-fast), color var(--t-fast);
+  z-index: 110;
+}
+.mobile-nav-close:hover { background: var(--surface-3); color: var(--rose); }
+@media (max-width: 900px) {
+  .mobile-nav-close { display: flex; }
+}
+
+/* ============================================================
+   SEARCH PLACEHOLDER — truncate on mobile
+   ============================================================ */
+@media (max-width: 480px) {
+  #searchInput::placeholder {
+    font-size: 13px;
+  }
+}
+
+/* ============================================================
+   DASHBOARD — improved compare button counter
+   ============================================================ */
+#dashCompareBtn .compare-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.25);
+  border-radius: var(--radius-full);
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  margin-left: 4px;
+}
+

@@ -152,16 +152,23 @@ app.get('/api/health', (req, res) => {
 // ─── Serve static frontend ────────────────────────────────────────────────
 const frontendPath = path.join(__dirname, '..', 'frontend');
 
-app.set('etag', false);
+app.set('etag', 'strong');
 app.use((req, res, next) => {
   if (!req.path.startsWith('/api')) {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
+    // Only disable caching for HTML pages so users always get fresh content.
+    // CSS, JS, images and other static assets are safe to cache for 1 hour.
+    const isHtml = req.path === '/' || req.path.endsWith('.html') || req.path === '';
+    if (isHtml) {
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+    } else {
+      res.set('Cache-Control', 'public, max-age=3600'); // 1 hour for assets
+    }
   }
   next();
 });
-app.use(express.static(frontendPath, { etag: false, lastModified: false }));
+app.use(express.static(frontendPath, { etag: true, lastModified: true }));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));

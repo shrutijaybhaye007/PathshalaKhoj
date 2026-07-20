@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="canonical" href="https://pathshalakhoj.com/" />
   <title>PathshalaKhoj — Find Colleges Across India</title>
   <meta name="description" content="Search and discover colleges across India by stream, state, fees, and entrance exam — with full course lists and contact details. Includes Engineering, Medical, Management, Law, Arts, Commerce, Science, Design, and Junior Colleges for Class XI-XII." />
   <meta property="og:title"       content="PathshalaKhoj — India College Finder" />
   <meta property="og:description" content="Search 133+ Indian institutions by stream, fees, NAAC grade, and entrance exam. Includes Class XI–XII junior colleges." />
   <meta property="og:type"        content="website" />
   <meta property="og:locale"      content="en_IN" />
+  <meta property="og:image"       content="https://pathshalakhoj.com/og-image.png" />
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,11 +29,25 @@
       }
     })();
   </script>
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "PathshalaKhoj",
+    "url": "https://pathshalakhoj.com",
+    "description": "India's trusted college discovery platform. Search 133+ institutions by stream, fees, NAAC grade, and entrance exam.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://pathshalakhoj.com/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
 </head>
 <body>
 
   <!-- ============ HEADER ============ -->
-    <!-- ============ HEADER ============ -->
   <header class="site-header" id="siteHeader">
     <div class="container header-inner">
       <a href="/" class="brand" aria-label="PathshalaKhoj home">
@@ -973,6 +990,13 @@
     </div>
   </div>
 
+  <!-- ============ BACK TO TOP ============ -->
+  <button id="backToTopBtn" class="back-to-top" aria-label="Back to top" title="Back to top" hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 15l-6-6-6 6"/>
+    </svg>
+  </button>
+
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="global.js"></script>
   <script src="app.js"></script>
@@ -981,43 +1005,57 @@
   <script src="js/admin.module.js"></script>
   <!-- boot.js must be LAST — calls init() once all modules above are ready -->
   <script src="js/boot.js"></script>
+  <script>
+    // Back to top button
+    (function(){
+      const btn = document.getElementById('backToTopBtn');
+      if (!btn) return;
+      window.addEventListener('scroll', function(){
+        btn.hidden = window.scrollY < 300;
+      }, { passive: true });
+      btn.addEventListener('click', function(){
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    })();
+  </script>
 
   <!-- ============ GLOBAL FOOTER ============ -->
-  <footer style="background: var(--brand); color: #fff; padding: 60px 24px 30px; margin-top: 60px;">
-    <div class="container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 40px; margin-bottom: 40px;">
-      <div>
-        <h3 style="font-family: var(--font-display); font-size: 24px; color: var(--gold); margin-bottom: 16px;">PathshalaKhoj</h3>
-        <p style="color: rgba(255,255,255,0.7); font-size: 14px; line-height: 1.6;">Your trusted portal for discovering the best educational institutions across India. Empowering students with data-driven insights.</p>
+  <footer class="site-footer">
+    <div class="container site-footer-grid">
+      <div class="site-footer-brand">
+        <h3>PathshalaKhoj</h3>
+        <p>Your trusted portal for discovering the best educational institutions across India. Empowering students with data-driven insights.</p>
       </div>
-      <div>
-        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Explore</h4>
-        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
-          <li><a href="/" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Colleges</a></li>
-          <li><a href="courses.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Courses</a></li>
-          <li><a href="exams.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Exams</a></li>
-          <li><a href="predict.html" style="color: var(--gold); text-decoration: none; font-size: 14px; font-weight: bold;">AI Predictor</a></li>
+      <div class="site-footer-col">
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="/">Colleges</a></li>
+          <li><a href="courses.html">Courses</a></li>
+          <li><a href="exams.html">Exams</a></li>
+          <li><a href="predict.html" class="footer-highlight">AI Predictor</a></li>
         </ul>
       </div>
-      <div>
-        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Institution</h4>
-        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
-          <li><a href="about.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">About Us</a></li>
-          <li><a href="admissions.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Admissions</a></li>
-          <li><a href="contact.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Contact & Support</a></li>
+      <div class="site-footer-col">
+        <h4>Institution</h4>
+        <ul>
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="admissions.html">Admissions</a></li>
+          <li><a href="contact.html">Contact &amp; Support</a></li>
         </ul>
       </div>
-      <div>
-        <h4 style="font-size: 16px; margin-bottom: 16px; color: #fff;">Legal</h4>
-        <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px;">
-          <li><a href="privacy.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Privacy Policy</a></li>
-          <li><a href="terms.html" style="color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; transition: color 0.2s;">Terms of Service</a></li>
+      <div class="site-footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
         </ul>
       </div>
     </div>
-    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; text-align: center; color: rgba(255,255,255,0.5); font-size: 13px;">
+    <div class="site-footer-bottom">
       &copy; 2026 PathshalaKhoj Education Platform. All rights reserved.
     </div>
   </footer>
 
 </body>
 </html>
+
