@@ -6,17 +6,18 @@ const { get, run } = require('../db/connection');
 
 const router = express.Router();
 
-// Environment variables — JWT_SECRET is validated at server startup; app
-// will have already exited if it is missing (see server.js).
 const JWT_SECRET       = process.env.JWT_SECRET;
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '980082756706-bapnctfrc31j3v8o0td0mk27fmnk9c63.apps.googleusercontent.com';
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
-// Helper to hash password using PBKDF2
+// Helper to hash password using PBKDF2 with 210,000 iterations and sha512
 function hashPassword(password, salt) {
   return crypto.pbkdf2Sync(password, salt, 210000, 64, 'sha512').toString('hex');
 }
+
+// Strict email format validation regex
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 /**
  * GET /api/auth/config
@@ -48,11 +49,13 @@ router.post('/google', async (req, res) => {
       audience: GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    const { email, name, picture } = payload;
+    const { email: rawEmail, name, picture } = payload;
 
-    if (!email) {
+    if (!rawEmail) {
       return res.status(400).json({ error: 'Failed to extract email from Google credential.' });
     }
+
+    const email = rawEmail.trim().toLowerCase();
 
     let user = await get('SELECT id, email, name, picture, role FROM users WHERE email = ?', [email]);
 
@@ -86,17 +89,23 @@ router.post('/google', async (req, res) => {
 
 /**
  * POST /api/auth/register
- * Registers a new local user with email and password.
+ * Registers a new local user with email and password after strict validation.
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, password, and name are required.' });
+    const { email: rawEmail, password, name } = req.body;
+    if (!rawEmail || !password || !name) {
+      return res.status(400).json({ error: 'Full name, email address, and password are required.' });
+    }
+
+    const email = rawEmail.trim().toLowerCase();
+    
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address (e.g. student@gmail.com).' });
     }
     
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+      return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
     }
 
     const existingUser = await get('SELECT id FROM users WHERE email = ?', [email]);
@@ -110,18 +119,18 @@ router.post('/register', async (req, res) => {
 
     const result = await run(
       'INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, ?, ?)',
-      [email, name, passwordHash, 'user']
+      [email, name.trim(), passwordHash, 'user']
     );
 
     const token = jwt.sign(
-      { id: result.lastInsertRowid, email, role: 'user', name },
+      { id: result.lastInsertRowid, email, role: 'user', name: name.trim() },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
     res.status(201).json({
       token,
-      user: { id: result.lastInsertRowid, email, name, role: 'user' }
+      user: { id: result.lastInsertRowid, email, name: name.trim(), role: 'user' }
     });
   } catch (err) {
     console.error('Registration Error:', err);
@@ -135,9 +144,15 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { email: rawEmail, password } = req.body;
+    if (!rawEmail || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    const email = rawEmail.trim().toLowerCase();
+
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
     }
 
     const user = await get('SELECT id, email, name, role, password_hash FROM users WHERE email = ?', [email]);
@@ -170,20 +185,20 @@ router.post('/login', async (req, res) => {
 
 /**
  * POST /api/auth/forgot-password
- * Generates a reset token and simulates email delivery.
  */
 router.post('/forgot-password', async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email is required.' });
+    const { email: rawEmail } = req.body;
+    if (!rawEmail) return res.status(400).json({ error: 'Email is required.' });
 
+    const email = rawEmail.trim().toLowerCase();
     const user = await get('SELECT id FROM users WHERE email = ?', [email]);
     if (!user) {
       return res.json({ success: true, message: 'If an account exists, a reset link was sent.' });
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 3600000).toISOString(); // 1 hour
+    const expires = new Date(Date.now() + 3600000).toISOString();
 
     await run('UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?', 
         [resetToken, expires, user.id]);
@@ -202,28 +217,37 @@ router.post('/forgot-password', async (req, res) => {
 
 /**
  * POST /api/auth/reset-password
- * Accepts reset token and new password.
  */
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, newPassword } = req.body;
-    if (!token || !newPassword || newPassword.length < 6) {
-      return res.status(400).json({ error: 'Valid token and a password of at least 6 characters are required.' });
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required.' });
     }
 
-    const user = await get('SELECT id, password_reset_expires FROM users WHERE password_reset_token = ?', [token]);
-    if (!user || new Date(user.password_reset_expires) < new Date()) {
-      return res.status(400).json({ error: 'Reset token is invalid or has expired.' });
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    }
+
+    const user = await get(
+      'SELECT id FROM users WHERE password_reset_token = ? AND password_reset_expires > NOW()',
+      [token]
+    );
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired password reset token.' });
     }
 
     const salt = crypto.randomBytes(8).toString('hex');
     const hash = hashPassword(newPassword, salt);
-    const newHashString = `${salt}:${hash}`;
+    const passwordHash = `${salt}:${hash}`;
 
-    await run('UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?', 
-        [newHashString, user.id]);
+    await run(
+      'UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires = NULL WHERE id = ?',
+      [passwordHash, user.id]
+    );
 
-    res.json({ success: true, message: 'Password has been successfully reset.' });
+    res.json({ success: true, message: 'Password updated successfully. You can now log in.' });
   } catch (err) {
     console.error('Reset password error:', err);
     res.status(500).json({ error: 'Failed to reset password.' });
@@ -232,121 +256,77 @@ router.post('/reset-password', async (req, res) => {
 
 /**
  * GET /api/auth/me
- * Validates JWT authorization header and returns user details.
  */
-router.get('/me', async (req, res) => {
+router.get('/me', require('../middlewares/authMiddleware').requireAuth, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+    const user = await get('SELECT id, email, name, picture, role, password_hash FROM users WHERE id = ?', [req.user.id]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
     }
-
-    const token   = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    const row = await get(
-      `SELECT id, email, name, picture, role,
-              jee_rank, neet_rank, cat_percentile, board_percentage, academic_stream,
-              CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END AS has_local_password
-       FROM users WHERE id = ?`,
-      [decoded.id]
-    );
-    if (!row) {
-      return res.status(401).json({ error: 'User no longer exists.' });
-    }
-
-    const user = { ...row, has_local_password: parseInt(row.has_local_password, 10) === 1 };
-    res.json({ user });
+    const has_local_password = Boolean(user.password_hash);
+    delete user.password_hash;
+    res.json({ user: { ...user, has_local_password } });
   } catch (err) {
-    res.status(401).json({ error: 'Session expired or invalid token.' });
+    console.error('GET /api/auth/me error:', err);
+    res.status(500).json({ error: 'Failed to fetch user profile.' });
   }
 });
 
 /**
  * PUT /api/auth/profile
- * Update logged-in user profile details (name, picture, password).
  */
-router.put('/profile', async (req, res) => {
+router.put('/profile', require('../middlewares/authMiddleware').requireAuth, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized. No token provided.' });
+    const { name, picture, newPassword } = req.body;
+    const userId = req.user.id;
+
+    const existingUser = await get('SELECT id, password_hash FROM users WHERE id = ?', [userId]);
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found.' });
     }
 
-    const token   = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const updates = [];
+    const params = [];
 
-    const user = await get(
-      'SELECT id, email, name, picture, role, password_hash FROM users WHERE id = ?',
-      [decoded.id]
-    );
-    if (!user) {
-      return res.status(401).json({ error: 'User account not found.' });
+    if (name !== undefined && typeof name === 'string' && name.trim().length > 0) {
+      updates.push('name = ?');
+      params.push(name.trim());
     }
 
-    const { name, picture, new_password, jee_rank, neet_rank, cat_percentile, board_percentage, academic_stream } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required.' });
+    if (picture !== undefined) {
+      updates.push('picture = ?');
+      params.push(picture ? picture.trim() : null);
     }
 
-    const updates = ['name = ?', 'picture = ?', 'updated_at = NOW()'];
-    const params = [name, picture || null];
-
-    if (jee_rank !== undefined) {
-      updates.push('jee_rank = ?');
-      params.push(jee_rank ? parseInt(jee_rank, 10) : null);
-    }
-    if (neet_rank !== undefined) {
-      updates.push('neet_rank = ?');
-      params.push(neet_rank ? parseInt(neet_rank, 10) : null);
-    }
-    if (cat_percentile !== undefined) {
-      updates.push('cat_percentile = ?');
-      params.push(cat_percentile ? parseFloat(cat_percentile) : null);
-    }
-    if (board_percentage !== undefined) {
-      updates.push('board_percentage = ?');
-      params.push(board_percentage ? parseFloat(board_percentage) : null);
-    }
-    if (academic_stream !== undefined) {
-      updates.push('academic_stream = ?');
-      params.push(academic_stream || null);
-    }
-
-    if (new_password) {
-      if (!user.password_hash) {
-        return res.status(400).json({ error: 'Google accounts cannot change password here.' });
+    if (newPassword) {
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters.' });
       }
-      
-      if (new_password.length < 6) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters.' });
-      }
-
       const salt = crypto.randomBytes(8).toString('hex');
-      const hash = hashPassword(new_password, salt);
-      const newHashString = `${salt}:${hash}`;
-      
+      const hash = hashPassword(newPassword, salt);
+      const passwordHash = `${salt}:${hash}`;
+
       updates.push('password_hash = ?');
-      params.push(newHashString);
+      params.push(passwordHash);
     }
 
-    params.push(user.id);
-    await run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
+    if (updates.length > 0) {
+      updates.push("updated_at = NOW()");
+      params.push(userId);
+      await run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
+    }
 
-    const updatedUser = await get(
-      `SELECT id, email, name, picture, role,
-              jee_rank, neet_rank, cat_percentile, board_percentage, academic_stream,
-              CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END AS has_local_password
-       FROM users WHERE id = ?`,
-      [user.id]
-    );
-    const responseUser = { ...updatedUser, has_local_password: parseInt(updatedUser.has_local_password, 10) === 1 };
-    res.json({ user: responseUser });
+    const updatedUser = await get('SELECT id, email, name, picture, role, password_hash FROM users WHERE id = ?', [userId]);
+    const has_local_password = Boolean(updatedUser.password_hash);
+    delete updatedUser.password_hash;
+
+    res.json({
+      message: 'Profile updated successfully.',
+      user: { ...updatedUser, has_local_password }
+    });
+
   } catch (err) {
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Invalid or expired session token.' });
-    }
-    console.error('Profile update error:', err);
+    console.error('PUT /api/auth/profile error:', err);
     res.status(500).json({ error: 'Failed to update profile.' });
   }
 });
