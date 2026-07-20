@@ -14,21 +14,47 @@ const { Pool, types } = require('pg');
 types.setTypeParser(20, (val) => parseInt(val, 10));
 types.setTypeParser(1700, (val) => parseFloat(val));
 
-const connectionString = process.env.DATABASE_URL;
+let rawUrl = process.env.DATABASE_URL || '';
 
 let isPg = false;
 let pool = null;
 let sqliteDb = null;
 
-if (connectionString && (connectionString.startsWith('postgres://') || connectionString.startsWith('postgresql://'))) {
+if (rawUrl && (rawUrl.startsWith('postgres://') || rawUrl.startsWith('postgresql://'))) {
   isPg = true;
-  pool = new Pool({
-    connectionString,
-    ssl: (!connectionString.includes('localhost') && !connectionString.includes('127.0.0.1'))
-      ? { rejectUnauthorized: false }
-      : false,
-    connectionTimeoutMillis: 3000,
-  });
+
+  // Sanitize typos in connection string if user accidentally omitted '?' before params
+  let cleanUrl = rawUrl;
+  if (!cleanUrl.includes('?') && (cleanUrl.includes('sslmode=') || cleanUrl.includes('channel_binding='))) {
+    cleanUrl = cleanUrl.replace(/(sslmode=|channel_binding=)/, '?$1');
+  }
+
+  // Parse using standard URL object to reliably extract database name & credentials
+  try {
+    const u = new URL(cleanUrl);
+    const dbName = u.pathname ? u.pathname.replace(/^\//, '').split('?')[0] : 'neondb';
+    const isLocal = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+
+    pool = new Pool({
+      host: u.hostname,
+      port: u.port ? parseInt(u.port, 10) : 5432,
+      user: decodeURIComponent(u.username || 'postgres'),
+      password: decodeURIComponent(u.password || ''),
+      database: dbName,
+      ssl: isLocal ? false : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 30000,
+    });
+  } catch (err) {
+    pool = new Pool({
+      connectionString: cleanUrl,
+      ssl: (!cleanUrl.includes('localhost') && !cleanUrl.includes('127.0.0.1'))
+        ? { rejectUnauthorized: false }
+        : false,
+      connectionTimeoutMillis: 15000,
+      idleTimeoutMillis: 30000,
+    });
+  }
 } else {
   initSqlite();
 }
