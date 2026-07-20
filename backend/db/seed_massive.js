@@ -55,6 +55,7 @@ async function seedMassive() {
 
         await exec('BEGIN;');
 
+        const collegesToInsert = [];
         for (const item of rawData) {
             let rawName = item.college || "Unknown College";
             rawName = rawName.replace(/\s*\(Id:.*?\)\s*/i, '').trim();
@@ -78,40 +79,53 @@ async function seedMassive() {
             existingSlugs.add(slug);
             const fees = getRandomFees();
             const numCourses = Math.floor(Math.random() * 3) + 1;
+            
+            collegesToInsert.push({
+                rawName, slug, city, state, stream, collegeType,
+                description, fees, placement: getRandomPlacement(),
+                rating: getRandomRating(), image: getRandomImage(slug), numCourses, affiliation
+            });
+        }
 
-            try {
-                const result = await run(`
-                    INSERT INTO colleges (
-                        name, slug, city, state, stream, college_type,
-                        description, avg_fees_per_year, avg_placement_package,
-                        student_rating, logo_url, total_courses, affiliation
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `, [
-                    rawName, slug, city, state, stream, collegeType,
-                    description, fees, getRandomPlacement(),
-                    getRandomRating(), getRandomImage(slug), numCourses, affiliation
-                ]);
+        const batchSize = 500;
+        for (let i = 0; i < collegesToInsert.length; i += batchSize) {
+            const batch = collegesToInsert.slice(i, i + batchSize);
+            const values = [];
+            const placeholders = [];
+            for (const col of batch) {
+                values.push(col.rawName, col.slug, col.city, col.state, col.stream, col.collegeType, col.description, col.fees, col.placement, col.rating, col.image, col.numCourses, col.affiliation);
+                placeholders.push(`(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+            }
+            const insertSql = `INSERT INTO colleges (name, slug, city, state, stream, college_type, description, avg_fees_per_year, avg_placement_package, student_rating, logo_url, total_courses, affiliation) VALUES ${placeholders.join(', ')} ON CONFLICT (slug) DO NOTHING`;
+            await run(insertSql, values);
+            insertedCount += batch.length;
+        }
 
-                const collegeId = result.lastInsertRowid;
-
-                if (collegeId && defaultCourses.length > 0) {
-                    const selectedCourses = defaultCourses.slice(0, numCourses);
-                    for (const course of selectedCourses) {
-                        await run(`
-                            INSERT INTO college_courses (college_id, course_id, fees_per_year)
-                            VALUES (?, ?, ?)
-                            ON CONFLICT (college_id, course_id) DO NOTHING
-                        `, [collegeId, course.id, fees]);
-                    }
-                }
-
-                insertedCount++;
-            } catch (e) {
-                skippedCount++;
+        const allCollegesInDb = await all('SELECT id, slug FROM colleges');
+        const slugToId = new Map((allCollegesInDb || []).map(c => [c.slug, c.id]));
+        
+        const coursesValues = [];
+        for (const col of collegesToInsert) {
+            const collegeId = slugToId.get(col.slug);
+            if (!collegeId) continue;
+            const selectedCourses = defaultCourses.slice(0, col.numCourses);
+            for (const course of selectedCourses) {
+                coursesValues.push({ collegeId, courseId: course.id, fees: col.fees });
             }
         }
-        
+
+        for (let i = 0; i < coursesValues.length; i += batchSize) {
+            const batch = coursesValues.slice(i, i + batchSize);
+            const values = [];
+            const placeholders = [];
+            for (const c of batch) {
+                values.push(c.collegeId, c.courseId, c.fees);
+                placeholders.push(`(?, ?, ?)`);
+            }
+            const insertSql = `INSERT INTO college_courses (college_id, course_id, fees_per_year) VALUES ${placeholders.join(', ')} ON CONFLICT (college_id, course_id) DO NOTHING`;
+            await run(insertSql, values);
+        }
+
         await exec('COMMIT;');
         
         console.log(`\n✅ Massive Seeding Complete!`);
