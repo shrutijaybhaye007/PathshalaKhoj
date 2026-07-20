@@ -4121,22 +4121,35 @@ async function seed() {
       }
     }
 
-    const result = await run(
-      `INSERT INTO colleges
-        (name, slug, city, state, stream, college_type, affiliation, naac_grade,
-         established_year, description, address, pincode, avg_fees_per_year,
-         nirf_ranking, avg_placement_package, highest_placement_package, total_courses)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        college.name, slug, college.city, college.state, college.stream,
-        college.college_type, college.affiliation, college.naac_grade,
-        college.established_year, college.description, college.address,
-        college.pincode, college.avg_fees_per_year,
-        nirf, avgPlacement, highestPlacement, college.courses.length,
-      ]
-    );
-
-    const collegeId = result.lastInsertRowid;
+    let collegeId;
+    try {
+      const result = await run(
+        `INSERT INTO colleges
+          (name, slug, city, state, stream, college_type, affiliation, naac_grade,
+           established_year, description, address, pincode, avg_fees_per_year,
+           nirf_ranking, avg_placement_package, highest_placement_package, total_courses)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          college.name, slug, college.city, college.state, college.stream,
+          college.college_type, college.affiliation, college.naac_grade,
+          college.established_year, college.description, college.address,
+          college.pincode, college.avg_fees_per_year,
+          nirf, avgPlacement, highestPlacement, college.courses.length,
+        ]
+      );
+      collegeId = result.lastInsertRowid;
+    } catch (e) {
+      if (e.message.toLowerCase().includes('unique') || e.message.toLowerCase().includes('constraint')) {
+        const row = await get(`SELECT id FROM colleges WHERE slug = ?`, [slug]);
+        if (row) {
+          collegeId = row.id;
+        } else {
+          throw e;
+        }
+      } else {
+        throw e;
+      }
+    }
 
     for (const course of college.courses) {
       let courseRow = await get('SELECT id FROM courses WHERE name = ? AND level = ?', [course.name, course.level]);
