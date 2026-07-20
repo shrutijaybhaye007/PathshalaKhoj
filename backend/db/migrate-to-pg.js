@@ -108,16 +108,18 @@ async function migrateToPg() {
       existingCount = row ? parseInt(row.count, 10) : 0;
     } catch (e) {}
 
-    if (existingCount > 0) {
+    if (existingCount >= 1000) {
       console.log(`✅ PostgreSQL database already populated with ${existingCount} colleges. Skipping seeding.`);
       await seedAdmin();
       return;
     }
 
-    console.log('🌱 Seeding PostgreSQL from scratch...');
+    console.log('🌱 Seeding PostgreSQL from scratch with full 37,564 colleges dataset...');
     await seed();
+    const { seedMassive } = require('./seed_massive');
+    await seedMassive();
     await seedAdmin();
-    console.log('🎉 PostgreSQL database seeded from scratch successfully!');
+    console.log('🎉 PostgreSQL database seeded with all 37,564 colleges successfully!');
   }
 }
 

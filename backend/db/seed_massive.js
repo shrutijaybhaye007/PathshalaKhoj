@@ -9,7 +9,7 @@ const getRandomStream = () => {
     const streams = ['Engineering', 'Medical', 'Arts', 'Commerce', 'Law', 'Management', 'Science', 'Design'];
     return streams[Math.floor(Math.random() * streams.length)];
 };
-const getRandomImage = (slug) => `https://source.unsplash.com/800x600/?college,university,campus,${slug}`;
+const getRandomImage = (slug) => `https://images.unsplash.com/photo-1562774053-701939374585?w=800&auto=format&fit=crop&q=80`;
 
 function slugify(text) {
     if (!text) return '';
@@ -28,7 +28,7 @@ async function seedMassive() {
     try {
         rawData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
     } catch (e) {
-        console.error('Failed to read indian-colleges dataset:', e);
+        console.error('Failed to read indian-colleges dataset:', e.message);
         return;
     }
 
@@ -44,7 +44,7 @@ async function seedMassive() {
         defaultCourses = await all('SELECT id, name FROM courses');
     }
 
-    console.log('Beginning massive seeding process. This may take a minute...');
+    console.log('Beginning massive seeding process. This may take a moment...');
 
     let insertedCount = 0;
     let skippedCount = 0;
@@ -53,7 +53,7 @@ async function seedMassive() {
         const existingSlugsList = await all('SELECT slug FROM colleges');
         const existingSlugs = new Set(existingSlugsList.map(c => c.slug));
 
-        await exec('BEGIN TRANSACTION');
+        await exec('BEGIN;');
 
         for (const item of rawData) {
             let rawName = item.college || "Unknown College";
@@ -109,12 +109,11 @@ async function seedMassive() {
                 await run('UPDATE colleges SET total_courses = ? WHERE id = ?', [numCourses, collegeId]);
                 insertedCount++;
             } catch (e) {
-                console.error(`Failed to insert ${rawName}:`, e.message);
                 skippedCount++;
             }
         }
         
-        await exec('COMMIT');
+        await exec('COMMIT;');
         
         console.log(`\n✅ Massive Seeding Complete!`);
         console.log(`Successfully inserted: ${insertedCount}`);
@@ -123,8 +122,8 @@ async function seedMassive() {
         const totalRow = await get('SELECT count(*) as c FROM colleges');
         console.log(`Total Colleges in Database: ${totalRow ? totalRow.c : 0}`);
     } catch (e) {
-        try { await exec('ROLLBACK'); } catch (_) {}
-        console.error('Transaction failed:', e);
+        try { await exec('ROLLBACK;'); } catch (_) {}
+        console.error('Transaction failed:', e.message);
     }
 }
 
