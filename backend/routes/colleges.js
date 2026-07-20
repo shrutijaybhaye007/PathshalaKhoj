@@ -137,7 +137,7 @@ router.get('/stats', async (req, res) => {
       ? parseFloat(avgPlacementObj.avg_package).toFixed(1)
       : '0.0';
 
-    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json({ collegesCount: totalColleges, examsCount: totalExams, avgPlacement });
   } catch (err) {
     console.error('GET /api/colleges/stats error:', err);
@@ -298,7 +298,7 @@ router.get('/meta/filters', async (req, res) => {
       ? await all('SELECT DISTINCT city FROM colleges WHERE state = ? ORDER BY city', [state])
       : await all('SELECT DISTINCT city FROM colleges ORDER BY city');
 
-    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json({
       streams:     streams.map((r) => r.stream),
       states:      states.map((r) => r.state),
