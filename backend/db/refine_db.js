@@ -43,11 +43,10 @@ async function refineDatabase() {
     console.log(`Found ${colleges.length} colleges.`);
 
     console.log('Beginning refinement process...');
-    await exec('BEGIN;');
     
     let updatedCount = 0;
     try {
-        const batchSize = 500;
+        const batchSize = 100;
         let updateBatch = [];
         
         for (const college of colleges) {
@@ -60,16 +59,17 @@ async function refineDatabase() {
         
         console.log(`${updateBatch.length} colleges need their names refined.`);
         
-        for (const item of updateBatch) {
-            await run('UPDATE colleges SET name = ? WHERE id = ?', [item.newName, item.id]);
-            updatedCount++;
-            if (updatedCount % 5000 === 0) console.log(`Updated ${updatedCount}...`);
+        for (let i = 0; i < updateBatch.length; i += batchSize) {
+            const chunk = updateBatch.slice(i, i + batchSize);
+            await Promise.all(chunk.map(item => 
+                run('UPDATE colleges SET name = ? WHERE id = ?', [item.newName, item.id])
+            ));
+            updatedCount += chunk.length;
+            console.log(`Updated ${updatedCount}...`);
         }
         
-        await exec('COMMIT;');
         console.log(`✅ Successfully refined ${updatedCount} colleges in the database!`);
     } catch (err) {
-        await exec('ROLLBACK;');
         console.error('❌ Error during refinement:', err);
     }
     

@@ -91,7 +91,8 @@ app.use(helmet({
       frameSrc:    ["https://accounts.google.com"],
     },
   },
-  crossOriginEmbedderPolicy: false, // Required for Google Identity Services
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false,
 }));
 
 // ─── Security: CORS — only allow our own origin ───────────────────────────
