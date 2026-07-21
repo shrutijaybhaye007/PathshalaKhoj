@@ -994,7 +994,7 @@ function renderCollegeCard(college) {
         <span class="card-fees-label">Avg. fees / year</span>
         <span class="${feesClass}">${displayFees}</span>
       </div>
-      <span class="card-courses-count">${college.total_courses > 0 ? college.total_courses + ' course' + (college.total_courses === 1 ? '' : 's') : (college.stream || 'Multi-stream')}</span>
+      <span class="card-courses-count">${college.total_courses > 0 ? college.total_courses + ' Verified Course' + (college.total_courses === 1 ? '' : 's') : escapeHtml(college.stream || 'General') + ' · UG, PG & Diploma'}</span>
     </div>
   `;
  

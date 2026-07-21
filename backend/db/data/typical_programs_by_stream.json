@@ -1,0 +1,115 @@
+{
+  "Engineering": [
+    { "name": "B.Tech in Computer Science & Engineering", "level": "UG", "duration_years": 4, "degree_type": "B.Tech", "entrance_exam": "JEE Main / State CET", "eligibility": "10+2 with Physics, Chemistry & Math (min 50%)" },
+    { "name": "B.Tech in Mechanical Engineering", "level": "UG", "duration_years": 4, "degree_type": "B.Tech", "entrance_exam": "JEE Main / State CET", "eligibility": "10+2 with PCM (min 50%)" },
+    { "name": "B.Tech in Electronics & Communication Engineering", "level": "UG", "duration_years": 4, "degree_type": "B.Tech", "entrance_exam": "JEE Main / State CET", "eligibility": "10+2 with PCM (min 50%)" },
+    { "name": "B.Tech in Civil Engineering", "level": "UG", "duration_years": 4, "degree_type": "B.Tech", "entrance_exam": "JEE Main / State CET", "eligibility": "10+2 with PCM (min 50%)" },
+    { "name": "B.Tech in Electrical Engineering", "level": "UG", "duration_years": 4, "degree_type": "B.Tech", "entrance_exam": "JEE Main / State CET", "eligibility": "10+2 with PCM (min 50%)" },
+    { "name": "B.Tech in Information Technology", "level": "UG", "duration_years": 4, "degree_type": "B.Tech", "entrance_exam": "JEE Main / State CET", "eligibility": "10+2 with PCM (min 50%)" },
+    { "name": "M.Tech in Computer Science & Engineering", "level": "PG", "duration_years": 2, "degree_type": "M.Tech", "entrance_exam": "GATE / State PGCET", "eligibility": "B.E. / B.Tech in CSE or allied branch" },
+    { "name": "M.Tech in Structural Engineering", "level": "PG", "duration_years": 2, "degree_type": "M.Tech", "entrance_exam": "GATE / State PGCET", "eligibility": "B.E. / B.Tech in Civil Engineering" },
+    { "name": "Master of Computer Applications (MCA)", "level": "PG", "duration_years": 2, "degree_type": "MCA", "entrance_exam": "NIMCET / MAH MCA CET", "eligibility": "BCA / B.Sc with Mathematics" },
+    { "name": "Diploma in Mechanical Engineering", "level": "Diploma", "duration_years": 3, "degree_type": "Diploma", "entrance_exam": "State Polytechnic CET / Merit", "eligibility": "Class 10th pass with Science & Math (min 35%)", "is_polytechnic_only": true },
+    { "name": "Diploma in Civil Engineering", "level": "Diploma", "duration_years": 3, "degree_type": "Diploma", "entrance_exam": "State Polytechnic CET / Merit", "eligibility": "Class 10th pass with Science & Math (min 35%)", "is_polytechnic_only": true },
+    { "name": "Ph.D. in Engineering & Technology", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "GATE / NET / University Test", "eligibility": "M.E. / M.Tech in relevant branch" }
+  ],
+  "Medical": [
+    { "name": "MBBS (Bachelor of Medicine & Bachelor of Surgery)", "level": "UG", "duration_years": 5.5, "degree_type": "MBBS", "entrance_exam": "NEET UG", "eligibility": "10+2 with Physics, Chemistry & Biology (min 50%)" },
+    { "name": "BDS (Bachelor of Dental Surgery)", "level": "UG", "duration_years": 5, "degree_type": "BDS", "entrance_exam": "NEET UG", "eligibility": "10+2 with PCB (min 50%)" },
+    { "name": "BAMS (Bachelor of Ayurvedic Medicine & Surgery)", "level": "UG", "duration_years": 5.5, "degree_type": "BAMS", "entrance_exam": "NEET UG", "eligibility": "10+2 with PCB (min 50%)" },
+    { "name": "B.Sc. in Nursing", "level": "UG", "duration_years": 4, "degree_type": "B.Sc", "entrance_exam": "State Nursing Entrance / Merit", "eligibility": "10+2 with PCB (min 45%)" },
+    { "name": "B.Pharm. (Bachelor of Pharmacy)", "level": "UG", "duration_years": 4, "degree_type": "B.Pharm", "entrance_exam": "NEET UG / State CET", "eligibility": "10+2 with PCB or PCM (min 50%)" },
+    { "name": "MD in General Medicine", "level": "PG", "duration_years": 3, "degree_type": "MD", "entrance_exam": "NEET PG / INI-CET", "eligibility": "MBBS with completed internship" },
+    { "name": "MS in General Surgery", "level": "PG", "duration_years": 3, "degree_type": "MS", "entrance_exam": "NEET PG / INI-CET", "eligibility": "MBBS with completed internship" },
+    { "name": "M.Sc. in Nursing", "level": "PG", "duration_years": 2, "degree_type": "M.Sc", "entrance_exam": "State PG Nursing Test", "eligibility": "B.Sc Nursing with 1 year experience" },
+    { "name": "Diploma in Medical Laboratory Technology (DMLT)", "level": "Diploma", "duration_years": 2, "degree_type": "Diploma", "entrance_exam": "Merit / State Paramedical Test", "eligibility": "10+2 with PCB (min 40%)" },
+    { "name": "Diploma in Pharmacy (D.Pharm)", "level": "Diploma", "duration_years": 2, "degree_type": "Diploma", "entrance_exam": "Merit / State Pharmacy Test", "eligibility": "10+2 with PCB or PCM (min 40%)" },
+    { "name": "Ph.D. in Medical Sciences", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "UGC-NET / CSIR-NET / University Test", "eligibility": "MD / MS / M.Sc in relevant medical branch" }
+  ],
+  "Management": [
+    { "name": "BBA (Bachelor of Business Administration)", "level": "UG", "duration_years": 3, "degree_type": "BBA", "entrance_exam": "CUET UG / IPMAT / Merit", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "BBA in Digital Marketing", "level": "UG", "duration_years": 3, "degree_type": "BBA", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "BMS (Bachelor of Management Studies)", "level": "UG", "duration_years": 3, "degree_type": "BMS", "entrance_exam": "DU JAT / State CET", "eligibility": "10+2 with Mathematics (min 50%)" },
+    { "name": "MBA in Finance", "level": "PG", "duration_years": 2, "degree_type": "MBA", "entrance_exam": "CAT / MAT / CMAT / XAT / MAH CET", "eligibility": "Bachelor degree in any discipline (min 50%)" },
+    { "name": "MBA in Marketing", "level": "PG", "duration_years": 2, "degree_type": "MBA", "entrance_exam": "CAT / MAT / CMAT / MAH CET", "eligibility": "Bachelor degree in any discipline (min 50%)" },
+    { "name": "MBA in Human Resource Management", "level": "PG", "duration_years": 2, "degree_type": "MBA", "entrance_exam": "CAT / MAT / XAT / CMAT", "eligibility": "Bachelor degree in any discipline (min 50%)" },
+    { "name": "PGDM (Post Graduate Diploma in Management)", "level": "PG", "duration_years": 2, "degree_type": "PGDM", "entrance_exam": "CAT / MAT / XAT / GMAT", "eligibility": "Bachelor degree in any discipline (min 50%)" },
+    { "name": "Executive MBA", "level": "PG", "duration_years": 1, "degree_type": "EMBA", "entrance_exam": "GMAT / CAT / Institute Test", "eligibility": "Bachelor degree + 3–5 years work experience" },
+    { "name": "Diploma in Business Administration", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Direct / Merit", "eligibility": "Class 10+2 in any stream" },
+    { "name": "Diploma in Digital Marketing & E-Commerce", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Direct / Merit", "eligibility": "Class 10+2 in any stream" },
+    { "name": "Ph.D. in Management Studies", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "UGC-NET / CAT / University Test", "eligibility": "MBA / PGDM (min 55%)" }
+  ],
+  "Law": [
+    { "name": "B.A. LL.B. (Honours) 5-Year Integrated", "level": "UG", "duration_years": 5, "degree_type": "BA LLB", "entrance_exam": "CLAT / AILET / MH CET Law", "eligibility": "10+2 in any stream (min 45%)" },
+    { "name": "B.B.A. LL.B. (Honours) 5-Year Integrated", "level": "UG", "duration_years": 5, "degree_type": "BBA LLB", "entrance_exam": "CLAT / SLAT / MH CET Law", "eligibility": "10+2 in any stream (min 45%)" },
+    { "name": "LL.B. (3-Year Degree)", "level": "UG", "duration_years": 3, "degree_type": "LLB", "entrance_exam": "DU LLB / MH CET Law 3-Yr", "eligibility": "Bachelor degree in any discipline (min 45%)" },
+    { "name": "LL.M. in Corporate & Commercial Law", "level": "PG", "duration_years": 1, "degree_type": "LLM", "entrance_exam": "CLAT PG / AILET PG", "eligibility": "LL.B. or 5-Year Integrated Law Degree (min 50%)" },
+    { "name": "LL.M. in Criminal & Security Law", "level": "PG", "duration_years": 1, "degree_type": "LLM", "entrance_exam": "CLAT PG / University Test", "eligibility": "LL.B. or 5-Year Integrated Law Degree (min 50%)" },
+    { "name": "LL.M. in Intellectual Property Rights (IPR)", "level": "PG", "duration_years": 1, "degree_type": "LLM", "entrance_exam": "CLAT PG / University Test", "eligibility": "LL.B. degree (min 50%)" },
+    { "name": "Diploma in Cyber Law & Information Security", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Merit / Direct", "eligibility": "10+2 or Graduation in any discipline" },
+    { "name": "Diploma in Intellectual Property Rights", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Merit / Direct", "eligibility": "10+2 or Graduation" },
+    { "name": "Ph.D. in Law", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "UGC-NET / CLAT PG / University Test", "eligibility": "LL.M. degree (min 55%)" }
+  ],
+  "Science": [
+    { "name": "B.Sc. in Physics (Honours)", "level": "UG", "duration_years": 3, "degree_type": "B.Sc", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 with Physics & Mathematics (min 50%)" },
+    { "name": "B.Sc. in Chemistry (Honours)", "level": "UG", "duration_years": 3, "degree_type": "B.Sc", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 with Chemistry (min 50%)" },
+    { "name": "B.Sc. in Mathematics (Honours)", "level": "UG", "duration_years": 3, "degree_type": "B.Sc", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 with Mathematics (min 50%)" },
+    { "name": "B.Sc. in Biotechnology", "level": "UG", "duration_years": 3, "degree_type": "B.Sc", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 with Biology (min 50%)" },
+    { "name": "B.Sc. in Computer Science", "level": "UG", "duration_years": 3, "degree_type": "B.Sc", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 with Mathematics (min 50%)" },
+    { "name": "M.Sc. in Physics", "level": "PG", "duration_years": 2, "degree_type": "M.Sc", "entrance_exam": "IIT JAM / CUET PG", "eligibility": "B.Sc in Physics (min 55%)" },
+    { "name": "M.Sc. in Organic Chemistry", "level": "PG", "duration_years": 2, "degree_type": "M.Sc", "entrance_exam": "IIT JAM / CUET PG", "eligibility": "B.Sc in Chemistry (min 55%)" },
+    { "name": "M.Sc. in Applied Mathematics", "level": "PG", "duration_years": 2, "degree_type": "M.Sc", "entrance_exam": "IIT JAM / CUET PG", "eligibility": "B.Sc in Mathematics (min 55%)" },
+    { "name": "M.Sc. in Biotechnology", "level": "PG", "duration_years": 2, "degree_type": "M.Sc", "entrance_exam": "GAT-B / CUET PG", "eligibility": "B.Sc in Biological Sciences (min 55%)" },
+    { "name": "Diploma in Industrial Chemistry", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Merit / Direct", "eligibility": "10+2 with Chemistry" },
+    { "name": "Ph.D. in Physical & Chemical Sciences", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "CSIR-NET / GATE / JEST", "eligibility": "M.Sc in relevant science discipline (min 55%)" }
+  ],
+  "Arts": [
+    { "name": "B.A. in English Literature (Honours)", "level": "UG", "duration_years": 3, "degree_type": "BA", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "B.A. in History (Honours)", "level": "UG", "duration_years": 3, "degree_type": "BA", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "B.A. in Political Science (Honours)", "level": "UG", "duration_years": 3, "degree_type": "BA", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "B.A. in Psychology (Honours)", "level": "UG", "duration_years": 3, "degree_type": "BA", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "B.A. in Economics (Honours)", "level": "UG", "duration_years": 3, "degree_type": "BA", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 with Math / Economics (min 50%)" },
+    { "name": "M.A. in English Literature", "level": "PG", "duration_years": 2, "degree_type": "MA", "entrance_exam": "CUET PG / University Test", "eligibility": "B.A. in English or allied subject (min 50%)" },
+    { "name": "M.A. in Economics", "level": "PG", "duration_years": 2, "degree_type": "MA", "entrance_exam": "CUET PG / DSE Entrance", "eligibility": "B.A. / B.Sc in Economics (min 50%)" },
+    { "name": "M.A. in Clinical Psychology", "level": "PG", "duration_years": 2, "degree_type": "MA", "entrance_exam": "CUET PG / University Test", "eligibility": "B.A. in Psychology (min 55%)" },
+    { "name": "Diploma in Journalism & Mass Communication", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Merit / Aptitude Test", "eligibility": "10+2 in any stream" },
+    { "name": "Ph.D. in Humanities & Social Sciences", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "UGC-NET / University Test", "eligibility": "M.A. in relevant subject (min 55%)" }
+  ],
+  "Commerce": [
+    { "name": "B.Com. (General)", "level": "UG", "duration_years": 3, "degree_type": "B.Com", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 in Commerce or Science (min 45%)" },
+    { "name": "B.Com. (Honours)", "level": "UG", "duration_years": 3, "degree_type": "B.Com", "entrance_exam": "CUET UG / Merit", "eligibility": "10+2 with Mathematics / Accountancy (min 50%)" },
+    { "name": "B.Com. in Accounting & Finance (BAF)", "level": "UG", "duration_years": 3, "degree_type": "B.Com", "entrance_exam": "Merit / College Test", "eligibility": "10+2 in Commerce (min 50%)" },
+    { "name": "B.Com. in Banking & Insurance (BBI)", "level": "UG", "duration_years": 3, "degree_type": "B.Com", "entrance_exam": "Merit / College Test", "eligibility": "10+2 in Commerce (min 50%)" },
+    { "name": "M.Com. in Advanced Accountancy", "level": "PG", "duration_years": 2, "degree_type": "M.Com", "entrance_exam": "CUET PG / University Merit", "eligibility": "B.Com. degree (min 50%)" },
+    { "name": "M.Com. in Business Finance", "level": "PG", "duration_years": 2, "degree_type": "M.Com", "entrance_exam": "CUET PG / University Merit", "eligibility": "B.Com. / BBA degree (min 50%)" },
+    { "name": "Diploma in Banking & Financial Services", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Merit / Direct", "eligibility": "10+2 in Commerce" },
+    { "name": "Diploma in GST & Taxation Practice", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Merit / Direct", "eligibility": "10+2 or Graduation" },
+    { "name": "Ph.D. in Commerce & Business Studies", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "UGC-NET / University Test", "eligibility": "M.Com. / M.B.A. (min 55%)" }
+  ],
+  "Design": [
+    { "name": "B.Des. in Communication Design", "level": "UG", "duration_years": 4, "degree_type": "B.Des", "entrance_exam": "NID DAT / NIFT / UCEED", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "B.Des. in Industrial & Product Design", "level": "UG", "duration_years": 4, "degree_type": "B.Des", "entrance_exam": "NID DAT / UCEED", "eligibility": "10+2 in Science or any stream (min 50%)" },
+    { "name": "B.Des. in Fashion Design", "level": "UG", "duration_years": 4, "degree_type": "B.Des", "entrance_exam": "NIFT Entrance Exam / NID DAT", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "B.Des. in Interior & Spatial Design", "level": "UG", "duration_years": 4, "degree_type": "B.Des", "entrance_exam": "NID DAT / NATA / Institute Test", "eligibility": "10+2 in any stream (min 50%)" },
+    { "name": "M.Des. in User Experience (UX/UI) Design", "level": "PG", "duration_years": 2, "degree_type": "M.Des", "entrance_exam": "CEED / NID DAT PG", "eligibility": "B.Des / B.Tech / B.Arch degree (min 50%)" },
+    { "name": "M.Des. in Fashion & Textile Design", "level": "PG", "duration_years": 2, "degree_type": "M.Des", "entrance_exam": "NIFT PG / NID DAT PG", "eligibility": "B.Des in Fashion/Textiles or B.Arch" },
+    { "name": "Diploma in Graphic Design & Animation", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Portfolio / Direct", "eligibility": "10+2 in any stream" },
+    { "name": "Diploma in Fashion Styling & Media", "level": "Diploma", "duration_years": 1, "degree_type": "Diploma", "entrance_exam": "Portfolio / Direct", "eligibility": "10+2 in any stream" },
+    { "name": "Ph.D. in Design & Creative Arts", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "CEED / University Test", "eligibility": "M.Des / M.Arch (min 55%)" }
+  ],
+  "Pharmacy": [
+    { "name": "B.Pharm. (Bachelor of Pharmacy)", "level": "UG", "duration_years": 4, "degree_type": "B.Pharm", "entrance_exam": "NEET UG / State CET / GPAT", "eligibility": "10+2 with PCB or PCM (min 50%)" },
+    { "name": "Pharm.D. (Doctor of Pharmacy)", "level": "UG", "duration_years": 6, "degree_type": "Pharm.D", "entrance_exam": "NEET UG / State CET", "eligibility": "10+2 with PCB or PCM (min 50%)" },
+    { "name": "M.Pharm. in Pharmaceutics", "level": "PG", "duration_years": 2, "degree_type": "M.Pharm", "entrance_exam": "GPAT / NIPER JEE", "eligibility": "B.Pharm. degree (min 55%)" },
+    { "name": "M.Pharm. in Pharmacology", "level": "PG", "duration_years": 2, "degree_type": "M.Pharm", "entrance_exam": "GPAT / NIPER JEE", "eligibility": "B.Pharm. degree (min 55%)" },
+    { "name": "Diploma in Pharmacy (D.Pharm)", "level": "Diploma", "duration_years": 2, "degree_type": "Diploma", "entrance_exam": "Merit / State Test", "eligibility": "10+2 with PCB or PCM (min 40%)", "is_polytechnic_only": true },
+    { "name": "Ph.D. in Pharmaceutical Sciences", "level": "PhD", "duration_years": 3, "degree_type": "Ph.D.", "entrance_exam": "GPAT / CSIR-NET / NIPER JEE", "eligibility": "M.Pharm. degree (min 55%)" }
+  ],
+  "Junior College": [
+    { "name": "Higher Secondary Certificate (HSC) Science (PCM)", "level": "UG", "duration_years": 2, "degree_type": "Class XI-XII", "entrance_exam": "Class 10th Board Merit", "eligibility": "Class 10th Pass (min 40%)" },
+    { "name": "Higher Secondary Certificate (HSC) Science (PCB)", "level": "UG", "duration_years": 2, "degree_type": "Class XI-XII", "entrance_exam": "Class 10th Board Merit", "eligibility": "Class 10th Pass (min 40%)" },
+    { "name": "Higher Secondary Certificate (HSC) Commerce", "level": "UG", "duration_years": 2, "degree_type": "Class XI-XII", "entrance_exam": "Class 10th Board Merit", "eligibility": "Class 10th Pass (min 35%)" },
+    { "name": "Higher Secondary Certificate (HSC) Arts / Humanities", "level": "UG", "duration_years": 2, "degree_type": "Class XI-XII", "entrance_exam": "Class 10th Board Merit", "eligibility": "Class 10th Pass (min 35%)" },
+    { "name": "BVoc / ITI Certificate Course (Vocational Trades)", "level": "Diploma", "duration_years": 2, "degree_type": "Diploma", "entrance_exam": "Class 10th Merit", "eligibility": "Class 10th Pass" }
+  ]
+}

@@ -604,29 +604,83 @@ function populateUI(data) {
       try {
         const courses = typeof data.courses === 'string' ? JSON.parse(data.courses) : data.courses;
         if (Array.isArray(courses) && courses.length > 0) {
-          el.coursesGrid.innerHTML = courses.map(c => {
-            const formattedFees = c.fees_per_year ? `₹${c.fees_per_year.toLocaleString('en-IN')}` : 'N/A';
-            return `
-              <div class="course-card" style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-                  <h4 style="margin:0; font-size:16px; font-weight: 700; color: var(--text); line-height: 1.4;">${c.name}</h4>
-                  <span class="stream-badge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(var(--indigo-rgb, 99, 102, 241), 0.1); color: var(--indigo); text-transform: uppercase; font-weight: 600; flex-shrink: 0;">${c.level || 'UG'}</span>
+          let disclaimerHtml = '';
+          if (data.courses_is_fallback) {
+            const filterNote = data.courses_filtered_by_type ? ' <em>(Filtered to match degree-granting institution offerings)</em>' : '';
+            disclaimerHtml = `
+              <div style="grid-column: 1 / -1; background: rgba(245, 166, 35, 0.08); border: 1.5px solid rgba(245, 166, 35, 0.3); border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px; font-size: 13.5px; color: var(--text-1);">
+                <span style="font-size: 20px; flex-shrink: 0; line-height: 1;">💡</span>
+                <div>
+                  <strong style="color: #F5A623;">Typical Programs in ${data.stream || 'this Stream'}</strong>
+                  <p style="margin: 3px 0 0 0; color: var(--text-2); font-size: 12.5px; line-height: 1.5;">
+                    These represent representative programs standardly offered by ${data.stream || 'similar'} institutions in India across Undergraduate, Postgraduate, and Diploma levels. Verified per-course catalog for this institution is being populated.${filterNote}
+                  </p>
                 </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: var(--text-2); border-top: 1px dashed var(--border-2); padding-top: 8px; margin-top: 4px;">
-                  <div><strong>Fees:</strong> <span style="color: var(--gold); font-weight: 700;">${formattedFees}</span></div>
-                  <div><strong>Seats:</strong> <span>${c.seats || 'N/A'}</span></div>
-                  <div><strong>Duration:</strong> <span>${c.duration_years || 'N/A'} Yrs</span></div>
-                  <div><strong>Exam:</strong> <span style="text-transform: uppercase; font-weight: 600; color: var(--indigo);">${c.entrance_exam || 'Direct'}</span></div>
-                </div>
-
-                ${c.eligibility ? `
-                <div style="font-size: 12px; color: var(--text-3); background: var(--surface-3); padding: 8px 10px; border-radius: 6px; margin-top: 4px; line-height: 1.4; border-left: 3px solid var(--border-2);">
-                  <strong>Eligibility:</strong> ${c.eligibility}
-                </div>` : ''}
               </div>
             `;
-          }).join('');
+          }
+
+          const levelOrder = ['UG', 'PG', 'Diploma', 'PhD', 'Certificate'];
+          const levelLabels = {
+            'UG': '🎓 Undergraduate Programs',
+            'PG': '📜 Postgraduate Programs',
+            'Diploma': '🛠️ Diploma & Vocational Programs',
+            'PhD': '🔬 Doctoral (Ph.D.) Programs',
+            'Certificate': '🏅 Certificate Courses'
+          };
+
+          const grouped = {};
+          courses.forEach(c => {
+            const lvl = c.level || 'UG';
+            if (!grouped[lvl]) grouped[lvl] = [];
+            grouped[lvl].push(c);
+          });
+
+          let gridHtml = disclaimerHtml;
+
+          levelOrder.forEach(lvl => {
+            if (grouped[lvl] && grouped[lvl].length > 0) {
+              const items = grouped[lvl];
+              const groupHeader = `
+                <div style="grid-column: 1 / -1; margin-top: 14px; margin-bottom: 4px; border-bottom: 2px solid var(--border-2); padding-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                  <h3 style="font-size: 15px; font-weight: 700; color: var(--text-1); margin: 0; display: flex; align-items: center; gap: 8px;">
+                    ${levelLabels[lvl] || lvl}
+                  </h3>
+                  <span style="font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 12px; background: var(--surface-3); color: var(--text-2);">
+                    ${items.length} program${items.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+              `;
+
+              const cardsHtml = items.map(c => {
+                const formattedFees = c.fees_per_year ? `₹${c.fees_per_year.toLocaleString('en-IN')}` : (c.is_typical ? 'Contact for details' : 'N/A');
+                return `
+                  <div class="course-card" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                      <h4 style="margin:0; font-size:15px; font-weight: 700; color: var(--text); line-height: 1.4;">${c.name}</h4>
+                      <span class="stream-badge" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(var(--indigo-rgb, 99, 102, 241), 0.1); color: var(--indigo); text-transform: uppercase; font-weight: 600; flex-shrink: 0;">${c.level || 'UG'}</span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: var(--text-2); border-top: 1px dashed var(--border-2); padding-top: 8px; margin-top: 4px;">
+                      <div><strong>Fees:</strong> <span style="color: var(--gold); font-weight: 700;">${formattedFees}</span></div>
+                      <div><strong>Seats:</strong> <span>${c.seats || 'N/A'}</span></div>
+                      <div><strong>Duration:</strong> <span>${c.duration_years || 'N/A'} Yrs</span></div>
+                      <div><strong>Exam:</strong> <span style="text-transform: uppercase; font-weight: 600; color: var(--indigo);">${c.entrance_exam || 'Direct / Merit'}</span></div>
+                    </div>
+
+                    ${c.eligibility ? `
+                    <div style="font-size: 12px; color: var(--text-3); background: var(--surface-3); padding: 8px 10px; border-radius: 6px; margin-top: 4px; line-height: 1.4; border-left: 3px solid var(--border-2);">
+                      <strong>Eligibility:</strong> ${c.eligibility}
+                    </div>` : ''}
+                  </div>
+                `;
+              }).join('');
+
+              gridHtml += groupHeader + cardsHtml;
+            }
+          });
+
+          el.coursesGrid.innerHTML = gridHtml;
         } else {
           el.coursesGrid.innerHTML = `
             <div class="empty-state" style="grid-column: 1 / -1; text-align: center; padding: 48px 24px; background: var(--surface-2); border-radius: 12px; border: 1px solid var(--border-1);">

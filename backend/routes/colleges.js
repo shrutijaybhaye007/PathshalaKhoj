@@ -862,10 +862,71 @@ router.get('/:id', async (req, res) => {
       const realWebsite = contacts.find(c => c.contact_type === 'website');
       if (realPhone   && !college.contact_phone)  college.contact_phone  = realPhone.contact_value;
       if (realEmail   && !college.contact_email)  college.contact_email  = realEmail.contact_value;
-      if (realWebsite && !college.website)         college.website         = realWebsite.contact_value;
+    let finalCourses = courses;
+    let coursesIsFallback = false;
+    let coursesFilteredByType = false;
+
+    if (!finalCourses || finalCourses.length === 0) {
+      coursesIsFallback = true;
+      try {
+        const typicalData = require('../db/data/typical_programs_by_stream.json');
+        const streamKey = college.stream || 'Engineering';
+        let typicalList = typicalData[streamKey] || typicalData['Engineering'] || [];
+
+        // Light filtering based on college_type & name
+        const typeLower = (college.college_type || '').toLowerCase();
+        const nameLower = (college.name || '').toLowerCase();
+        const affilLower = (college.affiliation || '').toLowerCase();
+
+        const isPureDegreeUniversity = (
+          typeLower.includes('university') || 
+          typeLower.includes('autonomous') || 
+          typeLower.includes('deemed') || 
+          typeLower.includes('national importance') ||
+          affilLower.includes('university')
+        ) && !(
+          nameLower.includes('polytechnic') || 
+          nameLower.includes('diploma') || 
+          nameLower.includes('junior') || 
+          nameLower.includes('iti') || 
+          nameLower.includes('vocational')
+        );
+
+        if (isPureDegreeUniversity) {
+          const beforeCount = typicalList.length;
+          typicalList = typicalList.filter(p => p.level !== 'Diploma' || !p.is_polytechnic_only);
+          if (typicalList.length < beforeCount) {
+            coursesFilteredByType = true;
+          }
+        }
+
+        finalCourses = typicalList.map((tp, idx) => ({
+          id: `typical-${idx + 1}`,
+          name: tp.name,
+          level: tp.level,
+          duration_years: tp.duration_years,
+          degree_type: tp.degree_type,
+          entrance_exam: tp.entrance_exam,
+          eligibility: tp.eligibility,
+          fees_per_year: null,
+          seats: null,
+          is_typical: true
+        }));
+      } catch (e) {
+        console.error('Failed to load typical programs fallback:', e.message);
+        finalCourses = [];
+      }
     }
 
-    res.json({ ...college, courses, contacts, reviews, qna });
+    res.json({
+      ...college,
+      courses: finalCourses,
+      courses_is_fallback: coursesIsFallback,
+      courses_filtered_by_type: coursesFilteredByType,
+      contacts,
+      reviews,
+      qna
+    });
   } catch (err) {
     console.error('GET /api/colleges/:id error:', err);
     res.status(500).json({ error: 'Failed to fetch college detail.' });
