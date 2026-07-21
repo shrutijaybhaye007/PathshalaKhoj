@@ -55,6 +55,11 @@ if (rawUrl && (rawUrl.startsWith('postgres://') || rawUrl.startsWith('postgresql
       idleTimeoutMillis: 30000,
     });
   }
+  if (pool) {
+    pool.on('error', (err) => {
+      console.warn('⚡ Neon PG Pool background connection reset (normal during free-tier idle sleep):', err.message);
+    });
+  }
 } else {
   initSqlite();
 }
