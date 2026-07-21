@@ -20,8 +20,8 @@ if (typeof showToast === 'undefined') {
   };
 }
 
-if (typeof el === 'undefined') {
-  window.el = {};
+if (typeof window.el === 'undefined') {
+  window.el = (typeof el !== 'undefined') ? el : {};
 }
 
 function syncElRefs() {

@@ -232,6 +232,7 @@ const el = {
   adminExamFormNote:       document.getElementById('adminExamFormNote'),
   adminExamFormCancelBtn:  document.getElementById('adminExamFormCancelBtn'),
 };
+window.el = el;
 
 // ─── Header scroll class ────────────────────────────────────────────────────
 let lastScrollY = window.scrollY;
