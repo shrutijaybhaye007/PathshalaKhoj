@@ -347,14 +347,19 @@ async function init() {
   bindEvents();
   buildTimeline();
   // Restore UI from URL state
-  el.searchInput.value      = state.q;
-  el.filterState.value      = state.state_filter;
-  el.filterCity.value       = state.city;
-  el.filterType.value       = state.type;
-  el.filterNaac.value       = state.naac;
-  el.filterFees.value       = state.max_fees;
-  el.filterSort.value       = state.sort;
-  fetchAndRenderColleges();
+  if (el.searchInput) el.searchInput.value      = state.q;
+  if (el.filterState) el.filterState.value      = state.state_filter;
+  if (el.filterCity)  el.filterCity.value       = state.city;
+  if (el.filterType)  el.filterType.value       = state.type;
+  if (el.filterNaac)  el.filterNaac.value       = state.naac;
+  if (el.filterFees)  el.filterFees.value       = state.max_fees;
+  if (el.filterSort)  el.filterSort.value       = state.sort;
+  
+  try {
+    await fetchAndRenderColleges();
+  } catch(e) {
+    console.error('Error during initial fetchAndRenderColleges:', e);
+  }
   
   // Restore detail overlay ONLY when visiting a direct share link (no search query active)
   // If a search query exists, the user wants to see results — don't pop a modal on top
@@ -1321,10 +1326,13 @@ async function loadShortlistIds() {
 
 function updateShortlistCount() {
   const count = state.shortlistedIds.size;
-  el.shortlistCount.hidden   = count === 0;
-  el.shortlistCount.textContent = String(count);
-  // Enable compare when ≥ 2 colleges
-  el.compareBtn.disabled = count < 2;
+  if (el.shortlistCount) {
+    el.shortlistCount.hidden = count === 0;
+    el.shortlistCount.textContent = String(count);
+  }
+  if (el.compareBtn) {
+    el.compareBtn.disabled = count < 2;
+  }
 }
 
 async function toggleShortlist(collegeId, buttonEl, isDetailButton = false) {
