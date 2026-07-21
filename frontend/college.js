@@ -1157,7 +1157,7 @@ function renderQnA(qnaArray, collegeId) {
   }
 }
 
-async function submitQnaAnswer(qnaId) {
+window.submitQnaAnswer = async function submitQnaAnswer(qnaId) {
   const input = document.getElementById(`replyInput_${qnaId}`);
   if (!input) return;
   const answer = input.value.trim();

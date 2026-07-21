@@ -40,6 +40,13 @@ function trackRecentlyViewed(college) {
 function getRecentlyViewed() {
   try { return JSON.parse(localStorage.getItem('pk_recently_viewed') || '[]'); } catch(e) { return []; }
 }
+window.trackRecentlyViewedFromLink = function(collegeId) {
+  try {
+    let recent = getRecentlyViewed();
+    const college = recent.find(c => c.id === collegeId);
+    if (college) trackRecentlyViewed(college);
+  } catch(e) {}
+};
 
 // DOM Elements
 const el = {

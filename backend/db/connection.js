@@ -83,15 +83,31 @@ function convertPlaceholders(sql) {
   return sql.replace(/\?/g, () => `$${index++}`);
 }
 
-function adaptSqlForSqlite(sql) {
-  if (!sql || typeof sql !== 'string') return sql;
-  let adapted = sql;
-  adapted = adapted.replace(/NOW\(\)\s*-\s*INTERVAL\s*'1 day'/gi, "datetime('now', '-1 day')");
-  adapted = adapted.replace(/NOW\(\)/gi, "datetime('now')");
-  adapted = adapted.replace(/\bILIKE\b/gi, 'LIKE');
-  adapted = adapted.replace(/c\.search_vector\s*@@\s*plainto_tsquery\('english',\s*\?\)/gi, "(c.name LIKE ? OR c.city LIKE ? OR c.description LIKE ?)");
-  adapted = adapted.replace(/ORDER BY ts_rank\(c\.search_vector, plainto_tsquery\('english',\s*\?\)\)\s*DESC/gi, "ORDER BY c.name ASC");
-  return adapted;
+function adaptSqlAndParamsForSqlite(sql, params = []) {
+  if (!sql || typeof sql !== 'string') return { sql, params };
+  let adaptedSql = sql;
+  let adaptedParams = Array.isArray(params) ? [...params] : [params];
+
+  // Remove ts_rank ordering parameter if present in searchParams
+  if (/ORDER BY ts_rank\(c\.search_vector,\s*plainto_tsquery\('english',\s*\?\)\)\s*DESC/gi.test(adaptedSql)) {
+    adaptedSql = adaptedSql.replace(/ORDER BY ts_rank\(c\.search_vector,\s*plainto_tsquery\('english',\s*\?\)\)\s*DESC/gi, 'ORDER BY c.name ASC');
+    if (adaptedParams.length >= 3) {
+      adaptedParams.splice(adaptedParams.length - 3, 1);
+    }
+  }
+
+  // Replace search_vector clause preserving parameter count (3 params in, 3 params out)
+  adaptedSql = adaptedSql.replace(
+    /\(c\.search_vector\s*@@\s*plainto_tsquery\('english',\s*\?\)\s*OR\s*c\.name\s+ILIKE\s+\?\s*OR\s*c\.city\s+ILIKE\s+\?\)/gi,
+    "(c.name LIKE ? OR c.city LIKE ? OR c.description LIKE ?)"
+  );
+  adaptedSql = adaptedSql.replace(/c\.search_vector\s*@@\s*plainto_tsquery\('english',\s*\?\)/gi, "(c.name LIKE ? OR c.description LIKE ?)");
+
+  adaptedSql = adaptedSql.replace(/NOW\(\)\s*-\s*INTERVAL\s*'1 day'/gi, "datetime('now', '-1 day')");
+  adaptedSql = adaptedSql.replace(/NOW\(\)/gi, "datetime('now')");
+  adaptedSql = adaptedSql.replace(/\bILIKE\b/gi, 'LIKE');
+
+  return { sql: adaptedSql, params: adaptedParams };
 }
 
 function normalizeParams(params) {
@@ -117,11 +133,12 @@ async function get(sql, params = []) {
     }
   } else {
     initSqlite();
-    const sqliteSql = adaptSqlForSqlite(sql);
+    const { sql: sqliteSql, params: sqliteParams } = adaptSqlAndParamsForSqlite(sql, normalized);
     try {
-      const row = sqliteDb.prepare(sqliteSql).get(...normalized);
+      const row = sqliteDb.prepare(sqliteSql).get(...sqliteParams);
       return row || undefined;
     } catch (e) {
+      console.error('SQLite get error:', e.message, 'Query:', sqliteSql);
       return undefined;
     }
   }
@@ -144,10 +161,11 @@ async function all(sql, params = []) {
     }
   } else {
     initSqlite();
-    const sqliteSql = adaptSqlForSqlite(sql);
+    const { sql: sqliteSql, params: sqliteParams } = adaptSqlAndParamsForSqlite(sql, normalized);
     try {
-      return sqliteDb.prepare(sqliteSql).all(...normalized);
+      return sqliteDb.prepare(sqliteSql).all(...sqliteParams);
     } catch (e) {
+      console.error('SQLite all error:', e.message, 'Query:', sqliteSql);
       return [];
     }
   }
@@ -180,14 +198,15 @@ async function run(sql, params = []) {
     }
   } else {
     initSqlite();
-    const sqliteSql = adaptSqlForSqlite(sql);
+    const { sql: sqliteSql, params: sqliteParams } = adaptSqlAndParamsForSqlite(sql, normalized);
     try {
-      const info = sqliteDb.prepare(sqliteSql).run(...normalized);
+      const info = sqliteDb.prepare(sqliteSql).run(...sqliteParams);
       return {
         lastInsertRowid: info.lastInsertRowid,
         changes: info.changes
       };
     } catch (e) {
+      console.error('SQLite run error:', e.message, 'Query:', sqliteSql);
       return { lastInsertRowid: null, changes: 0 };
     }
   }

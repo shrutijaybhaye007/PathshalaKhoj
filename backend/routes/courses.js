@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { get, all, run } = require('../db/connection');
+const { requireAuth, requireAdmin } = require('../middlewares/authMiddleware');
 
 /**
  * GET /api/courses?q=computer+science
@@ -40,7 +41,7 @@ router.get('/', async (req, res) => {
        ${whereClause}`, 
        params
     );
-    const total = parseInt(totalRow.count, 10);
+    const total = totalRow && totalRow.count !== undefined ? parseInt(totalRow.count, 10) : 0;
 
     const rows = await all(
       `SELECT co.id as master_course_id, co.name, co.level, co.duration_years, co.degree_type,
@@ -132,7 +133,7 @@ router.get('/:id/colleges', async (req, res) => {
  * POST /api/courses/college/:collegeId
  * Admin only: Maps an existing master course to a college.
  */
-router.post('/college/:collegeId', async (req, res) => {
+router.post('/college/:collegeId', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { course_id, fees_per_year, seats, entrance_exam, eligibility } = req.body;
     await run(

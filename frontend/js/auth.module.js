@@ -644,7 +644,9 @@ function bindAuthEvents() {
       console.error('Failed to fetch auth configuration from server:', err);
     }
 
-    initCompareBarEvents();
+    if (typeof initCompareBarEvents === 'function') {
+      initCompareBarEvents();
+    }
   });
 }
 

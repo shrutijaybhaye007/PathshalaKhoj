@@ -2102,24 +2102,7 @@ function updateSuggestionHighlight(items, activeSuggestionIndex) {
 // init() is called by js/boot.js which loads AFTER auth.module.js and admin.module.js,
 // ensuring initUserSession, bindAuthEvents, and bindAdminEvents are all defined first.
 
-// --- Mobile Navigation ---
-const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-const headerNav = document.getElementById('headerNav');
-
-if (mobileMenuBtn && headerNav) {
-  const overlay = document.createElement('div');
-  overlay.className = 'mobile-menu-overlay';
-  document.body.appendChild(overlay);
-
-  function toggleMenu() {
-    headerNav.classList.toggle('menu-open');
-    overlay.classList.toggle('open');
-    document.body.style.overflow = headerNav.classList.contains('menu-open') ? 'hidden' : '';
-  }
-
-  mobileMenuBtn.addEventListener('click', toggleMenu);
-  overlay.addEventListener('click', toggleMenu);
-}
+// Mobile menu drawer is handled globally in global.js
 
 function checkLoginRedirect() {
   const p = new URLSearchParams(window.location.search);

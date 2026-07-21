@@ -157,13 +157,14 @@ async function loadAdminCollegesList() {
   try {
     const res = await fetch(url);
     const data = await res.json();
+    const colleges = data.colleges || data.data || [];
     
-    if (!data.colleges || data.colleges.length === 0) {
+    if (!colleges || colleges.length === 0) {
       el.adminCollegeTableBody.innerHTML = '<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--text-2);">No colleges found. Adjust filters or click "Add New" to get started.</td></tr>';
       return;
     }
 
-    el.adminCollegeTableBody.innerHTML = data.colleges.map(c => {
+    el.adminCollegeTableBody.innerHTML = colleges.map(c => {
       const hasInfo  = c.description && c.description.length > 80;
       const hasLogo  = c.logo_url && c.logo_url.length > 5;
       const dataStatus = hasInfo
@@ -532,6 +533,8 @@ async function deleteCollegeAction(id) {
 }
 
 // ─── ADMIN TIMELINE EXAMS FUNCTIONS ───────────────────────────────────────
+let adminExamsCache = [];
+
 async function loadAdminExamsList() {
   if (!el.adminExamsTableBody) return;
   el.adminExamsTableBody.innerHTML = '<tr><td colspan="4" style="padding: 24px; text-align: center; color: var(--text-2);">Loading exams list…</td></tr>';
@@ -539,13 +542,14 @@ async function loadAdminExamsList() {
   try {
     const res = await fetch(`${API_BASE}/exams`);
     const data = await res.json();
+    adminExamsCache = Array.isArray(data) ? data : (data.data || []);
 
-    if (data.length === 0) {
+    if (adminExamsCache.length === 0) {
       el.adminExamsTableBody.innerHTML = '<tr><td colspan="4" style="padding: 24px; text-align: center; color: var(--text-2);">No exams found. Click "Add New Exam" to create one.</td></tr>';
       return;
     }
 
-    el.adminExamsTableBody.innerHTML = data.map(ev => `
+    el.adminExamsTableBody.innerHTML = adminExamsCache.map(ev => `
       <tr style="border-bottom: 1px solid var(--border); vertical-align: middle;">
         <td style="padding: 12px 16px; font-weight: 600; color: var(--text);">${escapeHtml(ev.exam_name)}</td>
         <td style="padding: 12px 16px; color: var(--text-2);">${escapeHtml(ev.stream)}</td>
@@ -585,8 +589,8 @@ function openCreateExamForm() {
 
 async function loadExamIntoForm(id) {
   try {
-    // Find exam details from local cached array loaded earlier, or fetch
-    const exam = dbTimelineEvents.find(e => e.id === id);
+    const list = (typeof dbTimelineEvents !== 'undefined') ? dbTimelineEvents : adminExamsCache;
+    const exam = list.find(e => e.id === id);
     if (!exam) return;
 
     editingExamId = id;
@@ -648,7 +652,7 @@ async function handleExamFormSubmit(e) {
       el.adminExamFormPanel.hidden = true;
       el.adminExamsListPanel.hidden = false;
       await loadAdminExamsList();
-      buildTimeline(); // update dynamic timeline
+      if (typeof buildTimeline === 'function') buildTimeline();
     } else {
       const data = await res.json();
       showToast(data.error || 'Failed to save exam details.', 'error');
@@ -675,7 +679,7 @@ async function deleteExamAction(id) {
     if (res.ok) {
       showToast('Exam deleted successfully.', 'success');
       await loadAdminExamsList();
-      buildTimeline();
+      if (typeof buildTimeline === 'function') buildTimeline();
     } else {
       showToast('Failed to delete exam.', 'error');
     }

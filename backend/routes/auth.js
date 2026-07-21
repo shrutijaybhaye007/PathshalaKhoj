@@ -247,11 +247,11 @@ router.post('/reset-password', async (req, res) => {
     }
 
     const user = await get(
-      'SELECT id FROM users WHERE password_reset_token = ? AND password_reset_expires > NOW()',
+      'SELECT id, password_reset_expires FROM users WHERE password_reset_token = ?',
       [token]
     );
 
-    if (!user) {
+    if (!user || !user.password_reset_expires || new Date(user.password_reset_expires) < new Date()) {
       return res.status(400).json({ error: 'Invalid or expired password reset token.' });
     }
 
