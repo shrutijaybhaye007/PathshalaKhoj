@@ -103,100 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Auth Sync Logic ---
-  async function syncAuthGlobal() {
-    const token = localStorage.getItem('pk_token');
-    if (!token) return;
-
-    try {
-      const res = await fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const user = data.user;
-        
-        const navLoginBtn = document.getElementById('navLoginBtn');
-        const navUserPic = document.getElementById('navUserPic');
-        const navUserName = document.getElementById('navUserName');
-        const dropdownUserName = document.getElementById('dropdownUserName');
-        const dropdownUserEmail = document.getElementById('dropdownUserEmail');
-        const dropdownUserRole = document.getElementById('dropdownUserRole');
-        
-        if (navLoginBtn) navLoginBtn.style.display = 'none';
-        if (profileDropdownContainer) profileDropdownContainer.style.display = 'inline-block';
-        
-        if (user.picture && navUserPic) {
-          navUserPic.src = user.picture;
-          navUserPic.style.display = 'inline-block';
-        }
-        if (navUserName) navUserName.textContent = user.name || 'User';
-        if (dropdownUserName) dropdownUserName.textContent = user.name || 'User';
-        if (dropdownUserEmail) dropdownUserEmail.textContent = user.email || '';
-        if (dropdownUserRole) dropdownUserRole.textContent = user.role === 'admin' ? 'Administrator' : 'Student';
-        
-        const dropdownAdminPortalBtn = document.getElementById('dropdownAdminPortalBtn');
-        if (dropdownAdminPortalBtn) {
-          dropdownAdminPortalBtn.style.display = user.role === 'admin' ? 'flex' : 'none';
-        }
-
-        const dropdownStudentDashboardBtn = document.querySelector('a[href="dashboard.html"]');
-        if (dropdownStudentDashboardBtn) {
-          dropdownStudentDashboardBtn.style.display = user.role === 'admin' ? 'none' : 'flex';
-        }
-        
-        window.currentUser = user; // Expose globally for other scripts
-        document.dispatchEvent(new CustomEvent('authSynced', { detail: user }));
-      } else {
-        localStorage.removeItem('pk_token');
-      }
-    } catch (err) {
-      console.error('Auth sync failed:', err);
-    }
-  }
-
-  syncAuthGlobal();
-
-  // --- Logout Logic ---
-  const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
-  if (dropdownLogoutBtn) {
-    dropdownLogoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('pk_token');
-      window.location.reload();
-    });
-  }
-
-  // --- Global Sign In Redirect ---
+  // --- Sign In Button Styling ---
   const navLoginBtn = document.getElementById('navLoginBtn');
   if (navLoginBtn) {
-    // Upgrade to pill-style sign-in button
     navLoginBtn.classList.add('btn-signin');
-    navLoginBtn.addEventListener('click', () => {
-      // If we are on index.html, it handles modal. Otherwise redirect.
-      if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-        window.location.href = '/?login=true&redirect=' + encodeURIComponent(window.location.href);
-      }
-    });
-  }
-
-  // --- Admin Dashboard Redirect ---
-  const dropdownAdminPortalBtn = document.getElementById('dropdownAdminPortalBtn');
-  if (dropdownAdminPortalBtn) {
-    dropdownAdminPortalBtn.addEventListener('click', () => {
-      if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-        window.location.href = '/?admin=true';
-      }
-    });
-  }
-
-  // --- Profile Settings Redirect ---
-  const dropdownEditProfileBtn = document.getElementById('dropdownEditProfileBtn');
-  if (dropdownEditProfileBtn) {
-    dropdownEditProfileBtn.addEventListener('click', () => {
-      if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-        window.location.href = '/?profile=true';
-      }
-    });
   }
 
   // --- Admin Metrics Auto-Populate ---
