@@ -34,10 +34,19 @@ router.get('/', async (req, res) => {
       filterParams.push(`%${exam.trim()}%`);
     }
 
-    let orderClause = 'ORDER BY c.name ASC';
-    if      (sort === 'fees_low')   orderClause = 'ORDER BY c.avg_fees_per_year ASC';
-    else if (sort === 'fees_high')  orderClause = 'ORDER BY c.avg_fees_per_year DESC';
-    else if (sort === 'established') orderClause = 'ORDER BY c.established_year ASC';
+    let orderClause = `ORDER BY 
+      CASE WHEN c.nirf_ranking IS NOT NULL THEN 0 ELSE 1 END ASC,
+      c.nirf_ranking ASC NULLS LAST,
+      CASE c.naac_grade 
+        WHEN 'A++' THEN 1 WHEN 'A+' THEN 2 WHEN 'A' THEN 3 
+        WHEN 'B++' THEN 4 WHEN 'B+' THEN 5 WHEN 'B' THEN 6 
+        ELSE 7 END ASC,
+      c.name ASC`;
+    if      (sort === 'fees_low')    orderClause = 'ORDER BY c.avg_fees_per_year ASC NULLS LAST';
+    else if (sort === 'fees_high')   orderClause = 'ORDER BY c.avg_fees_per_year DESC NULLS LAST';
+    else if (sort === 'established') orderClause = 'ORDER BY c.established_year ASC NULLS LAST';
+    else if (sort === 'name')        orderClause = 'ORDER BY c.name ASC';
+    else if (sort === 'ranking')     orderClause = 'ORDER BY c.nirf_ranking ASC NULLS LAST, c.name ASC';
 
     let totalRow, rows;
     const hasSearchQuery = q && q.trim();
