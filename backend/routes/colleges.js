@@ -862,6 +862,9 @@ router.get('/:id', async (req, res) => {
       const realWebsite = contacts.find(c => c.contact_type === 'website');
       if (realPhone   && !college.contact_phone)  college.contact_phone  = realPhone.contact_value;
       if (realEmail   && !college.contact_email)  college.contact_email  = realEmail.contact_value;
+      if (realWebsite && !college.website)         college.website         = realWebsite.contact_value;
+    }
+
     let finalCourses = courses;
     let coursesIsFallback = false;
     let coursesFilteredByType = false;
