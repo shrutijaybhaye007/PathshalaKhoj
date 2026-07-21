@@ -378,6 +378,12 @@ function bindAuthEvents() {
             callback: handleGoogleCredentialResponse,
             cancel_on_tap_outside: true
           });
+
+          google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed()) {
+              console.warn('Google One Tap not displayed:', notification.getNotDisplayedReason());
+            }
+          });
           
           google.accounts.id.renderButton(
             el.googleSignInContainer,
