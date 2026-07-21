@@ -128,12 +128,20 @@ router.get('/', async (req, res) => {
   }
 });
 
+let statsCache = null;
+let statsCacheTime = 0;
+
 /**
  * GET /api/colleges/stats
- * Public: Returns overall database metrics.
+ * Public: Returns overall database metrics with 60s in-memory caching.
  */
 router.get('/stats', async (req, res) => {
   try {
+    const now = Date.now();
+    if (statsCache && (now - statsCacheTime < 60000)) {
+      return res.json(statsCache);
+    }
+
     const totalCollegesRow = await get('SELECT COUNT(*) as count FROM colleges');
     const totalExamsRow    = await get('SELECT COUNT(*) as count FROM timeline_events');
     const avgPlacementObj  = await get(
@@ -148,8 +156,10 @@ router.get('/stats', async (req, res) => {
       ? parseFloat(avgPlacementObj.avg_package).toFixed(1)
       : '0.0';
 
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.json({ collegesCount: totalColleges, examsCount: totalExams, avgPlacement });
+    statsCache = { collegesCount: totalColleges, examsCount: totalExams, avgPlacement };
+    statsCacheTime = now;
+
+    res.json(statsCache);
   } catch (err) {
     console.error('GET /api/colleges/stats error:', err);
     res.status(500).json({ error: 'Failed to fetch database statistics.' });
@@ -293,12 +303,22 @@ router.post('/sync-batch-wiki', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+let metaFiltersCache = null;
+let metaFiltersCacheTime = 0;
+
 /**
  * GET /api/colleges/meta/filters
+ * Returns filter dropdown options with 5-minute in-memory caching.
  */
 router.get('/meta/filters', async (req, res) => {
   try {
     const { state } = req.query;
+    const now = Date.now();
+
+    if (!state && metaFiltersCache && (now - metaFiltersCacheTime < 300000)) {
+      return res.json(metaFiltersCache);
+    }
+
     const streams    = await all('SELECT DISTINCT stream FROM colleges ORDER BY stream');
     const states     = await all('SELECT DISTINCT state FROM colleges ORDER BY state');
     const types      = await all('SELECT DISTINCT college_type FROM colleges ORDER BY college_type');
@@ -309,15 +329,21 @@ router.get('/meta/filters', async (req, res) => {
       ? await all('SELECT DISTINCT city FROM colleges WHERE state = ? ORDER BY city', [state])
       : await all('SELECT DISTINCT city FROM colleges ORDER BY city');
 
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.json({
+    const result = {
       streams:     streams.map((r) => r.stream),
       states:      states.map((r) => r.state),
       cities:      cities.map((r) => r.city),
       types:       types.map((r) => r.college_type),
       naac_grades: naacGrades.map((r) => r.naac_grade),
       fees_range:  feesRange,
-    });
+    };
+
+    if (!state) {
+      metaFiltersCache = result;
+      metaFiltersCacheTime = now;
+    }
+
+    res.json(result);
   } catch (err) {
     console.error('GET /api/colleges/meta/filters error:', err);
     res.status(500).json({ error: 'Failed to fetch filter metadata.' });

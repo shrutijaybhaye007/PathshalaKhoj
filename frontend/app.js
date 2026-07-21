@@ -337,16 +337,8 @@ async function init() {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
   bindAdminEvents();
-  await Promise.all([
-    loadFilterMeta(),
-    loadShortlistIds(),
-    loadHeroStats(),
-  ]);
-  buildExamChips();
-  buildCityChips();
-  bindEvents();
-  buildTimeline();
-  // Restore UI from URL state
+  
+  // Restore UI inputs from URL state immediately
   if (el.searchInput) el.searchInput.value      = state.q;
   if (el.filterState) el.filterState.value      = state.state_filter;
   if (el.filterCity)  el.filterCity.value       = state.city;
@@ -354,12 +346,23 @@ async function init() {
   if (el.filterNaac)  el.filterNaac.value       = state.naac;
   if (el.filterFees)  el.filterFees.value       = state.max_fees;
   if (el.filterSort)  el.filterSort.value       = state.sort;
-  
-  try {
-    await fetchAndRenderColleges();
-  } catch(e) {
-    console.error('Error during initial fetchAndRenderColleges:', e);
-  }
+
+  // Trigger primary colleges fetch IMMEDIATELY for instant UI rendering!
+  const primaryFetchPromise = fetchAndRenderColleges().catch(e => console.error('Initial college fetch error:', e));
+
+  buildExamChips();
+  buildCityChips();
+  bindEvents();
+  buildTimeline();
+
+  // Load filter metadata, shortlist, and hero stats concurrently in background
+  Promise.all([
+    loadFilterMeta(),
+    loadShortlistIds(),
+    loadHeroStats(),
+  ]).catch(err => console.warn('Background metadata fetch notice:', err));
+
+  await primaryFetchPromise;
   
   // Restore detail overlay ONLY when visiting a direct share link (no search query active)
   // If a search query exists, the user wants to see results — don't pop a modal on top
