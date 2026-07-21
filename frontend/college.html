@@ -333,12 +333,14 @@
 
           <section id="courses" class="content-section fade-in" style="display: none;">
             <h2>Courses & Fees</h2>
-            <div class="details-card" style="margin-bottom: 32px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3>Average Annual Fees</h3>
-                <span id="collegeFees" class="stat-value text-gold" style="font-size: 24px;">₹ N/A</span>
+            <div id="collegeFeeSection">
+              <div class="details-card" style="margin-bottom: 32px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <h3>Average Annual Fees</h3>
+                  <span id="collegeFees" class="stat-value text-gold" style="font-size: 24px;">₹ N/A</span>
+                </div>
+                <p class="prose" style="margin-top: 16px;">This represents the average fee range for the primary stream at this institution. Actual fees may vary per course and category.</p>
               </div>
-              <p class="prose" style="margin-top: 16px;">This is an estimated average for the primary stream. Actual fees may vary per specific course program and category.</p>
             </div>
             
             <div id="collegeScholarshipsContainer" class="details-card" style="margin-bottom: 32px; display: none; border-left: 4px solid var(--gold);">
@@ -358,21 +360,23 @@
 
           <section id="placements" class="content-section fade-in" style="display: none;">
             <h2>Placements</h2>
-            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-              <div class="details-card" style="text-align: center; border-bottom: 3px solid var(--gold);">
-                <p class="stat-label">Average Package</p>
-                <p id="collegeAvgPlacement" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
-                <p class="stat-label">LPA</p>
-              </div>
-              <div class="details-card" style="text-align: center; border-bottom: 3px solid var(--indigo);">
-                <p class="stat-label">Highest Package</p>
-                <p id="collegeHighPlacement" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
-                <p class="stat-label">LPA</p>
-              </div>
-              <div class="details-card" style="text-align: center; border-bottom: 3px solid var(--sage);">
-                <p class="stat-label">Placement Rate</p>
-                <p id="collegePlacementRate" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
-                <p class="stat-label">Placed</p>
+            <div id="collegePlacementSection">
+              <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="details-card" style="text-align: center; border-bottom: 3px solid var(--gold);">
+                  <p class="stat-label">Average Package</p>
+                  <p id="collegeAvgPlacement" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
+                  <p class="stat-label">LPA</p>
+                </div>
+                <div class="details-card" style="text-align: center; border-bottom: 3px solid var(--indigo);">
+                  <p class="stat-label">Highest Package</p>
+                  <p id="collegeHighPlacement" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
+                  <p class="stat-label">LPA</p>
+                </div>
+                <div class="details-card" style="text-align: center; border-bottom: 3px solid var(--sage);">
+                  <p class="stat-label">Placement Rate</p>
+                  <p id="collegePlacementRate" class="stat-value text-gold" style="font-size: 32px;">N/A</p>
+                  <p class="stat-label">Placed</p>
+                </div>
               </div>
             </div>
             

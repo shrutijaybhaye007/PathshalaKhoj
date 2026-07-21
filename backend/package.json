@@ -9,6 +9,12 @@
     "dev": "nodemon server.js",
     "seed": "node db/seed.js",
     "seed:admin": "node db/seed-admin.js",
+    "seed:aishe": "node db/seed_aishe.js",
+    "seed:nirf": "node db/seed_nirf.js",
+    "seed:nirf-check": "node db/spot_check_nirf.js",
+    "seed:courses": "node db/seed_courses.js",
+    "db:sanitize": "node db/sanitize_db.js",
+    "run:migration": "node db/run_migration.js",
     "refine": "node db/refine_db.js",
     "migrate:pg": "node db/migrate-to-pg.js",
     "test:smoke": "node smoke.test.js"
@@ -19,6 +25,7 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",
+    "csv-parse": "^5.6.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^8.5.2",
@@ -27,7 +34,8 @@
     "indian-colleges": "^1.1.1",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.22.0",
-    "rss-parser": "^3.13.0"
+    "rss-parser": "^3.13.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

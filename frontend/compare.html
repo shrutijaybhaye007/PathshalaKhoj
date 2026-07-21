@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=3.0" />
 
   <script>
     (function() {
@@ -97,36 +97,41 @@
   </header>
 
   <!-- ============ PAGE HERO ============ -->
-  <section style="padding: 120px 24px 40px; text-align: center; position: relative;">
+  <section style="padding: 100px 24px 30px; text-align: center; position: relative;">
     <div class="container" style="max-width: 800px;">
-      <h1 class="hero-title" style="font-family: var(--font-display); font-size: 40px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; color: var(--text);">Compare Colleges</h1>
-      <p class="hero-subtitle" style="font-size: 15px; color: var(--text-2); line-height: 1.6; margin: 0 auto; max-width: 600px;">
-        Detailed side-by-side comparison of fees, placements, rankings, facilities, and contact details to find your dream college.
+      <h1 class="hero-title" style="font-family: var(--font-display); font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; color: var(--text);">Compare Colleges Side-by-Side</h1>
+      <p class="hero-subtitle" style="font-size: 14.5px; color: var(--text-2); line-height: 1.6; margin: 0 auto 24px; max-width: 600px;">
+        Evaluate tuition fees, NIRF rankings, average placements, campus facilities, and contact helplines to make an informed decision.
       </p>
+
+      <!-- Inline Add College Search Bar -->
+      <div style="position: relative; max-width: 480px; margin: 0 auto;">
+        <input type="text" id="compareSearchInput" placeholder="🔍 Add another college to compare..." 
+          style="width: 100%; padding: 12px 18px; font-size: 14px; border-radius: var(--radius-full); border: 2px solid var(--border-2); background: var(--surface-2); color: var(--text); outline: none; transition: border-color 0.2s;" />
+        <div id="compareSearchDropdown" class="compare-search-dropdown" style="display: none;"></div>
+      </div>
     </div>
   </section>
 
   <!-- ============ MAIN CONTENT ============ -->
-  <main class="container" style="padding-bottom: 100px; max-width: 1200px; min-height: 50vh;">
-    <div class="details-card" style="padding: 24px; border-radius: var(--radius-lg); background: var(--surface);">
-      <!-- Loader -->
-      <div id="compareLoader" class="loading-state" style="text-align: center; padding: 60px 0;">
-        <div class="spinner" style="margin: 0 auto 16px;"></div>
-        <p class="text-2">Fetching college details for comparison...</p>
-      </div>
+  <main class="container" style="padding-bottom: 100px; max-width: 1280px; min-height: 50vh;">
+    <!-- Loader -->
+    <div id="compareLoader" class="loading-state" style="text-align: center; padding: 80px 0;">
+      <div class="spinner" style="margin: 0 auto 16px;"></div>
+      <p class="text-2" style="font-size: 15px; font-weight: 500;">Building side-by-side comparison...</p>
+    </div>
 
-      <!-- Empty State -->
-      <div id="compareEmptyState" style="display: none; text-align: center; padding: 80px 20px;">
-        <span style="font-size: 48px;">⚖️</span>
-        <h2 style="font-family: var(--font-heading); font-size: 24px; color: var(--text); margin-top: 16px; margin-bottom: 8px;">No Colleges Selected</h2>
-        <p style="color: var(--text-2); font-size: 14px; margin-bottom: 24px;">Please select at least 2 colleges from the home page search results to compare.</p>
-        <a href="/" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--indigo); border-color: var(--indigo);">Go to Colleges List</a>
-      </div>
+    <!-- Empty State -->
+    <div id="compareEmptyState" style="display: none; text-align: center; padding: 80px 20px; background: var(--surface); border-radius: var(--radius-lg); border: 1.5px solid var(--border);">
+      <span style="font-size: 56px;">⚖️</span>
+      <h2 style="font-family: var(--font-display); font-size: 26px; color: var(--text); margin-top: 16px; margin-bottom: 8px;">No Colleges Selected for Comparison</h2>
+      <p style="color: var(--text-2); font-size: 14.5px; margin-bottom: 24px;">Search and add colleges using the search bar above or pick colleges from the main directory.</p>
+      <a href="/" class="btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; text-decoration: none;">Explore All Colleges ➔</a>
+    </div>
 
-      <!-- Comparison Content -->
-      <div id="compareWrapper" style="display: none; overflow-x: auto;">
-        <div class="compare-container" id="compareContainer"></div>
-      </div>
+    <!-- Comparison Table Content Wrapper -->
+    <div id="compareWrapper" style="display: none; overflow-x: auto;">
+      <div class="compare-container" id="compareContainer"></div>
     </div>
   </main>
 
@@ -227,6 +232,7 @@
   <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
 
   <!-- Comparison Controller Script -->
-  <script src="compare.js"></script>
+  <script src="global.js?v=3.0"></script>
+  <script src="compare.js?v=3.0"></script>
 </body>
 </html>

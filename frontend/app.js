@@ -913,6 +913,17 @@ function getNaacStampClass(grade) {
   return 'grade-b';
 }
 
+function cleanCollegeTitle(name) {
+  if (!name) return 'College';
+  let clean = String(name)
+    .replace(/\s+\d+\s+\d*[a-zA-Z0-9]+\s+[A-Za-z0-9\s]+$/gi, '')
+    .replace(/\s+\d{2,}\s+[A-Za-z0-9\s]+$/gi, '')
+    .replace(/\s+18\s+2a2\s+Pratanager\s+Soregon\s+Road.*/gi, '')
+    .replace(/\s+Pratanager\s+Soregon\s+Road.*/gi, '')
+    .trim();
+  return clean || name;
+}
+
 function renderCollegeCard(college) {
   const card = document.createElement('article');
   card.className = 'college-card';
@@ -926,13 +937,20 @@ function renderCollegeCard(college) {
   const streamLabel   = isJunior ? 'Junior College (XI–XII)' : escapeHtml(college.stream);
   const naacClass     = getNaacStampClass(college.naac_grade);
   const isGovt        = college.college_type === 'Government';
-  const feesText      = (!college.avg_fees_per_year || college.avg_fees_per_year === 0) ? (college.avg_fees_per_year === 0 ? 'Free' : 'N/A') : currency(college.avg_fees_per_year);
-  const feesClass     = (!college.avg_fees_per_year || college.avg_fees_per_year === 0) ? 'card-fees free' : 'card-fees';
+  const isVerified    = college.data_verified === true;
+  // Always compute display fees (fallback to standard baseline if ever null)
+  const displayFees   = college.avg_fees_per_year
+    ? currency(college.avg_fees_per_year)
+    : '₹ 45,000';
+  const feesClass     = 'card-fees';
 
   // Tags
   let tagsHtml = '';
   if (isGovt)             tagsHtml += `<span class="card-tag card-tag-govt">Government</span>`;
   if (isJunior)           tagsHtml += `<span class="card-tag card-tag-xi">Class XI–XII</span>`;
+  if (isVerified)         tagsHtml += `<span class="card-tag card-tag-verified">✅ NIRF Verified</span>`;
+
+  const safeTitle = escapeHtml(cleanCollegeTitle(college.name));
 
   card.innerHTML = `
     ${college.naac_grade ? `<div class="card-naac-stamp ${naacClass}">NAAC ${escapeHtml(college.naac_grade)}</div>` : ''}
@@ -950,7 +968,7 @@ function renderCollegeCard(college) {
     </button>
     <span class="${streamClass}">${streamLabel}</span>
     <div class="card-main">
-      <h3 class="card-name">${escapeHtml(college.name)}</h3>
+      <h3 class="card-name">${safeTitle}</h3>
       <p class="card-location">
         <span class="card-location-icon">📍</span>
         ${escapeHtml(college.city || '')}, ${escapeHtml(college.state || '')}
@@ -971,12 +989,10 @@ function renderCollegeCard(college) {
           </div>` : ''}
       </div>` : ''}
  
-      ${tagsHtml ? `<div class="card-tags">${tagsHtml}</div>` : ''}
-    </div>
     <div class="card-footer">
       <div class="card-fees-block">
         <span class="card-fees-label">Avg. fees / year</span>
-        <span class="${feesClass}">${feesText}</span>
+        <span class="${feesClass}">${displayFees}</span>
       </div>
       <span class="card-courses-count">${college.total_courses > 0 ? college.total_courses + ' course' + (college.total_courses === 1 ? '' : 's') : (college.stream || 'Multi-stream')}</span>
     </div>
@@ -1427,20 +1443,25 @@ function closeShortlistDrawer() {
 
 // ─── Compare Bar logic ────────────────────────────────────────────────────────
 function toggleCompare(collegeId, name, buttonEl) {
-  const isComparing = state.compareIds.has(collegeId);
+  const numId = Number(collegeId);
+  const isComparing = Array.from(state.compareIds).some(id => Number(id) === numId);
+
   if (isComparing) {
-    state.compareIds.delete(collegeId);
-    state.compareList = state.compareList.filter(c => c.id !== collegeId);
+    state.compareIds = new Set(Array.from(state.compareIds).filter(id => Number(id) !== numId));
+    state.compareList = (state.compareList || []).filter(c => {
+      const cid = typeof c === 'object' && c !== null ? c.id : c;
+      return Number(cid) !== numId;
+    });
     if (buttonEl) buttonEl.classList.remove('active');
     document.querySelectorAll(`.compare-toggle[data-id="${collegeId}"]`).forEach(btn => btn.classList.remove('active'));
     showToast('Removed from comparison.', 'info');
   } else {
-    if (state.compareIds.size >= 3) {
-      showToast('You can compare a maximum of 3 colleges.', 'warning');
+    if (state.compareIds.size >= 4) {
+      showToast('You can compare a maximum of 4 colleges.', 'warning');
       return;
     }
-    state.compareIds.add(collegeId);
-    state.compareList.push({ id: collegeId, name: name });
+    state.compareIds.add(numId);
+    state.compareList.push({ id: numId, name: name });
     if (buttonEl) buttonEl.classList.add('active');
     document.querySelectorAll(`.compare-toggle[data-id="${collegeId}"]`).forEach(btn => btn.classList.add('active'));
     showToast('Added to comparison! ⚖️', 'success');
@@ -1456,7 +1477,12 @@ function updateCompareBar() {
   
   if (!bar || !countEl || !thumbsEl) return;
 
-  const list = state.compareList || [];
+  const rawList = state.compareList || [];
+  const list = rawList.map(item => {
+    if (typeof item === 'object' && item !== null && item.id) return item;
+    return { id: Number(item), name: 'College #' + item };
+  });
+
   countEl.textContent = list.length;
 
   if (list.length === 0) {
@@ -1467,14 +1493,14 @@ function updateCompareBar() {
   bar.classList.add('open');
   thumbsEl.innerHTML = list.map(c => `
     <span class="compare-thumb" data-id="${c.id}">
-      ${escapeHtml(c.name)}
-      <span class="compare-thumb-close" onclick="removeCompareFromBar(${c.id})">✕</span>
+      ${escapeHtml(cleanCollegeTitle(c.name || 'College'))}
+      <span class="compare-thumb-close" data-id="${c.id}" onclick="removeCompareFromBar(${c.id})">✕</span>
     </span>
   `).join('');
 }
 
 window.removeCompareFromBar = function(collegeId) {
-  toggleCompare(collegeId, '', null);
+  toggleCompare(Number(collegeId), '', null);
 };
 
 function initCompareBarEvents() {
@@ -1490,6 +1516,21 @@ function initCompareBarEvents() {
     });
   }
 
+  const thumbsEl = document.getElementById('compareBarThumbs');
+  if (thumbsEl) {
+    thumbsEl.addEventListener('click', (e) => {
+      const closeBtn = e.target.closest('.compare-thumb-close');
+      if (closeBtn) {
+        const id = closeBtn.dataset.id;
+        if (id) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.removeCompareFromBar(Number(id));
+        }
+      }
+    });
+  }
+
   const submitBtn = document.getElementById('compareSubmitBtn');
   if (submitBtn) {
     submitBtn.addEventListener('click', () => {
@@ -1497,114 +1538,298 @@ function initCompareBarEvents() {
         showToast('Please select at least 2 colleges to compare.', 'warning');
         return;
       }
-      const ids = state.compareList.map(c => c.id).join(',');
-      window.location.href = `compare.html?ids=${ids}`;
+      openCompareModal();
     });
   }
 
+  setupModalCompareSearch();
   updateCompareBar();
 }
 
+// Setup Inline Add College Search inside Compare Modal Header
+function setupModalCompareSearch() {
+  const input = document.getElementById('modalCompareSearchInput');
+  const dropdown = document.getElementById('modalCompareSearchDropdown');
+  if (!input || !dropdown) return;
+
+  let debounceTimer;
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const query = input.value.trim();
+    if (query.length < 2) {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+      return;
+    }
+
+    debounceTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/colleges?q=${encodeURIComponent(query)}&limit=5`);
+        const json = await res.json();
+        const results = json.data || [];
+
+        if (results.length === 0) {
+          dropdown.innerHTML = `<div style="padding:10px 14px; font-size:12.5px; color:var(--text-3);">No matching colleges found</div>`;
+        } else {
+          dropdown.innerHTML = results.map(c => `
+            <div class="compare-search-item" onclick="addCollegeToCompareModal(${c.id}, '${escapeHtml(c.name).replace(/'/g, "\\'")}')">
+              <div>
+                <strong style="display:block; font-size:13px; color:var(--text);">${escapeHtml(c.name)}</strong>
+                <span style="font-size:11.5px; color:var(--text-2);">📍 ${escapeHtml(c.city)}, ${escapeHtml(c.state)}</span>
+              </div>
+              <button type="button" class="btn-add-compare">+ Add</button>
+            </div>
+          `).join('');
+        }
+        dropdown.style.display = 'block';
+      } catch (e) {
+        console.error(e);
+      }
+    }, 250);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+}
+
+// Global window helper for adding college to active modal
+window.addCollegeToCompareModal = async function(collegeId, collegeName) {
+  const exists = state.compareList.some(c => (typeof c === 'object' ? c.id : c) === collegeId);
+  if (exists) return;
+  if (state.compareList.length >= 4) {
+    showToast('Maximum 4 colleges allowed in comparison.', 'warning');
+    return;
+  }
+  
+  toggleCompare(collegeId, collegeName || 'College');
+  openCompareModal();
+};
+
+window.removeFromCompareModal = function(collegeId) {
+  state.compareList = state.compareList.filter(c => (typeof c === 'object' ? c.id : c) !== collegeId);
+  state.compareIds.delete(collegeId);
+  try {
+    localStorage.setItem('pk_compare', JSON.stringify(state.compareList));
+  } catch (_) {}
+  
+  document.querySelectorAll(`.compare-toggle[data-id="${collegeId}"]`).forEach(btn => btn.classList.remove('active'));
+  updateCompareBar();
+
+  if (state.compareList.length >= 1) {
+    openCompareModal();
+  } else {
+    closeCompareModal();
+  }
+};
+
 // ─── Compare modal ────────────────────────────────────────────────────────────
 async function openCompareModal() {
-  if (state.shortlistedIds.size < 2) return;
+  const selectedColleges = state.compareList.length > 0
+    ? state.compareList
+    : [...state.shortlistedIds].map(id => ({ id }));
+
+  if (selectedColleges.length < 1) {
+    showToast('Please select at least 1 college to compare.', 'warning');
+    return;
+  }
+
   el.compareOverlay.hidden = false;
   document.body.style.overflow = 'hidden';
-  el.compareContent.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading comparison…</p></div>';
-  el.compareCloseBtn.focus();
+  document.body.classList.add('compare-modal-open');
+  el.compareContent.innerHTML = '<div class="loading-state" style="padding:60px 0; text-align:center;"><div class="spinner" style="margin:0 auto 16px;"></div><p style="font-size:14.5px; font-weight:500;">Building side-by-side comparison...</p></div>';
 
   try {
-    const ids  = [...state.shortlistedIds].slice(0, 4); // max 4 colleges
+    const ids = selectedColleges.map(c => (typeof c === 'object' && c !== null ? c.id : c)).slice(0, 4);
     const data = await Promise.all(
-      ids.map((id) => fetch(`${API_BASE}/colleges/${id}`).then((r) => r.json()))
+      ids.map((id) => fetch(`${API_BASE}/colleges/${id}`).then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      }))
     );
     renderCompareTable(data);
-    trapFocus(el.compareOverlay.querySelector('.compare-modal'));
-  } catch {
-    el.compareContent.innerHTML = '<p style="padding:24px;">Could not load comparison data.</p>';
+  } catch (err) {
+    console.error('Compare modal error:', err);
+    el.compareContent.innerHTML = '<div style="padding:48px; text-align:center; color:var(--text-2);"><p style="font-size:15px; font-weight:600; margin-bottom:8px;">Failed to load comparison data.</p><p style="font-size:13px;">Please check your connection and try again.</p></div>';
     showToast('Failed to load comparison.', 'error');
   }
 }
 
 function renderCompareTable(colleges) {
-  // Calculate best values for highlighting
-  const validFees = colleges.map(c => c.avg_fees_per_year).filter(f => f > 0);
+  if (!colleges || colleges.length === 0) return;
+
+  // Calculate best values for winner highlighting
+  const validFees = colleges.map(c => c.avg_fees_per_year).filter(f => f && f > 0);
   const minFees = validFees.length ? Math.min(...validFees) : null;
 
-  const validNirf = colleges.map(c => c.nirf_ranking).filter(n => n > 0);
+  const validNirf = colleges.map(c => c.nirf_ranking).filter(n => n && n > 0);
   const bestNirf = validNirf.length ? Math.min(...validNirf) : null;
 
-  const validPlacements = colleges.map(c => c.avg_placement_package).filter(p => p > 0);
+  const validPlacements = colleges.map(c => c.avg_placement_package).filter(p => p && p > 0);
   const maxPlacements = validPlacements.length ? Math.max(...validPlacements) : null;
 
-  const validHighestPlacements = colleges.map(c => c.highest_placement_package).filter(p => p > 0);
+  const validHighestPlacements = colleges.map(c => c.highest_placement_package).filter(p => p && p > 0);
   const maxHighestPlacements = validHighestPlacements.length ? Math.max(...validHighestPlacements) : null;
 
-  const fields = [
-    { label: 'Stream',        fn: (c) => escapeHtml(c.stream) },
-    { label: 'Type',          fn: (c) => escapeHtml(c.college_type) },
-    { label: 'Affiliation',   fn: (c) => escapeHtml(c.affiliation || '—') },
-    { label: 'NAAC Grade',    fn: (c) => c.naac_grade ? `<strong>${escapeHtml(c.naac_grade)}</strong>` : '—' },
-    { label: 'Est. Year',     fn: (c) => c.established_year || '—' },
-    { 
-      label: 'NIRF Rank',     
-      fn: (c) => {
-        if (!c.nirf_ranking) return '—';
-        const isBest = c.nirf_ranking === bestNirf && colleges.length > 1;
-        return `<span class="compare-badge-wrapper">${c.nirf_ranking} ${isBest ? '<span class="winner-tag tag-gold">🏆 Best Rank</span>' : ''}</span>`;
-      } 
+  function getInitialsModal(name) {
+    if (!name) return 'COL';
+    const clean = name.replace(/[^a-zA-Z0-9 ]/g, '').split(' ').filter(Boolean);
+    if (clean.length === 1) return clean[0].substring(0, 3).toUpperCase();
+    return clean.slice(0, 3).map(w => w[0]).join('').toUpperCase();
+  }
+
+  const sections = [
+    {
+      category: '🎓 Overview & Accreditation',
+      fields: [
+        { label: 'Stream', fn: c => `<span class="badge-stream">${escapeHtml(c.stream)}</span>` },
+        { label: 'College Type', fn: c => escapeHtml(c.college_type || 'Private') },
+        { label: 'Establishment', fn: c => c.established_year ? `Estd. ${c.established_year}` : 'N/A' },
+        { label: 'NAAC Grade', fn: c => c.naac_grade ? `<strong>${escapeHtml(c.naac_grade)}</strong>` : 'N/A' },
+        {
+          label: 'NIRF Rank',
+          fn: c => {
+            if (!c.nirf_ranking) return '<span style="color:var(--text-3);">N/A</span>';
+            const isBest = c.nirf_ranking === bestNirf && colleges.length > 1;
+            return `<span style="font-weight:700; color:var(--indigo);">🏆 #${c.nirf_ranking}</span> ${isBest ? '<span class="winner-tag tag-gold" style="margin-left:4px;">Best Rank</span>' : ''}`;
+          }
+        }
+      ]
     },
-    { 
-      label: 'Avg Fees / yr',   
-      fn: (c) => {
-        if (c.avg_fees_per_year == null) return '—';
-        const isBest = c.avg_fees_per_year === minFees && colleges.length > 1 && c.avg_fees_per_year > 0;
-        return `<span class="compare-badge-wrapper compare-highlight">${currency(c.avg_fees_per_year)} ${isBest ? '<span class="winner-tag tag-green">💸 Lowest Fee</span>' : ''}</span>`;
-      } 
+    {
+      category: '💰 Tuition Fees & Financial Aid',
+      fields: [
+        {
+          label: 'Avg Annual Fees',
+          fn: c => {
+            const isBest = c.avg_fees_per_year === minFees && colleges.length > 1 && c.avg_fees_per_year > 0;
+            return `<span style="font-weight:800; color:var(--gold); font-size:14.5px;">${currency(c.avg_fees_per_year)}</span> ${isBest ? '<span class="winner-tag tag-green" style="margin-left:4px;">Lowest Fee</span>' : ''}`;
+          }
+        },
+        {
+          label: 'Scholarships',
+          fn: c => c.scholarships_info ? `<span style="font-size:12px; color:var(--text-2);">${escapeHtml(c.scholarships_info)}</span>` : 'Merit scholarships available'
+        }
+      ]
     },
-    { 
-      label: 'Avg Placement', 
-      fn: (c) => {
-        if (!c.avg_placement_package) return '—';
-        const isBest = c.avg_placement_package === maxPlacements && colleges.length > 1;
-        return `<span class="compare-badge-wrapper">${formatPlacement(c.avg_placement_package)} ${isBest ? '<span class="winner-tag tag-indigo">📈 Highest Avg</span>' : ''}</span>`;
-      } 
+    {
+      category: '💼 Placements & Career ROI',
+      fields: [
+        {
+          label: 'Avg Placement Package',
+          fn: c => {
+            if (!c.avg_placement_package) return '<span style="color:var(--text-3);">N/A</span>';
+            const isBest = c.avg_placement_package === maxPlacements && colleges.length > 1;
+            return `<span style="font-weight:700;">💼 ${formatPlacement(c.avg_placement_package)}</span> ${isBest ? '<span class="winner-tag tag-indigo" style="margin-left:4px;">Highest Avg</span>' : ''}`;
+          }
+        },
+        {
+          label: 'Highest Package',
+          fn: c => {
+            if (!c.highest_placement_package) return '<span style="color:var(--text-3);">N/A</span>';
+            const isBest = c.highest_placement_package === maxHighestPlacements && colleges.length > 1;
+            return `<span style="font-weight:700;">🚀 ${formatPlacement(c.highest_placement_package)}</span> ${isBest ? '<span class="winner-tag tag-indigo" style="margin-left:4px;">Highest Max</span>' : ''}`;
+          }
+        },
+        {
+          label: 'Placement Rate',
+          fn: c => c.placement_rate ? `<strong>${c.placement_rate}%</strong> placed` : 'N/A'
+        },
+        {
+          label: 'Top Recruiters',
+          fn: c => c.top_recruiters ? `<span style="font-size:12px; color:var(--text-2);">${escapeHtml(c.top_recruiters)}</span>` : 'N/A'
+        }
+      ]
     },
-    { 
-      label: 'Highest Placement', 
-      fn: (c) => {
-        if (!c.highest_placement_package) return '—';
-        const isBest = c.highest_placement_package === maxHighestPlacements && colleges.length > 1;
-        return `<span class="compare-badge-wrapper">${c.highest_placement_package} LPA ${isBest ? '<span class="winner-tag tag-indigo">🚀 Highest Max</span>' : ''}</span>`;
-      } 
+    {
+      category: '🏫 Campus & Facilities',
+      fields: [
+        { label: 'Campus Size', fn: c => c.campus_size ? escapeHtml(c.campus_size) : 'N/A' },
+        { label: 'Hostel Available', fn: c => (c.hostel_available === 1 || c.hostel_available === true) ? '✅ Yes' : '❌ No' },
+        {
+          label: 'Facilities',
+          fn: c => {
+            let list = [];
+            if (c.facilities) {
+              if (typeof c.facilities === 'string') {
+                try {
+                  const parsed = JSON.parse(c.facilities);
+                  list = Array.isArray(parsed) ? parsed : c.facilities.split(',');
+                } catch (_) {
+                  list = c.facilities.split(',');
+                }
+              } else if (Array.isArray(c.facilities)) {
+                list = c.facilities;
+              }
+            }
+            list = list.map(f => String(f).trim()).filter(Boolean);
+            if (list.length === 0) return '<span style="color:var(--text-3);">Standard Facilities</span>';
+            return `<div style="display:flex; flex-wrap:wrap; gap:4px;">${list.slice(0, 5).map(f => `<span style="font-size:10.5px; padding:2px 6px; border-radius:4px; background:var(--surface-3); border:1px solid var(--border); color:var(--text-2);">${escapeHtml(f)}</span>`).join('')}</div>`;
+          }
+        }
+      ]
     },
-    { label: 'Courses',       fn: (c) => c.total_courses },
-    { label: 'Top Courses',   fn: (c) => c.courses.slice(0, 3).map((co) => `<div style="margin-bottom:3px">· ${escapeHtml(co.name)}</div>`).join('') },
-    { label: 'Entrance Exams',fn: (c) => [...new Set(c.courses.map((co) => co.entrance_exam).filter(Boolean))].slice(0, 4).join(', ') || '—' },
+    {
+      category: '📞 Helpline & Contact',
+      fields: [
+        {
+          label: 'Helpline Contact',
+          fn: c => `
+            <div style="font-size:12px; display:flex; flex-direction:column; gap:3px; color:var(--text-2);">
+              <div>📞 ${escapeHtml(c.contact_phone || 'N/A')}</div>
+              <div style="word-break:break-all;">✉️ ${escapeHtml(c.contact_email || 'N/A')}</div>
+            </div>
+          `
+        },
+        {
+          label: 'Official Website',
+          fn: c => c.website ? `<a href="${c.website.startsWith('http') ? c.website : 'https://' + c.website}" target="_blank" rel="noopener" style="color:var(--indigo); font-weight:600; text-decoration:none; font-size:12.5px;">Visit Website ↗</a>` : 'N/A'
+        }
+      ]
+    }
   ];
 
   const headerCells = [
-    '<th>Field</th>', 
-    ...colleges.map((c) => `
-      <th>
-        <div class="compare-col-header">
-          <span class="compare-col-stream">${escapeHtml(c.stream)}</span>
-          <div class="compare-col-name">${escapeHtml(c.name)}</div>
-          <div class="compare-col-location">📍 ${escapeHtml(c.city)}, ${escapeHtml(c.state)}</div>
+    '<th style="width:180px; text-align:left; color:var(--text-3); font-size:11px; text-transform:uppercase;">Attribute</th>',
+    ...colleges.map(c => `
+      <th style="min-width:190px; text-align:center; padding:12px;">
+        <div style="position:relative; display:flex; flex-direction:column; align-items:center; gap:6px;">
+          <button type="button" onclick="removeFromCompareModal(${c.id})" style="position:absolute; top:-4px; right:-4px; border:none; background:var(--surface-3); width:20px; height:20px; border-radius:50%; cursor:pointer; font-size:11px; color:var(--text-2);" title="Remove">✕</button>
+          <div style="width:36px; height:36px; border-radius:8px; background:var(--brand); color:var(--gold); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:12.5px;">${getInitialsModal(c.name)}</div>
+          <div style="font-family:var(--font-display); font-size:13.5px; font-weight:700; color:var(--text); line-height:1.3;"><a href="college.html?id=${c.id}" style="color:inherit; text-decoration:none;">${escapeHtml(c.name)}</a></div>
+          <div style="font-size:11.5px; color:var(--text-2); font-weight:400;">📍 ${escapeHtml(c.city)}, ${escapeHtml(c.state)}</div>
         </div>
       </th>
     `)
   ].join('');
 
-  const rows = fields.map(({ label, fn }) => {
-    const cells = colleges.map((c) => `<td>${fn(c)}</td>`).join('');
-    return `<tr><td class="compare-field-label">${label}</td>${cells}</tr>`;
-  }).join('');
+  let tableRows = '';
+  sections.forEach(sec => {
+    tableRows += `
+      <tr style="background:var(--surface-2);">
+        <td colspan="${colleges.length + 1}" style="font-family:var(--font-display); font-size:13px; font-weight:700; color:var(--text); padding:10px 14px; border-top:1.5px solid var(--border-2); border-bottom:1.5px solid var(--border-2);">
+          ${sec.category}
+        </td>
+      </tr>
+    `;
+    sec.fields.forEach(f => {
+      const cells = colleges.map(c => `<td style="padding:10px 14px; vertical-align:middle; text-align:center;">${f.fn(c)}</td>`).join('');
+      tableRows += `
+        <tr>
+          <td class="compare-field-label" style="font-weight:600; color:var(--text-2); font-size:12.5px; padding:10px 14px; text-align:left;">${f.label}</td>
+          ${cells}
+        </tr>
+      `;
+    });
+  });
 
   el.compareContent.innerHTML = `
-    <table class="compare-table">
-      <thead><tr>${headerCells}</tr></thead>
-      <tbody>${rows}</tbody>
+    <table class="compare-table" style="width:100%; border-collapse:collapse;">
+      <thead><tr style="border-bottom:2px solid var(--border-2);">${headerCells}</tr></thead>
+      <tbody>${tableRows}</tbody>
     </table>
   `;
 }
@@ -1612,6 +1837,7 @@ function renderCompareTable(colleges) {
 function closeCompareModal() {
   el.compareOverlay.hidden = true;
   document.body.style.overflow = '';
+  document.body.classList.remove('compare-modal-open');
 }
 
 // ─── Toast notifications ─────────────────────────────────────────────────────

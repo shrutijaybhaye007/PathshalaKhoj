@@ -451,8 +451,29 @@ function populateUI(data) {
   el.typeBadge.textContent = data.college_type;
   
   el.nirf.textContent = data.nirf_ranking ? `#${data.nirf_ranking}` : 'N/A';
-  el.package.textContent = data.avg_placement_package ? formatPlacement(data.avg_placement_package) : 'N/A';
+  el.package.textContent = data.avg_placement_package
+    ? formatPlacement(data.avg_placement_package)
+    : 'N/A';
   if (el.est) el.est.textContent = data.established_year || 'N/A';
+
+  // ── NIRF Verified badge ──────────────────────────────────────────────────
+  const existingVerifiedBadge = document.getElementById('nirfVerifiedBadge');
+  if (existingVerifiedBadge) existingVerifiedBadge.remove();
+  if (data.data_verified) {
+    const badge = document.createElement('span');
+    badge.id = 'nirfVerifiedBadge';
+    badge.className = 'verified-badge';
+    badge.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      NIRF Verified
+    `;
+    // Insert after the college type badge
+    if (el.typeBadge && el.typeBadge.parentNode) {
+      el.typeBadge.parentNode.insertBefore(badge, el.typeBadge.nextSibling);
+    }
+  }
   
   if (data.student_rating) {
     el.rating.textContent = data.student_rating;
@@ -474,11 +495,28 @@ function populateUI(data) {
   el.naac.textContent = data.naac_grade || 'N/A';
   el.stream.textContent = data.stream || 'N/A';
   
-  // Fees & Placements
-  el.fees.textContent = data.avg_fees_per_year ? `₹ ${Number(data.avg_fees_per_year).toLocaleString('en-IN')}` : 'N/A';
-  el.avgPlacement.textContent  = data.avg_placement_package  ? formatPlacement(data.avg_placement_package)  : 'N/A';
-  el.highPlacement.textContent = data.highest_placement_package ? formatPlacement(data.highest_placement_package) : 'N/A';
-  el.placementRate.textContent = data.placement_rate ? `${data.placement_rate}%` : 'N/A';
+  const feesSection = document.getElementById('collegeFeeSection');
+  const placementSection = document.getElementById('collegePlacementSection');
+
+  if (data.avg_fees_per_year) {
+    if (feesSection) feesSection.style.display = '';
+    el.fees.textContent = `₹ ${Number(data.avg_fees_per_year).toLocaleString('en-IN')}`;
+  } else if (feesSection) {
+    feesSection.style.display = 'none';
+  }
+
+  if (data.avg_placement_package) {
+    if (placementSection) placementSection.style.display = '';
+    el.avgPlacement.textContent  = formatPlacement(data.avg_placement_package);
+    el.highPlacement.textContent = data.highest_placement_package
+      ? formatPlacement(data.highest_placement_package)
+      : 'N/A';
+    el.placementRate.textContent = data.placement_rate
+      ? `${data.placement_rate}%`
+      : 'N/A';
+  } else if (placementSection) {
+    placementSection.style.display = 'none';
+  }
   
   if (data.scholarships_info && el.scholarshipsContainer) {
     el.scholarships.textContent = data.scholarships_info;
@@ -1683,8 +1721,8 @@ function generateBrochure(data) {
         <div class="info-item"><div class="info-label">Affiliation</div><div class="info-val">${data.affiliation || 'N/A'}</div></div>
         <div class="info-item"><div class="info-label">NAAC Grade</div><div class="info-val">${data.naac_grade || 'N/A'}</div></div>
         <div class="info-item"><div class="info-label">NIRF Ranking</div><div class="info-val">${data.nirf_ranking ? '#' + data.nirf_ranking : 'N/A'}</div></div>
-        <div class="info-item"><div class="info-label">Average Annual Fees</div><div class="info-val">${data.avg_fees_per_year ? '₹ ' + data.avg_fees_per_year.toLocaleString() : 'N/A'}</div></div>
-        <div class="info-item"><div class="info-label">Average Placement Package</div><div class="info-val">${data.avg_placement_package ? data.avg_placement_package + ' LPA' : 'N/A'}</div></div>
+        ${data.avg_fees_per_year ? `<div class="info-item"><div class="info-label">Average Annual Fees</div><div class="info-val">₹ ${data.avg_fees_per_year.toLocaleString()}</div></div>` : ''}
+        ${data.avg_placement_package ? `<div class="info-item"><div class="info-label">Avg Placement Package</div><div class="info-val">${data.avg_placement_package} LPA</div></div>` : ''}
         <div class="info-item"><div class="info-label">Campus Size</div><div class="info-val">${data.campus_size || 'N/A'}</div></div>
       </div>
       

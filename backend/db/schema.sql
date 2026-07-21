@@ -217,3 +217,30 @@ VALUES
 (4, 'CAT 2026', 'Management', 'Registration: Aug - Sep | Exam: Nov 29, 2026', 'Scheduled', 'CAT', NULL),
 (5, 'CLAT 2026', 'Law', 'Exam Date: Dec 6, 2026', 'Scheduled', 'CLAT', NULL)
 ON CONFLICT (id) DO NOTHING;
+
+-- =====================================================================
+-- Migration: add data_verified and data_source columns
+-- data_verified = true  → college is matched to a real NIRF entry
+-- data_source           → 'legacy' | 'aishe' | 'manual'
+-- =====================================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM schema_migrations WHERE name = 'add_data_verified_and_source_columns'
+  ) THEN
+    ALTER TABLE colleges ADD COLUMN IF NOT EXISTS data_verified BOOLEAN DEFAULT false;
+    ALTER TABLE colleges ADD COLUMN IF NOT EXISTS data_source   TEXT    DEFAULT 'legacy';
+
+    -- Backfill: all pre-existing rows get data_source = 'legacy'
+    UPDATE colleges SET data_source = 'legacy'
+    WHERE data_source IS NULL OR data_source = 'legacy';
+
+    INSERT INTO schema_migrations (name)
+    VALUES ('add_data_verified_and_source_columns');
+
+    RAISE NOTICE 'Migration applied: data_verified + data_source columns added.';
+  ELSE
+    RAISE NOTICE 'Migration already applied: skipping.';
+  END IF;
+END
+$$;

@@ -16,17 +16,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=13.0" />
   <!-- Anti-FOWT: apply saved theme before first paint -->
   <script>
     (function(){
       try {
         var t = localStorage.getItem('pk_theme');
-        if (!t) t = 'light';
-        document.documentElement.setAttribute('data-theme', t);
-      } catch(e) {
-        document.documentElement.setAttribute('data-theme', 'light');
-      }
+        if (t === 'dark' || t === 'light') {
+          document.documentElement.setAttribute('data-theme', t);
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch(e) {}
     })();
   </script>
   <!-- JSON-LD Structured Data -->
@@ -448,7 +449,13 @@
   <div id="compareOverlay" class="compare-overlay" hidden>
     <div class="compare-modal" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
       <div class="compare-header">
-        <h2 id="compareTitle">Compare Colleges</h2>
+        <div class="compare-header-left" style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap; flex: 1;">
+          <h2 id="compareTitle" style="font-family: var(--font-display); font-size: 20px; font-weight: 700; margin: 0;">Compare Colleges Side-by-Side</h2>
+          <div class="compare-modal-search-wrapper" style="position: relative; width: 280px;">
+            <input type="text" id="modalCompareSearchInput" placeholder="🔍 Add college..." style="width: 100%; padding: 7px 14px; font-size: 13px; border-radius: var(--radius-full); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none;" />
+            <div id="modalCompareSearchDropdown" class="compare-search-dropdown" style="display: none;"></div>
+          </div>
+        </div>
         <button type="button" class="detail-close" id="compareCloseBtn" aria-label="Close comparison">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -468,12 +475,12 @@
   <div id="compareBar" class="compare-bar">
     <div class="compare-bar-inner">
       <div class="compare-bar-info">
-        ⚖️ <span id="compareBarCount" class="compare-bar-count">0</span> / 3 Selected
+        ⚖️ <span id="compareBarCount" class="compare-bar-count">0</span> / 4 Selected
       </div>
       <div id="compareBarThumbs" class="compare-bar-thumbs"></div>
       <div class="compare-bar-actions">
-        <button id="compareClearBtn" class="btn btn-secondary" style="padding: 8px 14px; font-size: 13.5px;">Clear</button>
-        <button id="compareSubmitBtn" class="btn btn-primary" style="padding: 8px 20px; font-size: 13.5px; background: var(--indigo); border-color: var(--indigo);">Compare Now</button>
+        <button id="compareClearBtn" class="compare-bar-clear-btn" type="button">Clear</button>
+        <button id="compareSubmitBtn" class="compare-bar-submit-btn" type="button">Compare Now ➔</button>
       </div>
     </div>
   </div>
@@ -991,15 +998,15 @@
   </div>
 
   <!-- ============ BACK TO TOP ============ -->
-  <button id="backToTopBtn" class="back-to-top" aria-label="Back to top" title="Back to top" hidden>
+  <button id="backToTopBtn" class="back-to-top" aria-label="Back to top" title="Back to top" style="display:none; position:fixed; bottom:28px; right:28px; z-index:99; width:44px; height:44px; border-radius:50%; background:#F5A623; color:#fff; border:none; cursor:pointer; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(245,166,35,0.4);" hidden>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M18 15l-6-6-6 6"/>
     </svg>
   </button>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="global.js"></script>
-  <script src="app.js"></script>
+  <script src="global.js?v=13.0"></script>
+  <script src="app.js?v=13.0"></script>
   <!-- Auth, profile & admin logic are in separate modules to keep app.js focused -->
   <script src="js/auth.module.js"></script>
   <script src="js/admin.module.js"></script>
@@ -1011,7 +1018,9 @@
       const btn = document.getElementById('backToTopBtn');
       if (!btn) return;
       window.addEventListener('scroll', function(){
-        btn.hidden = window.scrollY < 300;
+        const show = window.scrollY >= 300;
+        btn.hidden = !show;
+        btn.style.display = show ? 'flex' : 'none';
       }, { passive: true });
       btn.addEventListener('click', function(){
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1020,38 +1029,38 @@
   </script>
 
   <!-- ============ GLOBAL FOOTER ============ -->
-  <footer class="site-footer">
-    <div class="container site-footer-grid">
-      <div class="site-footer-brand">
-        <h3>PathshalaKhoj</h3>
-        <p>Your trusted portal for discovering the best educational institutions across India. Empowering students with data-driven insights.</p>
+  <footer class="site-footer" style="background: #0B2545 !important; color: #ffffff !important; padding: 50px 20px 24px !important; margin-top: 60px !important; width: 100% !important; box-sizing: border-box !important; display: block !important; clear: both !important;">
+    <div style="max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.15);">
+      <div>
+        <h3 style="font-family: var(--font-display, serif); font-size: 24px; color: #F5A623 !important; margin: 0 0 12px 0; font-weight: 700;">PathshalaKhoj</h3>
+        <p style="color: rgba(255,255,255,0.8) !important; font-size: 13.5px; line-height: 1.6; margin: 0; max-width: 360px;">Your trusted portal for discovering the best educational institutions across India. Empowering students with data-driven insights.</p>
       </div>
-      <div class="site-footer-col">
-        <h4>Explore</h4>
-        <ul>
-          <li><a href="/">Colleges</a></li>
-          <li><a href="courses.html">Courses</a></li>
-          <li><a href="exams.html">Exams</a></li>
-          <li><a href="predict.html" class="footer-highlight">AI Predictor</a></li>
+      <div>
+        <h4 style="font-size: 14px; color: #ffffff !important; margin: 0 0 14px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Explore</h4>
+        <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important; display: flex; flex-direction: column; gap: 8px;">
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="/" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">Colleges</a></li>
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="courses.html" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">Courses</a></li>
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="exams.html" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">Exams</a></li>
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="predict.html" style="color: #F5A623 !important; font-weight: 700; text-decoration: none; font-size: 13.5px;">AI Predictor ✨</a></li>
         </ul>
       </div>
-      <div class="site-footer-col">
-        <h4>Institution</h4>
-        <ul>
-          <li><a href="about.html">About Us</a></li>
-          <li><a href="admissions.html">Admissions</a></li>
-          <li><a href="contact.html">Contact &amp; Support</a></li>
+      <div>
+        <h4 style="font-size: 14px; color: #ffffff !important; margin: 0 0 14px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Institution</h4>
+        <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important; display: flex; flex-direction: column; gap: 8px;">
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="about.html" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">About Us</a></li>
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="admissions.html" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">Admissions</a></li>
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="contact.html" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">Contact &amp; Support</a></li>
         </ul>
       </div>
-      <div class="site-footer-col">
-        <h4>Legal</h4>
-        <ul>
-          <li><a href="privacy.html">Privacy Policy</a></li>
-          <li><a href="terms.html">Terms of Service</a></li>
+      <div>
+        <h4 style="font-size: 14px; color: #ffffff !important; margin: 0 0 14px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Legal</h4>
+        <ul style="list-style: none !important; padding: 0 !important; margin: 0 !important; display: flex; flex-direction: column; gap: 8px;">
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="privacy.html" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">Privacy Policy</a></li>
+          <li style="list-style: none !important; margin: 0 !important; padding: 0 !important;"><a href="terms.html" style="color: rgba(255,255,255,0.85) !important; text-decoration: none; font-size: 13.5px;">Terms of Service</a></li>
         </ul>
       </div>
     </div>
-    <div class="site-footer-bottom">
+    <div style="max-width: 1200px; margin: 20px auto 0; text-align: center; color: rgba(255,255,255,0.85) !important; font-size: 13px; font-weight: 500;">
       &copy; 2026 PathshalaKhoj Education Platform. All rights reserved.
     </div>
   </footer>

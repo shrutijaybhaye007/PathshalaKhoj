@@ -1,0 +1,126 @@
+AISHE Seed — Filtered-Out Colleges Sample (30 random)
+Generated: 2026-07-21T07:12:40.313Z
+Total filtered out: 101
+
+Review these to verify the filtering rules aren't dropping good colleges.
+
+1. KISHAN INSTITUTE OF INFORMATION TECHNOLOGY MEWLA CROSSING, NEAR AMARUJALLA, OPP. MUKET MAHAL BANQUET HALL, DELHI ROAD, MEERUT Ph. No :- 2408400, 01, 05 , 9927131555, 9927500592
+   State: Gujarat | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+2. Sami Arul Arts & Science College, Sami Arul Nagar, Vallam, Thanjavur - 613 007.
+   State: Uttar Pradesh | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+
+3. Padamshri. Dr.Vitthalrao Vikhe Patil Foundations Padamshri. Dr.Vitthalrao Vikhe Patil College of Engineering, Vilad Ghat, Ahmednagar 414111
+   State: Delhi | City: Unknown
+   Type: Science College | Mgmt: Private Un-Aided | Year: 2019
+
+4. MOTHER TERESA COLLEGE OF EDUCAITON, ANANTARAM
+   State: Tamil Nadu | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+
+5. Shri Ratnasinhji Mahida Commerce College
+   State: Maharashtra | City: Unknown
+   Type: Commerce College | Mgmt: Private Un-Aided | Year: 2019
+
+6. Bright Computer Education
+   State: Tamil Nadu | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+7. Swathi Degree College
+   State: Karnataka | City: Unknown
+   Type: Arts College | Mgmt: Private Un-Aided | Year: 2019
+
+8. Mani bhavan gandhi sangrahalaya
+   State: Maharashtra | City: Unknown
+   Type: Commerce College | Mgmt: Deemed University | Year: 2019
+
+9. M.P.College, Mohania
+   State: Karnataka | City: Unknown
+   Type: Commerce College | Mgmt: Deemed University | Year: 2019
+
+10. OZAR VIKAS SANSTHAs VISHWASATTYA COLLEGE OF MBA, NIPHAD
+   State: Tamil Nadu | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+11. Srimad Balmukund Mahadeshik Sanskrit Mahavidyalaya, Swarg Dwar, Ayodhya
+   State: Tamil Nadu | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+12. Novel Institute of Business Management and Research, Nigdi, Pune 411044
+   State: Uttar Pradesh | City: Unknown
+   Type: Commerce College | Mgmt: Private Un-Aided | Year: 2019
+
+13. Shri Adarsh Ramanand Sanskrit Mahavidyalaya, Shankuldhara, Khojanwa
+   State: Uttar Pradesh | City: Unknown
+   Type: Commerce College | Mgmt: Deemed University | Year: 2019
+
+14. Govt. Navin College, Vishrampur
+   State: Maharashtra | City: Unknown
+   Type: Arts College | Mgmt: Private Un-Aided | Year: 2019
+
+15. KEDARNATH AGGARWAL INSTITUTE OF MANAGEMENT, CHARKHI DADRI
+   State: Karnataka | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+16. Ambika Prasad Degree College, Baburi, Dheena, Chandauli
+   State: Tamil Nadu | City: Unknown
+   Type: Arts College | Mgmt: Private Un-Aided | Year: 2019
+
+17. Sri N.S.N.Raju Degree College
+   State: Tamil Nadu | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+18. Mahavir Mahavidyalaya,Bhausingji Road
+   State: Maharashtra | City: Unknown
+   Type: Arts College | Mgmt: Private Un-Aided | Year: 2019
+
+19. AMU MURSHIDABAD CENTRE
+   State: Karnataka | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+
+20. Gulagannavar College of Social Work, Dadegal.
+   State: Maharashtra | City: Unknown
+   Type: Arts College | Mgmt: Private Un-Aided | Year: 2019
+
+21. DR B R AMBEDKAR COLLEGE OF NURSING
+   State: Karnataka | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+
+22. Govt. Navin College Balauda, Janjgir
+   State: Telangana | City: Unknown
+   Type: Arts College | Mgmt: Private Un-Aided | Year: 2019
+
+23. Ponnaiyah Ramajayam College of Engineering and Technology
+   State: Maharashtra | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+
+24. Hindustan Business School, Chennappanahalli, No.24, K.R. Puram, Bangalore-16
+   State: Maharashtra | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+25. ARAVIND EYE HOSPITAL, COIMBATORE
+   State: Karnataka | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+26. S S Jain Subodh Commerce & Arts College, Jaipur
+   State: Karnataka | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+
+27. Immaculate college for Women,Viriyur,devapandelam,Post,SankarapuramTaluk-606 402
+   State: Gujarat | City: Unknown
+   Type: Arts College | Mgmt: Deemed University | Year: 2019
+
+28. SCB Dental College & Hospital, Cuttack
+   State: Maharashtra | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+
+29. ABES ENGINEERING COLLEGE, GHAZIABAD
+   State: Maharashtra | City: Unknown
+   Type: Science College | Mgmt: Private Un-Aided | Year: 2019
+
+30. SHRI RAMNATH SINGH INSTITUTE OF PHARMACEUTICAL SCIENCE AND TECHNOLOGY, SITHOLI
+   State: Telangana | City: Unknown
+   Type: Science College | Mgmt: Deemed University | Year: 2019
+

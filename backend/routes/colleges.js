@@ -68,7 +68,8 @@ router.get('/', async (req, res) => {
         `SELECT c.id, c.name, c.slug, c.city, c.state, c.stream, c.college_type,
                 c.affiliation, c.naac_grade, c.established_year, c.description,
                 c.avg_fees_per_year, c.nirf_ranking, c.avg_placement_package,
-                c.highest_placement_package, c.total_courses
+                c.highest_placement_package, c.total_courses,
+                c.data_verified, c.logo_url
          FROM colleges c
          WHERE (c.search_vector @@ plainto_tsquery('english', ?) OR c.name ILIKE ? OR c.city ILIKE ?)
          ${filterWhere}
@@ -90,7 +91,8 @@ router.get('/', async (req, res) => {
         `SELECT c.id, c.name, c.slug, c.city, c.state, c.stream, c.college_type,
                 c.affiliation, c.naac_grade, c.established_year, c.description,
                 c.avg_fees_per_year, c.nirf_ranking, c.avg_placement_package,
-                c.highest_placement_package, c.total_courses
+                c.highest_placement_package, c.total_courses,
+                c.data_verified, c.logo_url
          FROM colleges c
          ${whereClause}
          ${orderClause}
@@ -401,11 +403,18 @@ async function fetchWikipediaData(collegeName) {
 
     if (searchResults.length > 0) {
       const bestTitle = searchResults[0].title;
-      url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&titles=${encodeURIComponent(bestTitle)}&piprop=original&origin=*&redirects=1`;
-      wikiRes = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      wikiData = await wikiRes.json();
-      pages = wikiData.query ? wikiData.query.pages : null;
-      pageId = pages ? Object.keys(pages)[0] : '-1';
+      // Guard against mismatched Wikipedia articles: verify title shares at least one significant word with the query
+      const queryWords = query.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3 && !['college', 'institute', 'technology', 'science', 'pharmacy', 'engineering', 'india'].includes(w));
+      const titleLower = bestTitle.toLowerCase();
+      const isMatch = queryWords.length === 0 || queryWords.some(w => titleLower.includes(w));
+      
+      if (isMatch) {
+        url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&exintro=1&explaintext=1&titles=${encodeURIComponent(bestTitle)}&piprop=original&origin=*&redirects=1`;
+        wikiRes = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        wikiData = await wikiRes.json();
+        pages = wikiData.query ? wikiData.query.pages : null;
+        pageId = pages ? Object.keys(pages)[0] : '-1';
+      }
     }
   }
 

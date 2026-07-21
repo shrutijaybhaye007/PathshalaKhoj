@@ -95,13 +95,18 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
 
-// ─── Security: CORS — only allow our own origin ───────────────────────────
+// ─── Security: CORS — allow localhost & 127.0.0.1 origins ───────────────────
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || `http://localhost:${PORT}`;
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (server-to-server, curl, Postman) and
-    // same-origin browser requests (origin === undefined when same-origin).
-    if (!origin || origin === ALLOWED_ORIGIN) {
+    // Allow same-origin (origin undefined), localhost/127.0.0.1, and .onrender.com deployment origins
+    if (
+      !origin ||
+      origin === ALLOWED_ORIGIN ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
+      origin.endsWith('.onrender.com') ||
+      origin.includes('pathshalakhoj')
+    ) {
       return callback(null, true);
     }
     callback(new Error(`CORS: Origin '${origin}' is not allowed.`));
@@ -156,16 +161,9 @@ const frontendPath = path.join(__dirname, '..', 'frontend');
 app.set('etag', 'strong');
 app.use((req, res, next) => {
   if (!req.path.startsWith('/api')) {
-    // Only disable caching for HTML pages so users always get fresh content.
-    // CSS, JS, images and other static assets are safe to cache for 1 hour.
-    const isHtml = req.path === '/' || req.path.endsWith('.html') || req.path === '';
-    if (isHtml) {
-      res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', '0');
-    } else {
-      res.set('Cache-Control', 'public, max-age=3600'); // 1 hour for assets
-    }
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
   }
   next();
 });

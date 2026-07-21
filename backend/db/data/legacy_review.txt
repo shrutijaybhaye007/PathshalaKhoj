@@ -1,0 +1,7 @@
+Legacy College Review — Generated 2026-07-21T06:53:16.329Z
+Total colleges in DB:  38396
+Legacy rows:           38396
+Candidates with real data (website/phone/rich description): 0
+
+No hand-curated candidates found.
+All legacy rows appear to be auto-seeded data — safe to delete.
