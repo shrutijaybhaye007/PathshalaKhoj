@@ -33,26 +33,43 @@ router.get('/config', (req, res) => {
  */
 router.post('/google', async (req, res) => {
   try {
-    const { credential } = req.body;
-    if (!credential) {
-      return res.status(400).json({ error: 'No credential token provided.' });
+    const { credential, access_token } = req.body;
+    if (!credential && !access_token) {
+      return res.status(400).json({ error: 'No credential or access token provided.' });
     }
 
-    if (!googleClient) {
-      return res.status(503).json({
-        error: 'Google Sign-In is not configured on this server. Please use email/password login.',
+    let rawEmail, name, picture;
+
+    if (access_token) {
+      const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${access_token}` }
       });
-    }
+      if (!userInfoRes.ok) {
+        return res.status(401).json({ error: 'Invalid or expired Google access token.' });
+      }
+      const userInfo = await userInfoRes.json();
+      rawEmail = userInfo.email;
+      name = userInfo.name;
+      picture = userInfo.picture;
+    } else {
+      if (!googleClient) {
+        return res.status(503).json({
+          error: 'Google Sign-In is not configured on this server. Please use email/password login.',
+        });
+      }
 
-    const ticket = await googleClient.verifyIdToken({
-      idToken:  credential,
-      audience: GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const { email: rawEmail, name, picture } = payload;
+      const ticket = await googleClient.verifyIdToken({
+        idToken:  credential,
+        audience: GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      rawEmail = payload.email;
+      name = payload.name;
+      picture = payload.picture;
+    }
 
     if (!rawEmail) {
-      return res.status(400).json({ error: 'Failed to extract email from Google credential.' });
+      return res.status(400).json({ error: 'Failed to extract email from Google profile.' });
     }
 
     const email = rawEmail.trim().toLowerCase();
