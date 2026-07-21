@@ -279,20 +279,50 @@ function bindAuthEvents() {
 
 
 
+  // Profile Trigger Dropdown Toggle
+  if (el.profileTriggerBtn && el.profileDropdownCard) {
+    el.profileTriggerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = el.profileDropdownCard.hidden;
+      el.profileDropdownCard.hidden = !isHidden;
+      if (el.profileDropdownContainer) el.profileDropdownContainer.classList.toggle('open', isHidden);
+      el.profileTriggerBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (el.profileDropdownContainer && !el.profileDropdownContainer.contains(e.target)) {
+        el.profileDropdownCard.hidden = true;
+        el.profileDropdownContainer.classList.remove('open');
+        if (el.profileTriggerBtn) el.profileTriggerBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
   // Dropdown Items Action Binding
   if (el.dropdownEditProfileBtn) {
     el.dropdownEditProfileBtn.addEventListener('click', () => {
-      el.profileDropdownCard.hidden = true;
-      el.profileDropdownContainer.classList.remove('open');
+      if (el.profileDropdownCard) el.profileDropdownCard.hidden = true;
+      if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
       openProfileModal();
     });
   }
 
   if (el.dropdownAdminPortalBtn) {
     el.dropdownAdminPortalBtn.addEventListener('click', () => {
-      el.profileDropdownCard.hidden = true;
-      el.profileDropdownContainer.classList.remove('open');
+      if (el.profileDropdownCard) el.profileDropdownCard.hidden = true;
+      if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
       openAdminDashboard();
+    });
+  }
+
+  if (el.dropdownLogoutBtn) {
+    el.dropdownLogoutBtn.addEventListener('click', () => {
+      setToken(null);
+      currentUser = null;
+      updateUserUI();
+      showToast('Logged out successfully.', 'info');
+      if (el.profileDropdownCard) el.profileDropdownCard.hidden = true;
+      if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
     });
   }
 
