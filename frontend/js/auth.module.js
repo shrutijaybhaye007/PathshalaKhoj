@@ -627,6 +627,8 @@ async function initGoogleAuth() {
               callback: async (resp) => {
                 if (resp && resp.access_token) {
                   await handleGoogleTokenResponse(resp.access_token);
+                } else if (resp && resp.error) {
+                  showToast('Google Sign-In failed or was cancelled.', 'error');
                 }
               }
             });
@@ -649,6 +651,8 @@ async function initGoogleAuth() {
           callback: async (tokenResponse) => {
             if (tokenResponse && tokenResponse.access_token) {
               await handleGoogleTokenResponse(tokenResponse.access_token);
+            } else if (tokenResponse && tokenResponse.error) {
+              showToast('Google Sign-In failed or was cancelled.', 'error');
             }
           }
         });
@@ -691,6 +695,13 @@ function closeLoginModal() {
 
 // Handle Google access_token from TokenClient
 async function handleGoogleTokenResponse(accessToken) {
+  const btn = document.getElementById('customGoogleSignInBtn');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block; animation:spin 1s linear infinite;">⏳</span> Signing in...';
+  }
+
   try {
     const res = await fetch(`${API_BASE}/auth/google`, {
       method: 'POST',
@@ -711,11 +722,23 @@ async function handleGoogleTokenResponse(accessToken) {
     }
   } catch (err) {
     showToast('Failed to connect to authentication server.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
 // Google OAuth callback receiver for ID Token
 async function handleGoogleCredentialResponse(response) {
+  const btn = document.getElementById('customGoogleSignInBtn');
+  const originalHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block; animation:spin 1s linear infinite;">⏳</span> Signing in...';
+  }
+  
   try {
     const res = await fetch(`${API_BASE}/auth/google`, {
       method: 'POST',
@@ -736,6 +759,11 @@ async function handleGoogleCredentialResponse(response) {
     }
   } catch (err) {
     showToast('Failed to connect to authentication server.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
