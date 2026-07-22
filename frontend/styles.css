@@ -4194,3 +4194,141 @@ body.modal-open .compare-bar {
   margin-left: 2px;
 }
 
+/* ==========================================================================
+   STUDENT DASHBOARD OVERHAUL (v19.0)
+   ========================================================================== */
+
+/* Upgrade Stat Cards Grid */
+.dash-stat-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface) !important;
+  border: 1px solid var(--border-2) !important;
+  border-radius: 16px !important;
+  padding: 22px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.25s var(--ease) !important;
+}
+.dash-stat-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+  border-color: var(--border) !important;
+}
+.dash-stat-icon {
+  width: 52px !important;
+  height: 52px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  background: rgba(79, 70, 229, 0.1) !important;
+  color: var(--brand) !important;
+}
+.dash-stat-icon.gold {
+  background: rgba(245, 166, 35, 0.12) !important;
+  color: var(--gold) !important;
+}
+.dash-stat-icon.blue {
+  background: rgba(59, 130, 246, 0.12) !important;
+  color: #3b82f6 !important;
+}
+.dash-stat-icon.green {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #10b981 !important;
+}
+
+/* Upgrade Sidebar Tabs */
+.college-nav-tabs {
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 16px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+}
+.college-nav-tabs .tab-link {
+  display: flex !important;
+  align-items: center !important;
+  padding: 12px 16px !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  color: var(--text-2) !important;
+  transition: all 0.2s ease !important;
+}
+.college-nav-tabs .tab-link:hover {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+}
+.college-nav-tabs .tab-link.active {
+  background: linear-gradient(135deg, var(--brand) 0%, #3a7bd5 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(10, 17, 32, 0.25) !important;
+}
+.college-nav-tabs .tab-link.active svg {
+  stroke: #ffffff !important;
+}
+
+/* Premium Profile Setup Banner */
+.dash-profile-banner {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%);
+  border: 1.5px solid rgba(79, 70, 229, 0.3);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.06);
+}
+.dash-banner-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--indigo);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+.dash-banner-title {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+.dash-banner-desc {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text-2);
+  line-height: 1.5;
+  max-width: 650px;
+}
+.dash-setup-btn {
+  padding: 12px 24px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, var(--indigo) 0%, #3b82f6 100%) !important;
+  border: none !important;
+  color: #ffffff !important;
+  cursor: pointer !important;
+  transition: all 0.25s var(--ease) !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
+  white-space: nowrap !important;
+}
+.dash-setup-btn:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4) !important;
+}
+
+

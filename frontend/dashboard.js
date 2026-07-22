@@ -48,6 +48,21 @@ window.trackRecentlyViewedFromLink = function(collegeId) {
   } catch(e) {}
 };
 
+// Global tab switching helper
+window.switchTab = function(targetId) {
+  const tabs = document.querySelectorAll('.tab-link');
+  const sections = document.querySelectorAll('.content-section');
+  const tabBtn = Array.from(tabs).find(t => t.getAttribute('href') === `#${targetId}`);
+  
+  tabs.forEach(t => t.classList.remove('active'));
+  if (tabBtn) tabBtn.classList.add('active');
+
+  sections.forEach(sec => {
+    sec.style.display = sec.id === targetId ? 'block' : 'none';
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
 // DOM Elements
 const el = {
   welcomeName: document.getElementById('dashWelcomeName'),
@@ -566,14 +581,19 @@ function renderShortlist() {
   if (profileBannerContainer) {
     if (!currentUser || !currentUser.board_percentage) {
       profileBannerContainer.innerHTML = `
-        <div class="glass-card" style="padding: 20px; background: rgba(79, 70, 229, 0.05); border: 1.5px dashed var(--indigo); border-radius: var(--radius-sm); margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 250px;">
-            <h4 style="margin: 0 0 4px; font-size: 16px; font-weight: 700; color: var(--indigo);">Complete Your Academic Profile</h4>
-            <p style="margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.4;">Set your 12th Board percentage and entrance ranks to calculate real-time admission match scores (Safe, Target, or Reach) for all colleges!</p>
+        <div class="dash-profile-banner">
+          <div class="dash-banner-content">
+            <div class="dash-banner-badge">⚡ Admission Probability Calculator</div>
+            <h4 class="dash-banner-title">Complete Your Academic Profile</h4>
+            <p class="dash-banner-desc">Set your 12th Board percentage and entrance ranks to calculate real-time admission match scores (Safe, Target, or Reach) for all colleges!</p>
           </div>
-          <button onclick="window.switchTab('settings')" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px; background: var(--indigo); border-color: var(--indigo); color: #fff;">Setup Now</button>
+          <button type="button" id="dashSetupNowBtn" class="dash-setup-btn">Setup Now ➔</button>
         </div>
       `;
+      const btn = document.getElementById('dashSetupNowBtn');
+      if (btn) {
+        btn.addEventListener('click', () => window.switchTab('settings'));
+      }
     } else {
       profileBannerContainer.innerHTML = '';
     }
