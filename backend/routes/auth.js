@@ -92,11 +92,12 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
 </html>
   `;
 
-  // 1. Try Brevo (Sendinblue) API (Free 300 emails/day to ANY email address, HTTPS port 443)
+  // 1a. Try Brevo REST API (if xkeysib- API key is provided)
   const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
-  if (brevoApiKey) {
+  const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim();
+
+  if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
     try {
-      const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim();
       const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -112,15 +113,43 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
         })
       });
       const brevoData = await brevoRes.json();
-      console.log(`🔍 Brevo API Status: ${brevoRes.status}`, JSON.stringify(brevoData));
+      console.log(`🔍 Brevo REST API Status: ${brevoRes.status}`, JSON.stringify(brevoData));
       if (brevoRes.ok) {
-        console.log(`✅ Reset email sent via Brevo API to ${toEmail} (messageId: ${brevoData.messageId})`);
-        return { sent: true, provider: 'brevo' };
+        console.log(`✅ Reset email sent via Brevo REST API to ${toEmail} (messageId: ${brevoData.messageId})`);
+        return { sent: true, provider: 'brevo-rest' };
       } else {
-        console.error('❌ Brevo API Error:', brevoData);
+        console.error('❌ Brevo REST API Error:', brevoData);
       }
     } catch (brevoErr) {
-      console.error('❌ Brevo API Fetch Error:', brevoErr.message);
+      console.error('❌ Brevo REST API Error:', brevoErr.message);
+    }
+  }
+
+  // 1b. Try Brevo SMTP Relay (if xsmtpsib- SMTP key is provided)
+  if (brevoApiKey && brevoApiKey.startsWith('xsmtpsib-')) {
+    try {
+      const brevoTransporter = nodemailer.createTransport({
+        host: 'smtp-relay.brevo.com',
+        port: 587,
+        secure: false,
+        auth: {
+          user: senderEmail,
+          pass: brevoApiKey
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000
+      });
+      await brevoTransporter.sendMail({
+        from: `"PathshalaKhoj" <${senderEmail}>`,
+        to: toEmail,
+        subject: 'Reset your PathshalaKhoj password',
+        html: htmlContent
+      });
+      console.log(`✅ Reset email sent via Brevo SMTP Relay to ${toEmail}`);
+      return { sent: true, provider: 'brevo-smtp' };
+    } catch (brevoSmtpErr) {
+      console.error('❌ Brevo SMTP Relay Error:', brevoSmtpErr.message);
     }
   }
 
