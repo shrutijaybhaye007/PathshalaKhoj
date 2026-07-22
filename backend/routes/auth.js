@@ -260,8 +260,9 @@ router.post('/forgot-password', async (req, res) => {
 
     res.json({ 
       success: true, 
+      email: email,
       resetToken: resetToken, 
-      message: 'Account verified! Please enter your new password below.' 
+      message: `Account verified for ${email}! Enter your new password below.` 
     });
   } catch (err) {
     console.error('Forgot password error:', err);

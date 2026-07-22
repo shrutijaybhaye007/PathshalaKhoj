@@ -156,7 +156,7 @@ function ensureAuthModalsExist() {
               </div>
               <div id="profileLocalOnlySection" style="display: none;">
                 <button type="button" id="profilePasswordChangeToggle" class="password-change-toggle-btn">🔒 Change Password ▼</button>
-                <div id="profilePasswordSection" class="password-change-section" hidden style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                <div id="profilePasswordSection" class="password-change-section" hidden style="display: none; flex-direction: column; gap: 12px; margin-bottom: 16px;">
                   <div class="filter-group">
                     <label for="profileCurrentPassword">Current (Old) Password</label>
                     <input type="password" id="profileCurrentPassword" placeholder="Enter old password" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
@@ -572,13 +572,15 @@ function bindAuthEvents() {
   }
   if (el.profilePasswordChangeToggle) {
     el.profilePasswordChangeToggle.addEventListener('click', () => {
-      const isHidden = el.profilePasswordSection.hidden;
+      const isHidden = el.profilePasswordSection.hidden || el.profilePasswordSection.style.display === 'none';
       el.profilePasswordSection.hidden = !isHidden;
+      el.profilePasswordSection.style.display = isHidden ? 'flex' : 'none';
       el.profilePasswordChangeToggle.textContent = isHidden ? '🔒 Change Password ▲' : '🔒 Change Password ▼';
       
       if (!isHidden) {
-        el.profileNewPassword.value = '';
-        el.profileConfirmNewPassword.value = '';
+        if (el.profileCurrentPassword) el.profileCurrentPassword.value = '';
+        if (el.profileNewPassword) el.profileNewPassword.value = '';
+        if (el.profileConfirmNewPassword) el.profileConfirmNewPassword.value = '';
       }
     });
   }
