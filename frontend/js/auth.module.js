@@ -602,14 +602,17 @@ function bindAuthEvents() {
     el.dropdownLogoutBtn.addEventListener('click', () => {
       setToken(null);
       currentUser = null;
-      updateUserUI();
-      if (el.profileDropdownCard) { el.profileDropdownCard.hidden = true; el.profileDropdownCard.style.display = 'none'; }
-      if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
       showToast('Signed out successfully. See you soon! 👋', 'info');
       window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: null } }));
-      if (window.location.pathname.includes('dashboard.html')) {
-        window.location.href = '/';
-      }
+      // Always do a full page reload on logout so ALL user-specific state
+      // (shortlist, comparisons, UI) is cleanly reset for the next user.
+      setTimeout(() => {
+        if (window.location.pathname.includes('dashboard.html')) {
+          window.location.href = '/';
+        } else {
+          window.location.reload();
+        }
+      }, 800); // Small delay so the toast is briefly visible
     });
   }
 

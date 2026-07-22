@@ -17,8 +17,18 @@
 
 const API_BASE = '/api';
 
-// ─── Session ID for anonymous shortlist ────────────────────────────────────
+// ─── Session ID: user-specific when logged in, anonymous otherwise ─────────
 function getSessionId() {
+  // If a user is logged in, use their unique user ID as the session key
+  // so shortlists are completely isolated per account.
+  const token = localStorage.getItem('pk_token');
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload && payload.id) return `user_${payload.id}`;
+    } catch (_) { /* fall through to anonymous */ }
+  }
+  // Anonymous: use/create a device-local session ID
   let id = localStorage.getItem('pk_session_id');
   if (!id) {
     id = 'sess_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -26,7 +36,14 @@ function getSessionId() {
   }
   return id;
 }
-const SESSION_ID = getSessionId();
+let SESSION_ID = getSessionId();
+
+// Re-compute SESSION_ID whenever auth state changes (login / logout)
+window.addEventListener('pk:auth-changed', () => {
+  SESSION_ID = getSessionId();
+  // Reload shortlist for the new session
+  loadShortlist().catch(() => {});
+});
 
 // ─── City quick-filter chips for Maharashtra ──────────────────────────────────
 const CITY_CHIPS = [
