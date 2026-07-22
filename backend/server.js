@@ -70,6 +70,12 @@ async function bootstrapDb() {
     for (const sql of migrations) {
       try { await runDb(sql); } catch (_) { /* column already exists */ }
     }
+
+    // Auto-seed/update Admin account if ADMIN_PASSWORD is configured
+    if (process.env.ADMIN_PASSWORD) {
+      const { seedAdmin } = require('./db/seed-admin');
+      await seedAdmin().catch((adminErr) => console.warn('Admin seed warning:', adminErr.message));
+    }
   } catch (err) {
     console.warn('DB Bootstrap warning:', err.message);
   }
