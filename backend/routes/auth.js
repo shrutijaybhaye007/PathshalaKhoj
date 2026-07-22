@@ -102,18 +102,46 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: 'PathshalaKhoj <onboarding@resend.dev>',
+          from: process.env.SMTP_USER
+            ? `PathshalaKhoj <${process.env.SMTP_USER}>`
+            : 'PathshalaKhoj <onboarding@resend.dev>',
           to: [toEmail],
           subject: 'Reset your PathshalaKhoj password',
           html: htmlContent
         })
       });
       const resendData = await resendRes.json();
+      console.log(`🔍 Resend API Status: ${resendRes.status}`, JSON.stringify(resendData));
       if (resendRes.ok) {
         console.log(`✅ Reset email sent via Resend API to ${toEmail} (id: ${resendData.id})`);
         return { sent: true, provider: 'resend' };
       } else {
         console.error('❌ Resend API Error:', resendData);
+        // Resend free plan: can only send to account owner's email
+        // Error code 403 = domain not verified
+        if (resendData.statusCode === 403 || resendRes.status === 403) {
+          console.error('⚠️  Resend: Domain not verified. Falling back to onboarding@resend.dev sender...');
+          // Retry with onboarding@resend.dev (only works for Resend account owner email)
+          const retryRes = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: 'PathshalaKhoj <onboarding@resend.dev>',
+              to: [toEmail],
+              subject: 'Reset your PathshalaKhoj password',
+              html: htmlContent
+            })
+          });
+          const retryData = await retryRes.json();
+          console.log('🔍 Resend Retry Status:', retryRes.status, JSON.stringify(retryData));
+          if (retryRes.ok) {
+            console.log(`✅ Reset email sent via Resend (onboarding sender) to ${toEmail}`);
+            return { sent: true, provider: 'resend-onboarding' };
+          }
+        }
       }
     } catch (resendErr) {
       console.error('❌ Resend API Fetch Error:', resendErr.message);
