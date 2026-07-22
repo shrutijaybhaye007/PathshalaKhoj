@@ -10,7 +10,7 @@ router.get('/:sessionId', async (req, res) => {
   try {
     const rows = await all(
       `SELECT a.id as application_id, a.status, a.created_at, 
-              c.id, c.name, c.city, c.state, c.stream, c.college_type
+              c.id as college_id, c.id, c.name, c.city, c.state, c.stream, c.college_type
        FROM applications a
        JOIN colleges c ON c.id = a.college_id
        WHERE a.session_id = ?

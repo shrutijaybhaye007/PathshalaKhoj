@@ -122,6 +122,7 @@ if (predictForm) {
     }, 550);
 
     try {
+      const token = localStorage.getItem('pk_token') || '';
       const res = await fetch('/api/predict', {
         method: 'POST',
         headers: { 
