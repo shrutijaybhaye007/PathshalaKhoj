@@ -305,6 +305,44 @@ router.post('/reset-password', async (req, res) => {
 });
 
 /**
+ * POST /api/auth/change-password
+ */
+router.post('/change-password', require('../middlewares/authMiddleware').requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+    }
+
+    const user = await get('SELECT id, password_hash FROM users WHERE id = ?', [req.user.id]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (user.password_hash) {
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Current password is required.' });
+      }
+      const [salt, storedHash] = user.password_hash.split(':');
+      if (hashPassword(currentPassword, salt) !== storedHash) {
+        return res.status(400).json({ error: 'Incorrect current password.' });
+      }
+    }
+
+    const newSalt = crypto.randomBytes(8).toString('hex');
+    const newHash = hashPassword(newPassword, newSalt);
+    const passwordHash = `${newSalt}:${newHash}`;
+
+    await run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, user.id]);
+
+    res.json({ success: true, message: 'Password changed successfully.' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Failed to change password.' });
+  }
+});
+
+/**
  * GET /api/auth/me
  */
 router.get('/me', require('../middlewares/authMiddleware').requireAuth, async (req, res) => {

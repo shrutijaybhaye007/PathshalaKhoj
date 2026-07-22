@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=19.0" />
+  <link rel="stylesheet" href="styles.css?v=20.0" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <script>
@@ -271,6 +271,33 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Security & Change Password Card -->
+          <div class="glass-card" style="padding: 28px; border-radius: var(--radius-lg); margin-top: 24px; background: var(--surface); border: 1px solid var(--border-2);">
+            <h3 style="margin: 0 0 4px; font-size: 18px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">🔐</span> Security & Password
+            </h3>
+            <p class="text-2" style="margin: 0 0 20px; font-size: 13.5px;">Update your password to keep your account secure.</p>
+
+            <form id="dashChangePasswordForm" style="max-width: 440px; display: flex; flex-direction: column; gap: 16px;">
+              <div class="form-group">
+                <label for="changeCurrentPassword" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text);">Current Password</label>
+                <input type="password" id="changeCurrentPassword" placeholder="Enter current password" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text); outline: none; font-family: var(--font-body); font-size: 14px;" />
+              </div>
+
+              <div class="form-group">
+                <label for="changeNewPassword" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text);">New Password</label>
+                <input type="password" id="changeNewPassword" placeholder="Enter new password (min. 6 chars)" required minlength="6" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text); outline: none; font-family: var(--font-body); font-size: 14px;" />
+              </div>
+
+              <div class="form-group">
+                <label for="changeConfirmPassword" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text);">Confirm New Password</label>
+                <input type="password" id="changeConfirmPassword" placeholder="Confirm new password" required minlength="6" style="width: 100%; padding: 10px 14px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text); outline: none; font-family: var(--font-body); font-size: 14px;" />
+              </div>
+
+              <button type="submit" id="changePasswordBtn" class="btn btn-primary" style="align-self: flex-start; padding: 10px 24px; font-size: 14px; font-weight: 600; margin-top: 4px;">Update Password</button>
+            </form>
           </div>
         </section>
 
@@ -947,9 +974,9 @@
   </div>
 
 
-  <script src="global.js?v=19.0"></script>
-  <script src="js/auth.module.js?v=19.0"></script>
-  <script src="dashboard.js?v=19.0"></script>
+  <script src="global.js?v=20.0"></script>
+  <script src="js/auth.module.js?v=20.0"></script>
+  <script src="dashboard.js?v=20.0"></script>
 
   <!-- ============ GLOBAL FOOTER ============ -->
   <footer class="site-footer" style="background: #0B2545 !important; color: #ffffff !important; padding: 50px 20px 24px !important; margin-top: 60px !important; width: 100% !important; box-sizing: border-box !important; display: block !important; clear: both !important;">

@@ -845,6 +845,76 @@ function initNotificationBell() {
 
 initDashboard();
 initNotificationBell();
+initChangePasswordForm();
+
+function initChangePasswordForm() {
+  const form = document.getElementById('dashChangePasswordForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentPassword = document.getElementById('changeCurrentPassword').value;
+    const newPassword = document.getElementById('changeNewPassword').value;
+    const confirmPassword = document.getElementById('changeConfirmPassword').value;
+    const btn = document.getElementById('changePasswordBtn');
+
+    if (newPassword !== confirmPassword) {
+      if (typeof showToast === 'function') {
+        showToast('New passwords do not match.', 'error');
+      } else {
+        alert('New passwords do not match.');
+      }
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      if (typeof showToast === 'function') {
+        showToast('Password must be at least 6 characters long.', 'error');
+      }
+      return;
+    }
+
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+
+    try {
+      const token = localStorage.getItem('pk_token');
+      const res = await fetch(`${API_BASE}/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (typeof showToast === 'function') {
+          showToast('Password changed successfully!', 'success');
+        } else {
+          alert('Password changed successfully!');
+        }
+        form.reset();
+      } else {
+        if (typeof showToast === 'function') {
+          showToast(data.error || 'Failed to change password.', 'error');
+        } else {
+          alert(data.error || 'Failed to change password.');
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      if (typeof showToast === 'function') {
+        showToast('Network error while changing password.', 'error');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
+}
 
 window.switchTab = function(targetId) {
   const tabBtn = Array.from(el.tabs).find(t => t.getAttribute('href') === `#${targetId}`);
