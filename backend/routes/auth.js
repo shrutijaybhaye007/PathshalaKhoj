@@ -93,9 +93,37 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
 
   const errors = [];
 
-  // 1a. Try SendGrid REST API
-  const sendgridApiKey = (process.env.SENDGRID_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+  // 1a. Try Gmail Apps Script Webhook (Sends directly from Gmail over HTTPS Port 443 — 100% Inbox Delivery)
+  const gmailWebhookUrl = (process.env.GMAIL_WEBHOOK_URL || '').trim().replace(/^["']|["']$/g, '');
   const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim().replace(/^["']|["']$/g, '');
+
+  if (gmailWebhookUrl) {
+    try {
+      const gRes = await fetch(gmailWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: toEmail,
+          subject: 'Reset your PathshalaKhoj password',
+          html: htmlContent
+        }),
+        signal: AbortSignal.timeout(10000)
+      });
+      console.log(`🔍 Gmail Webhook Status: ${gRes.status}`);
+      if (gRes.ok || gRes.status === 302 || gRes.status === 200) {
+        console.log(`✅ Reset email sent via Gmail Webhook to ${toEmail}`);
+        return { sent: true, provider: 'gmail-webhook' };
+      } else {
+        errors.push({ provider: 'gmail-webhook', status: gRes.status });
+      }
+    } catch (gErr) {
+      console.error('❌ Gmail Webhook Error:', gErr.message);
+      errors.push({ provider: 'gmail-webhook', detail: gErr.message });
+    }
+  }
+
+  // 1b. Try SendGrid REST API
+  const sendgridApiKey = (process.env.SENDGRID_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
   if (sendgridApiKey) {
     try {
