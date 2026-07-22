@@ -506,24 +506,8 @@
     </div>
   </div>
 
-  <!-- ============ RESET PASSWORD MODAL ============ -->
-  <div id="resetPasswordOverlay" class="detail-overlay" hidden>
-    <div class="detail-modal" style="max-width: 420px;">
-      <div class="detail-content" style="padding: 30px;">
-        <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Create New Password</h2>
-        <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Please enter your new password below.</p>
-        
-        <form id="resetPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
-          <input type="hidden" id="resetPasswordToken" />
-          <div class="filter-group">
-            <label for="resetNewPassword">New Password</label>
-            <input type="password" id="resetNewPassword" placeholder="••••••••" required minlength="6" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-          </div>
-          <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Reset & Sign In</button>
-        </form>
-      </div>
-    </div>
-  </div>
+  <!-- Auth modals injected by js/auth.module.js -->
+  <!-- Password reset handled by /reset-password.html -->
 
   <!-- ============ ADMIN DASHBOARD OVERLAY ============ -->
   <div id="adminOverlay" class="detail-overlay" hidden>

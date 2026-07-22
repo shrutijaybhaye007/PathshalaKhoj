@@ -109,14 +109,14 @@ function ensureAuthModalsExist() {
       <div class="detail-modal" style="max-width: 420px;">
         <button id="forgotPasswordCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
         <div class="detail-content" style="padding: 30px;">
-          <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Reset Password</h2>
-          <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Enter your registered email to verify your account and reset your password instantly.</p>
+          <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Forgot Password?</h2>
+          <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Enter your registered email and we'll send you a secure reset link straight to your inbox.</p>
           <form id="forgotPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
             <div class="filter-group">
               <label for="forgotPasswordEmail">Email Address</label>
               <input type="email" id="forgotPasswordEmail" placeholder="Enter your email" required style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
             </div>
-            <button type="submit" id="forgotSubmitBtn" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Verify & Continue</button>
+            <button type="submit" id="forgotSubmitBtn" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Send Reset Link</button>
           </form>
           <div style="text-align: center; margin-top: 16px;">
             <a href="#" id="backToLoginBtn" style="color: var(--indigo); text-decoration: underline; font-size: 13px;">Back to Sign In</a>
@@ -505,7 +505,7 @@ function bindAuthEvents() {
       const btn   = document.getElementById('forgotSubmitBtn');
       const email = el.forgotPasswordEmail.value.trim();
 
-      setButtonLoading(btn, true, 'Verifying…');
+      setButtonLoading(btn, true, 'Sending link…');
       try {
         const res = await fetch(`${API_BASE}/auth/forgot-password`, {
           method: 'POST',
@@ -513,21 +513,12 @@ function bindAuthEvents() {
           body: JSON.stringify({ email })
         });
         const data = await res.json();
-        if (res.ok && data.resetToken) {
+        if (res.ok) {
           el.forgotPasswordForm.reset();
           closeOverlay(el.forgotPasswordOverlay);
-          // Sync the new reset-close button ref if it was just injected
-          const resetCloseBtn = document.getElementById('resetPasswordCloseBtn');
-          if (resetCloseBtn && !resetCloseBtn._bound) {
-            resetCloseBtn._bound = true;
-            resetCloseBtn.addEventListener('click', () => closeOverlay(el.resetPasswordOverlay));
-          }
-          const tokenInput = document.getElementById('resetPasswordToken');
-          if (tokenInput) tokenInput.value = data.resetToken;
-          openOverlay(el.resetPasswordOverlay);
-          showToast('Account verified! Enter your new password below.', 'success');
+          showToast('✅ Reset link sent! Check your inbox (and spam folder).', 'success');
         } else {
-          showToast(data.error || 'No account found with that email address.', 'error');
+          showToast(data.error || 'Something went wrong. Please try again.', 'error');
         }
       } catch (err) {
         showToast('Server error. Please try again.', 'error');
@@ -535,66 +526,6 @@ function bindAuthEvents() {
         setButtonLoading(btn, false);
       }
     });
-  }
-
-  // Handle auto-opening Reset Modal via URL (?reset_token=abc)
-  const urlParams = new URLSearchParams(window.location.search);
-  const resetTokenParam = urlParams.get('reset_token');
-  if (resetTokenParam) {
-    const tokenInput = document.getElementById('resetPasswordToken');
-    if (tokenInput) tokenInput.value = resetTokenParam;
-    openOverlay(el.resetPasswordOverlay);
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-
-  // ── Reset Password Form ─────────────────────────────────────────────────
-  if (el.resetPasswordForm) {
-    el.resetPasswordForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn            = document.getElementById('resetSubmitBtn');
-      const token          = document.getElementById('resetPasswordToken')?.value;
-      const newPassword    = el.resetNewPassword?.value || '';
-      const confirmPassEl  = document.getElementById('resetConfirmPassword');
-      const confirmPass    = confirmPassEl?.value || '';
-
-      if (newPassword !== confirmPass) {
-        showToast('Passwords do not match. Please try again.', 'error');
-        return;
-      }
-      if (newPassword.length < 6) {
-        showToast('Password must be at least 6 characters.', 'error');
-        return;
-      }
-
-      setButtonLoading(btn, true, 'Resetting…');
-      try {
-        const res = await fetch(`${API_BASE}/auth/reset-password`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token, newPassword })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          closeOverlay(el.resetPasswordOverlay);
-          if (el.resetPasswordForm) el.resetPasswordForm.reset();
-          openLoginModal('login');
-          showToast('Password reset! You can now sign in with your new password.', 'success');
-        } else {
-          showToast(data.error || 'Failed to reset password.', 'error');
-        }
-      } catch (err) {
-        showToast('Server error. Please try again.', 'error');
-      } finally {
-        setButtonLoading(btn, false);
-      }
-    });
-  }
-
-  // Bind reset-close button (may have been injected)
-  const resetCloseBtn = document.getElementById('resetPasswordCloseBtn');
-  if (resetCloseBtn && !resetCloseBtn._bound) {
-    resetCloseBtn._bound = true;
-    resetCloseBtn.addEventListener('click', () => closeOverlay(el.resetPasswordOverlay));
   }
 
   // ── Escape key closes any open auth modal ───────────────────────────────
