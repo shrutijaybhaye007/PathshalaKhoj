@@ -569,6 +569,7 @@ function bindAuthEvents() {
       }
     });
   }
+}
 
 let googleClientId = null;
 let googleTokenClient = null;
@@ -675,6 +676,17 @@ window.addEventListener('load', async () => {
     initCompareBarEvents();
   }
 });
+
+function closeLoginModal() {
+  const overlay = document.getElementById('loginOverlay');
+  if (overlay) overlay.hidden = true;
+  if (el.loginOverlay) el.loginOverlay.hidden = true;
+
+  const wrapper = document.getElementById('authModalsWrapper');
+  if (wrapper) {
+    wrapper.querySelectorAll('.detail-overlay').forEach(o => o.hidden = true);
+  }
+  document.body.style.overflow = '';
 }
 
 // Handle Google access_token from TokenClient
@@ -690,9 +702,9 @@ async function handleGoogleTokenResponse(accessToken) {
       setToken(data.token);
       currentUser = data.user;
       updateUserUI();
-      el.loginOverlay.hidden = true;
-      document.body.style.overflow = '';
+      closeLoginModal();
       showToast(`Welcome, ${currentUser.name}!`, 'success');
+      window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
       if (checkLoginRedirect()) return;
     } else {
       showToast(data.error || 'Google login failed.', 'error');
@@ -715,9 +727,9 @@ async function handleGoogleCredentialResponse(response) {
       setToken(data.token);
       currentUser = data.user;
       updateUserUI();
-      el.loginOverlay.hidden = true;
-      document.body.style.overflow = '';
+      closeLoginModal();
       showToast(`Welcome, ${currentUser.name}!`, 'success');
+      window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
       if (checkLoginRedirect()) return;
     } else {
       showToast(data.error || 'Google login failed.', 'error');

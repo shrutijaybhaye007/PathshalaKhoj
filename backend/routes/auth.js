@@ -84,7 +84,7 @@ router.post('/google', async (req, res) => {
       user = { id: result.lastInsertRowid, email, name, picture: picture || null, role: 'user' };
     } else {
       await run(
-        "UPDATE users SET name = ?, picture = ?, updated_at = NOW() WHERE email = ?",
+        "UPDATE users SET name = ?, picture = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?",
         [name, picture || null, email]
       );
       user.name    = name;
@@ -134,7 +134,7 @@ router.post('/register', async (req, res) => {
         const passwordHash = `${salt}:${hash}`;
 
         await run(
-          'UPDATE users SET password_hash = ?, name = COALESCE(name, ?), updated_at = NOW() WHERE id = ?',
+          'UPDATE users SET password_hash = ?, name = COALESCE(name, ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
           [passwordHash, name.trim(), existingUser.id]
         );
 
