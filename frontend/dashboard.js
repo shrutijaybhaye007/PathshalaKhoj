@@ -852,6 +852,51 @@ function initNotificationBell() {
 initDashboard();
 initNotificationBell();
 initChangePasswordForm();
+initDeleteAccountButton();
+
+function initDeleteAccountButton() {
+  const btn = document.getElementById('dashDeleteAccountBtn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    const confirmed = confirm('⚠️ Are you sure you want to permanently delete your account?\n\nThis action CANNOT be undone and all your saved data will be removed.');
+    if (!confirmed) return;
+
+    const doubleConfirm = prompt('Type DELETE to confirm account deletion:');
+    if (doubleConfirm !== 'DELETE') {
+      if (typeof showToast === 'function') showToast('Account deletion cancelled.', 'info');
+      return;
+    }
+
+    const token = localStorage.getItem('pk_token');
+    if (!token) return;
+
+    const origText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Deleting…';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/account`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.removeItem('pk_token');
+        if (typeof showToast === 'function') showToast('Your account has been deleted permanently.', 'info');
+        window.location.href = '/';
+      } else {
+        if (typeof showToast === 'function') showToast(data.error || 'Failed to delete account.', 'error');
+        btn.disabled = false;
+        btn.textContent = origText;
+      }
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('Network error while deleting account.', 'error');
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  });
+}
 
 function initChangePasswordForm() {
   const form = document.getElementById('dashChangePasswordForm');
