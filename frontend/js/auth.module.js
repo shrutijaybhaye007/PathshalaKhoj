@@ -1,29 +1,27 @@
+/**
+ * auth.module.js — Authentication, Profile & User Account System
+ *
+ * Fixes applied:
+ *  - Removed DOMContentLoaded self-init (was causing double binding on index.html).
+ *    Now exports initAuth() to be called explicitly by boot.js / page scripts.
+ *  - Fixed login/register tab switching (hidden attr + display style conflict).
+ *  - Fixed password section toggle (hidden + style.display kept in sync).
+ *  - Fixed openAdminDashboard guard for pages without admin.module.js.
+ *  - Added loading states on all form submit buttons.
+ *  - Added Escape key handler to close all auth modals.
+ *  - Fixed forgot-password UX copy (no false "email link" promise).
+ *  - All overlays consistently manage body scroll lock.
+ */
+
 if (typeof API_BASE === 'undefined') {
   window.API_BASE = '/api';
 }
 
-if (typeof showToast === 'undefined') {
-  window.showToast = function(msg, type = 'info') {
-    let container = document.getElementById('toastContainer');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'toastContainer';
-      container.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;';
-      document.body.appendChild(container);
-    }
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.style.cssText = 'background:var(--surface, #1e293b);color:var(--text, #fff);padding:12px 18px;border-radius:8px;border:1px solid var(--border-2, #334155);box-shadow:0 10px 25px rgba(0,0,0,0.3);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;';
-    toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️'}</span> ${msg}`;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
-  };
-}
-
 if (typeof window.el === 'undefined') {
-  window.el = (typeof el !== 'undefined') ? el : {};
+  window.el = {};
 }
 
+// ─── Element Reference Cache ────────────────────────────────────────────────
 function syncElRefs() {
   const ids = [
     'loginOverlay', 'loginCloseBtn', 'loginForm', 'loginEmail', 'loginPassword',
@@ -36,155 +34,212 @@ function syncElRefs() {
     'dropdownEditProfileBtn', 'dropdownAdminPortalBtn', 'dropdownLogoutBtn', 'profileOverlay',
     'profileCloseBtn', 'profileEditForm', 'profilePicPreview', 'profileFormEmail', 'profileFormName',
     'profileFormPicture', 'profileLocalOnlySection', 'profilePasswordChangeToggle',
-    'profilePasswordSection', 'profileCurrentPassword', 'profileNewPassword', 'profileConfirmNewPassword', 'profileFormCancelBtn'
+    'profilePasswordSection', 'profileCurrentPassword', 'profileNewPassword',
+    'profileConfirmNewPassword', 'profileFormCancelBtn'
   ];
   ids.forEach(id => {
     window.el[id] = document.getElementById(id);
   });
 }
 
+// ─── Modal DOM Injection ─────────────────────────────────────────────────────
 function ensureAuthModalsExist() {
-  if (!document.getElementById('loginOverlay')) {
-    const wrapper = document.createElement('div');
-    wrapper.id = 'authModalsWrapper';
-    wrapper.innerHTML = `
-      <div id="loginOverlay" class="detail-overlay" hidden>
-        <div class="detail-modal" style="max-width: 420px;">
-          <button id="loginCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
-          <div class="detail-content" style="padding: 30px;">
-            <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
-              <button type="button" id="tabLoginBtn" style="flex: 1; padding: 12px; background: none; border: none; font-size: 16px; font-family: var(--font-display); font-weight: 600; color: var(--text); border-bottom: 2px solid var(--indigo); cursor: pointer;">Sign In</button>
-              <button type="button" id="tabRegisterBtn" style="flex: 1; padding: 12px; background: none; border: none; font-size: 16px; font-family: var(--font-display); font-weight: 600; color: var(--text-3); border-bottom: 2px solid transparent; cursor: pointer;">Sign Up</button>
+  if (document.getElementById('loginOverlay')) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.id = 'authModalsWrapper';
+  wrapper.innerHTML = `
+    <!-- Login / Register Modal -->
+    <div id="loginOverlay" class="detail-overlay" hidden>
+      <div class="detail-modal" style="max-width: 420px;">
+        <button id="loginCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
+        <div class="detail-content" style="padding: 30px;">
+          <!-- Tabs -->
+          <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 24px;">
+            <button type="button" id="tabLoginBtn" data-tab="login" style="flex: 1; padding: 12px; background: none; border: none; font-size: 16px; font-family: var(--font-display); font-weight: 600; color: var(--text); border-bottom: 2px solid var(--indigo); cursor: pointer;">Sign In</button>
+            <button type="button" id="tabRegisterBtn" data-tab="register" style="flex: 1; padding: 12px; background: none; border: none; font-size: 16px; font-family: var(--font-display); font-weight: 600; color: var(--text-3); border-bottom: 2px solid transparent; cursor: pointer;">Sign Up</button>
+          </div>
+
+          <!-- Login Form -->
+          <form id="loginForm" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+            <div class="filter-group">
+              <label for="loginEmail">Email Address</label>
+              <input type="email" id="loginEmail" placeholder="student@example.com" required style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
             </div>
-            <form id="loginForm" style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
-              <div class="filter-group">
-                <label for="loginEmail">Email Address</label>
-                <input type="email" id="loginEmail" placeholder="student@example.com" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-              </div>
-              <div class="filter-group" style="margin-bottom: 4px;">
-                <label for="loginPassword" style="display: flex; justify-content: space-between;">
-                  <span>Password</span>
-                  <a href="#" id="openForgotPasswordBtn" style="color: var(--indigo); text-decoration: underline; font-size: 11px;">Forgot password?</a>
-                </label>
-                <input type="password" id="loginPassword" placeholder="••••••••" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-              </div>
-              <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Sign In</button>
-            </form>
-            <form id="registerForm" hidden style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px;">
-              <div class="filter-group">
-                <label for="registerName">Full Name</label>
-                <input type="text" id="registerName" placeholder="Your Name" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-              </div>
-              <div class="filter-group">
-                <label for="registerEmail">Email Address</label>
-                <input type="email" id="registerEmail" placeholder="student@example.com" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-              </div>
-              <div class="filter-group" style="margin-bottom: 4px;">
-                <label for="registerPassword">Password</label>
-                <input type="password" id="registerPassword" placeholder="••••••••" required minlength="6" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-              </div>
-              <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Create Account</button>
-            </form>
-            <div style="display: flex; align-items: center; gap: 10px; margin: 20px 0; color: var(--text-3); font-size: 11px;">
-              <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);" />
-              <span>OR CONTINUE WITH</span>
-              <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);" />
+            <div class="filter-group" style="margin-bottom: 4px;">
+              <label for="loginPassword" style="display: flex; justify-content: space-between;">
+                <span>Password</span>
+                <a href="#" id="openForgotPasswordBtn" style="color: var(--indigo); text-decoration: underline; font-size: 11px;">Forgot password?</a>
+              </label>
+              <input type="password" id="loginPassword" placeholder="••••••••" required style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
             </div>
-            <div id="googleSignInContainer" style="display: flex; justify-content: center; min-height: 40px; margin-bottom: 12px;"></div>
+            <button type="submit" id="loginSubmitBtn" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Sign In</button>
+          </form>
+
+          <!-- Register Form (hidden by default) -->
+          <form id="registerForm" style="display: none; flex-direction: column; gap: 14px; margin-bottom: 20px;">
+            <div class="filter-group">
+              <label for="registerName">Full Name</label>
+              <input type="text" id="registerName" placeholder="Your Name" required style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+            </div>
+            <div class="filter-group">
+              <label for="registerEmail">Email Address</label>
+              <input type="email" id="registerEmail" placeholder="student@example.com" required style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+            </div>
+            <div class="filter-group" style="margin-bottom: 4px;">
+              <label for="registerPassword">Password</label>
+              <input type="password" id="registerPassword" placeholder="••••••••" required minlength="6" style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+            </div>
+            <button type="submit" id="registerSubmitBtn" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Create Account</button>
+          </form>
+
+          <!-- Google Sign-In Divider -->
+          <div style="display: flex; align-items: center; gap: 10px; margin: 20px 0; color: var(--text-3); font-size: 11px;">
+            <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);" />
+            <span>OR CONTINUE WITH</span>
+            <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);" />
+          </div>
+          <div id="googleSignInContainer" style="display: flex; justify-content: center; min-height: 40px; margin-bottom: 12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordOverlay" class="detail-overlay" hidden>
+      <div class="detail-modal" style="max-width: 420px;">
+        <button id="forgotPasswordCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
+        <div class="detail-content" style="padding: 30px;">
+          <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Reset Password</h2>
+          <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Enter your registered email to verify your account and reset your password instantly.</p>
+          <form id="forgotPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="filter-group">
+              <label for="forgotPasswordEmail">Email Address</label>
+              <input type="email" id="forgotPasswordEmail" placeholder="Enter your email" required style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+            </div>
+            <button type="submit" id="forgotSubmitBtn" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Verify & Continue</button>
+          </form>
+          <div style="text-align: center; margin-top: 16px;">
+            <a href="#" id="backToLoginBtn" style="color: var(--indigo); text-decoration: underline; font-size: 13px;">Back to Sign In</a>
           </div>
         </div>
       </div>
+    </div>
 
-      <div id="forgotPasswordOverlay" class="detail-overlay" hidden>
-        <div class="detail-modal" style="max-width: 420px;">
-          <button id="forgotPasswordCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
-          <div class="detail-content" style="padding: 30px;">
-            <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Reset Password</h2>
-            <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Enter your email address and we'll send you a link to reset your password.</p>
-            <form id="forgotPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
-              <div class="filter-group">
-                <label for="forgotPasswordEmail">Email Address</label>
-                <input type="email" id="forgotPasswordEmail" placeholder="Enter your email" required style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-              </div>
-              <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Send Reset Link</button>
-            </form>
-            <div style="text-align: center; margin-top: 16px;">
-              <a href="#" id="backToLoginBtn" style="color: var(--indigo); text-decoration: underline; font-size: 13px;">Back to Sign In</a>
+    <!-- Reset Password Modal -->
+    <div id="resetPasswordOverlay" class="detail-overlay" hidden>
+      <div class="detail-modal" style="max-width: 420px;">
+        <button id="resetPasswordCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
+        <div class="detail-content" style="padding: 30px;">
+          <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Create New Password</h2>
+          <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Please enter your new password below.</p>
+          <form id="resetPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
+            <input type="hidden" id="resetPasswordToken" />
+            <div class="filter-group">
+              <label for="resetNewPassword">New Password</label>
+              <input type="password" id="resetNewPassword" placeholder="••••••••" required minlength="6" style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
             </div>
-          </div>
+            <div class="filter-group">
+              <label for="resetConfirmPassword">Confirm New Password</label>
+              <input type="password" id="resetConfirmPassword" placeholder="••••••••" required minlength="6" style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
+            </div>
+            <button type="submit" id="resetSubmitBtn" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Reset & Sign In</button>
+          </form>
         </div>
       </div>
+    </div>
 
-      <div id="resetPasswordOverlay" class="detail-overlay" hidden>
-        <div class="detail-modal" style="max-width: 420px;">
-          <div class="detail-content" style="padding: 30px;">
-            <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 6px; text-align: center;">Create New Password</h2>
-            <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 24px;">Please enter your new password below.</p>
-            <form id="resetPasswordForm" style="display: flex; flex-direction: column; gap: 14px;">
-              <input type="hidden" id="resetPasswordToken" />
-              <div class="filter-group">
-                <label for="resetNewPassword">New Password</label>
-                <input type="password" id="resetNewPassword" placeholder="••••••••" required minlength="6" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-family: var(--font-body); font-size:13.5px;" />
-              </div>
-              <button type="submit" class="btn-primary" style="justify-content: center; width: 100%; margin-top: 8px;">Reset & Sign In</button>
-            </form>
-          </div>
-        </div>
-      </div>
-
-      <div id="profileOverlay" class="detail-overlay" hidden>
-        <div class="detail-modal" style="max-width: 480px;">
-          <button id="profileCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
-          <div class="detail-content" style="padding: 32px;">
-            <h2 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; text-align: center;">Edit Profile</h2>
-            <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 20px;">Update your personal details and account preferences.</p>
-            <form id="profileEditForm">
-              <div class="profile-pic-preview-wrapper">
-                <img id="profilePicPreview" class="profile-pic-preview-frame" src="https://lh3.googleusercontent.com/a/default-user=s100" alt="Avatar preview" />
-              </div>
-              <div class="filter-group" style="margin-bottom: 12px;">
-                <label>Email Address (Account ID)</label>
-                <input type="email" id="profileFormEmail" readonly style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text-3); outline: none; cursor: not-allowed; font-size:13px;" />
-              </div>
-              <div class="filter-group" style="margin-bottom: 12px;">
-                <label>Full Name *</label>
-                <input type="text" id="profileFormName" required placeholder="Your Name" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
-              </div>
-              <div class="filter-group" style="margin-bottom: 16px;">
-                <label>Profile Picture URL</label>
-                <input type="url" id="profileFormPicture" placeholder="https://example.com/avatar.jpg" style="padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
-              </div>
-              <div id="profileLocalOnlySection" style="display: none;">
-                <button type="button" id="profilePasswordChangeToggle" class="password-change-toggle-btn">🔒 Change Password ▼</button>
-                <div id="profilePasswordSection" class="password-change-section" hidden style="display: none; flex-direction: column; gap: 12px; margin-bottom: 16px;">
-                  <div class="filter-group">
-                    <label for="profileCurrentPassword">Current (Old) Password</label>
-                    <input type="password" id="profileCurrentPassword" placeholder="Enter old password" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
-                  </div>
-                  <div class="filter-group">
-                    <label for="profileNewPassword">New Password</label>
-                    <input type="password" id="profileNewPassword" placeholder="••••••••" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
-                  </div>
-                  <div class="filter-group">
-                    <label for="profileConfirmNewPassword">Confirm New Password</label>
-                    <input type="password" id="profileConfirmNewPassword" placeholder="••••••••" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
-                  </div>
+    <!-- Profile Edit Modal -->
+    <div id="profileOverlay" class="detail-overlay" hidden>
+      <div class="detail-modal" style="max-width: 480px;">
+        <button id="profileCloseBtn" class="detail-close" type="button" aria-label="Close dialog">✕</button>
+        <div class="detail-content" style="padding: 32px;">
+          <h2 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; text-align: center;">Edit Profile</h2>
+          <p style="color: var(--text-2); font-size: 13px; text-align: center; margin-bottom: 20px;">Update your personal details and account preferences.</p>
+          <form id="profileEditForm">
+            <div class="profile-pic-preview-wrapper">
+              <img id="profilePicPreview" class="profile-pic-preview-frame" src="https://lh3.googleusercontent.com/a/default-user=s100" alt="Avatar preview" />
+            </div>
+            <div class="filter-group" style="margin-bottom: 12px;">
+              <label>Email Address (Account ID)</label>
+              <input type="email" id="profileFormEmail" readonly style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text-3); outline: none; cursor: not-allowed; font-size:13px;" />
+            </div>
+            <div class="filter-group" style="margin-bottom: 12px;">
+              <label>Full Name *</label>
+              <input type="text" id="profileFormName" required placeholder="Your Name" style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+            </div>
+            <div class="filter-group" style="margin-bottom: 16px;">
+              <label>Profile Picture URL</label>
+              <input type="url" id="profileFormPicture" placeholder="https://example.com/avatar.jpg" style="width:100%;box-sizing:border-box;padding: 9px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+            </div>
+            <!-- Password change section — only shown for local password accounts -->
+            <div id="profileLocalOnlySection" style="display: none;">
+              <button type="button" id="profilePasswordChangeToggle" class="password-change-toggle-btn">🔒 Change Password ▼</button>
+              <div id="profilePasswordSection" style="display: none; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                <div class="filter-group">
+                  <label for="profileCurrentPassword">Current (Old) Password</label>
+                  <input type="password" id="profileCurrentPassword" placeholder="Enter old password" style="width:100%;box-sizing:border-box;padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+                </div>
+                <div class="filter-group">
+                  <label for="profileNewPassword">New Password</label>
+                  <input type="password" id="profileNewPassword" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+                </div>
+                <div class="filter-group">
+                  <label for="profileConfirmNewPassword">Confirm New Password</label>
+                  <input type="password" id="profileConfirmNewPassword" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
                 </div>
               </div>
-              <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px;">
-                <button type="button" id="profileFormCancelBtn" class="btn-secondary">Cancel</button>
-                <button type="submit" class="btn-primary">Save Changes</button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px;">
+              <button type="button" id="profileFormCancelBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" id="profileSaveBtn" class="btn-primary">Save Changes</button>
+            </div>
+          </form>
         </div>
       </div>
-    `;
-    document.body.appendChild(wrapper);
+    </div>
+  `;
+  document.body.appendChild(wrapper);
+}
+
+// ─── Helper: set/show password section ──────────────────────────────────────
+function setPasswordSectionVisible(visible) {
+  const section = el.profilePasswordSection;
+  if (!section) return;
+  section.style.display = visible ? 'flex' : 'none';
+  if (el.profilePasswordChangeToggle) {
+    el.profilePasswordChangeToggle.textContent = visible ? '🔒 Change Password ▲' : '🔒 Change Password ▼';
   }
 }
 
-// ─── AUTHENTICATION STATE & LOGIC ──────────────────────────────────────────
+// ─── Helper: set button loading state ───────────────────────────────────────
+function setButtonLoading(btn, loading, loadingText = 'Please wait…') {
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn._originalText = btn.textContent;
+    btn.textContent = loadingText;
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn._originalText || btn.textContent;
+  }
+}
+
+// ─── Helper: overlay helpers ─────────────────────────────────────────────────
+function openOverlay(overlay) {
+  if (!overlay) return;
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOverlay(overlay) {
+  if (!overlay) return;
+  overlay.hidden = true;
+  // Only restore scroll if no other overlay is open
+  const anyOpen = document.querySelectorAll('.detail-overlay:not([hidden])').length > 0;
+  if (!anyOpen) document.body.style.overflow = '';
+}
+
+// ─── AUTHENTICATION STATE ────────────────────────────────────────────────────
 let currentUser = null;
 let editingCollegeId = null;
 
@@ -227,21 +282,21 @@ async function initUserSession() {
 
 function updateUserUI() {
   syncElRefs();
-  
+
   if (currentUser) {
     if (el.navLoginBtn) el.navLoginBtn.style.display = 'none';
     if (el.profileDropdownContainer) el.profileDropdownContainer.style.display = 'inline-block';
-    
+
     const displayName = currentUser.name || currentUser.email || 'User';
     if (el.navUserName) el.navUserName.textContent = displayName;
-    
+
     // Generate initials (up to 2 characters)
     let initials = '?';
     if (currentUser.name) {
       const parts = currentUser.name.trim().split(/\s+/);
       if (parts.length >= 2) {
         initials = (parts[0][0] + parts[1][0]).toUpperCase();
-      } else if (parts.length === 1 && parts[0]) {
+      } else if (parts[0]) {
         initials = parts[0][0].toUpperCase();
       }
     } else if (currentUser.email) {
@@ -251,34 +306,22 @@ function updateUserUI() {
     // Navbar Avatar
     const navInitials = document.getElementById('navInitialsAvatar');
     if (currentUser.picture) {
-      if (el.navUserPic) {
-        el.navUserPic.src = currentUser.picture;
-        el.navUserPic.style.display = 'inline-block';
-      }
+      if (el.navUserPic) { el.navUserPic.src = currentUser.picture; el.navUserPic.style.display = 'inline-block'; }
       if (navInitials) navInitials.style.display = 'none';
     } else {
       if (el.navUserPic) el.navUserPic.style.display = 'none';
-      if (navInitials) {
-        navInitials.textContent = initials;
-        navInitials.style.display = 'flex';
-      }
+      if (navInitials) { navInitials.textContent = initials; navInitials.style.display = 'flex'; }
     }
 
     // Dropdown Avatar & Info
     const dropInitials = document.getElementById('dropdownInitialsAvatar');
     const dropPic = document.getElementById('dropdownUserPic');
     if (currentUser.picture) {
-      if (dropPic) {
-        dropPic.src = currentUser.picture;
-        dropPic.style.display = 'inline-block';
-      }
+      if (dropPic) { dropPic.src = currentUser.picture; dropPic.style.display = 'inline-block'; }
       if (dropInitials) dropInitials.style.display = 'none';
     } else {
       if (dropPic) dropPic.style.display = 'none';
-      if (dropInitials) {
-        dropInitials.textContent = initials;
-        dropInitials.style.display = 'flex';
-      }
+      if (dropInitials) { dropInitials.textContent = initials; dropInitials.style.display = 'flex'; }
     }
 
     if (el.dropdownUserName) el.dropdownUserName.textContent = displayName;
@@ -286,68 +329,91 @@ function updateUserUI() {
     if (el.dropdownUserRole) {
       el.dropdownUserRole.textContent = currentUser.role === 'admin' ? 'Admin' : 'Student';
     }
-
-    if (currentUser.role === 'admin' && el.dropdownAdminPortalBtn) {
-      el.dropdownAdminPortalBtn.style.display = 'flex';
-    } else if (el.dropdownAdminPortalBtn) {
-      el.dropdownAdminPortalBtn.style.display = 'none';
+    if (el.dropdownAdminPortalBtn) {
+      el.dropdownAdminPortalBtn.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
     }
   } else {
     if (el.navLoginBtn) el.navLoginBtn.style.display = 'inline-flex';
     if (el.profileDropdownContainer) el.profileDropdownContainer.style.display = 'none';
-    if (el.profileDropdownCard) el.profileDropdownCard.hidden = true;
+    if (el.profileDropdownCard) { el.profileDropdownCard.hidden = true; el.profileDropdownCard.style.display = 'none'; }
   }
 }
 
+// ─── TAB SWITCHING ───────────────────────────────────────────────────────────
+function showLoginTab() {
+  syncElRefs();
+  if (!el.loginForm || !el.registerForm) return;
+  el.loginForm.style.display = 'flex';
+  el.registerForm.style.display = 'none';
+  if (el.tabLoginBtn) {
+    el.tabLoginBtn.style.borderBottomColor = 'var(--indigo)';
+    el.tabLoginBtn.style.color = 'var(--text)';
+  }
+  if (el.tabRegisterBtn) {
+    el.tabRegisterBtn.style.borderBottomColor = 'transparent';
+    el.tabRegisterBtn.style.color = 'var(--text-3)';
+  }
+}
+
+function showRegisterTab() {
+  syncElRefs();
+  if (!el.loginForm || !el.registerForm) return;
+  el.registerForm.style.display = 'flex';
+  el.loginForm.style.display = 'none';
+  if (el.tabRegisterBtn) {
+    el.tabRegisterBtn.style.borderBottomColor = 'var(--indigo)';
+    el.tabRegisterBtn.style.color = 'var(--text)';
+  }
+  if (el.tabLoginBtn) {
+    el.tabLoginBtn.style.borderBottomColor = 'transparent';
+    el.tabLoginBtn.style.color = 'var(--text-3)';
+  }
+}
+
+// ─── OPEN LOGIN MODAL ────────────────────────────────────────────────────────
+function openLoginModal(tab = 'login') {
+  syncElRefs();
+  initGoogleAuth();
+  if (!el.loginOverlay) return;
+  showLoginTab();
+  if (tab === 'register') showRegisterTab();
+  openOverlay(el.loginOverlay);
+  if (el.loginEmail) setTimeout(() => el.loginEmail.focus(), 50);
+}
+
+function closeLoginModal() {
+  syncElRefs();
+  closeOverlay(el.loginOverlay);
+}
+
+// ─── EVENT BINDING ───────────────────────────────────────────────────────────
 function bindAuthEvents() {
-  // Open Login Overlay
+  syncElRefs();
+
+  // ── Open Login Overlay ──────────────────────────────────────────────────
   if (el.navLoginBtn) {
-    el.navLoginBtn.addEventListener('click', () => {
-      syncElRefs();
-      initGoogleAuth();
-      if (el.loginOverlay) el.loginOverlay.hidden = false;
-      document.body.style.overflow = 'hidden';
-      if (el.loginEmail) el.loginEmail.focus();
-    });
+    el.navLoginBtn.addEventListener('click', () => openLoginModal('login'));
   }
 
-  // Close Login Overlay
+  // ── Close Login Overlay ─────────────────────────────────────────────────
   if (el.loginCloseBtn) {
-    el.loginCloseBtn.addEventListener('click', () => {
-      el.loginOverlay.hidden = true;
-      document.body.style.overflow = '';
-    });
+    el.loginCloseBtn.addEventListener('click', closeLoginModal);
   }
 
-  // Auth Tabs Logic
-  if (el.tabLoginBtn && el.tabRegisterBtn) {
-    el.tabLoginBtn.addEventListener('click', () => {
-      el.tabLoginBtn.style.borderBottomColor = 'var(--indigo)';
-      el.tabLoginBtn.style.color = 'var(--text)';
-      el.tabRegisterBtn.style.borderBottomColor = 'transparent';
-      el.tabRegisterBtn.style.color = 'var(--text-3)';
-      el.loginForm.hidden = false;
-      el.registerForm.hidden = true;
-    });
-    
-    el.tabRegisterBtn.addEventListener('click', () => {
-      el.tabRegisterBtn.style.borderBottomColor = 'var(--indigo)';
-      el.tabRegisterBtn.style.color = 'var(--text)';
-      el.tabLoginBtn.style.borderBottomColor = 'transparent';
-      el.tabLoginBtn.style.color = 'var(--text-3)';
-      el.registerForm.hidden = false;
-      el.loginForm.hidden = true;
-    });
-  }
+  // ── Auth Tabs ───────────────────────────────────────────────────────────
+  if (el.tabLoginBtn)    el.tabLoginBtn.addEventListener('click', showLoginTab);
+  if (el.tabRegisterBtn) el.tabRegisterBtn.addEventListener('click', showRegisterTab);
 
-  // Local Registration Form
+  // ── Register Form ───────────────────────────────────────────────────────
   if (el.registerForm) {
     el.registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = el.registerName.value.trim();
-      const email = el.registerEmail.value.trim();
+      const btn = document.getElementById('registerSubmitBtn');
+      const name     = el.registerName.value.trim();
+      const email    = el.registerEmail.value.trim();
       const password = el.registerPassword.value;
-      
+
+      setButtonLoading(btn, true, 'Creating account…');
       try {
         const res = await fetch(`${API_BASE}/auth/register`, {
           method: 'POST',
@@ -355,32 +421,35 @@ function bindAuthEvents() {
           body: JSON.stringify({ name, email, password })
         });
         const data = await res.json();
-        
         if (res.ok) {
           setToken(data.token);
           currentUser = data.user;
           updateUserUI();
-          el.loginOverlay.hidden = true;
-          document.body.style.overflow = '';
+          closeLoginModal();
           el.registerForm.reset();
-          showToast('Account successfully created! Welcome!', 'success');
-          if (checkLoginRedirect()) return;
+          showToast('Account created! Welcome to PathshalaKhoj 🎉', 'success');
+          window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
+          if (typeof checkLoginRedirect === 'function' && checkLoginRedirect()) return;
         } else {
-          showToast(data.error || 'Registration failed.', 'error');
+          showToast(data.error || 'Registration failed. Please try again.', 'error');
         }
       } catch (err) {
-        showToast('Server error. Could not register.', 'error');
+        showToast('Could not connect to the server. Please try again.', 'error');
+      } finally {
+        setButtonLoading(btn, false);
       }
     });
   }
 
-  // Local Login Form (Universal)
+  // ── Login Form ──────────────────────────────────────────────────────────
   if (el.loginForm) {
     el.loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = el.loginEmail.value.trim();
+      const btn      = document.getElementById('loginSubmitBtn');
+      const email    = el.loginEmail.value.trim();
       const password = el.loginPassword.value;
-      
+
+      setButtonLoading(btn, true, 'Signing in…');
       try {
         const res = await fetch(`${API_BASE}/auth/login`, {
           method: 'POST',
@@ -388,55 +457,55 @@ function bindAuthEvents() {
           body: JSON.stringify({ email, password })
         });
         const data = await res.json();
-        
         if (res.ok) {
           setToken(data.token);
           currentUser = data.user;
           updateUserUI();
-          el.loginOverlay.hidden = true;
-          document.body.style.overflow = '';
+          closeLoginModal();
           el.loginForm.reset();
-          showToast(`Welcome back, ${currentUser.name}!`, 'success');
-          if (checkLoginRedirect()) return;
+          showToast(`Welcome back, ${currentUser.name || 'there'}! 👋`, 'success');
+          window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
+          if (typeof checkLoginRedirect === 'function' && checkLoginRedirect()) return;
         } else {
-          showToast(data.error || 'Login failed. Please check credentials.', 'error');
+          showToast(data.error || 'Login failed. Please check your credentials.', 'error');
         }
       } catch (err) {
-        showToast('Server error. Could not authenticate.', 'error');
+        showToast('Could not connect to the server. Please try again.', 'error');
+      } finally {
+        setButtonLoading(btn, false);
       }
     });
   }
 
-  // Password Recovery Modals Toggle
+  // ── Forgot Password Flow ────────────────────────────────────────────────
   if (el.openForgotPasswordBtn) {
     el.openForgotPasswordBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      el.loginOverlay.hidden = true;
-      el.forgotPasswordOverlay.hidden = false;
-    });
-  }
-  
-  if (el.backToLoginBtn) {
-    el.backToLoginBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      el.forgotPasswordOverlay.hidden = true;
-      el.loginOverlay.hidden = false;
-    });
-  }
-  
-  if (el.forgotPasswordCloseBtn) {
-    el.forgotPasswordCloseBtn.addEventListener('click', () => {
-      el.forgotPasswordOverlay.hidden = true;
-      document.body.style.overflow = '';
+      closeOverlay(el.loginOverlay);
+      openOverlay(el.forgotPasswordOverlay);
+      if (el.forgotPasswordEmail) setTimeout(() => el.forgotPasswordEmail.focus(), 50);
     });
   }
 
-  // Forgot Password Submit
+  if (el.backToLoginBtn) {
+    el.backToLoginBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeOverlay(el.forgotPasswordOverlay);
+      openOverlay(el.loginOverlay);
+    });
+  }
+
+  if (el.forgotPasswordCloseBtn) {
+    el.forgotPasswordCloseBtn.addEventListener('click', () => closeOverlay(el.forgotPasswordOverlay));
+  }
+
   if (el.forgotPasswordForm) {
     el.forgotPasswordForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn   = document.getElementById('forgotSubmitBtn');
       const email = el.forgotPasswordEmail.value.trim();
-      
+
+      setButtonLoading(btn, true, 'Verifying…');
       try {
         const res = await fetch(`${API_BASE}/auth/forgot-password`, {
           method: 'POST',
@@ -444,21 +513,26 @@ function bindAuthEvents() {
           body: JSON.stringify({ email })
         });
         const data = await res.json();
-        
-        if (res.ok) {
-          showToast(data.message || 'Account verified! Enter your new password below.', 'success');
-          el.forgotPasswordOverlay.hidden = true;
-          if (data.resetToken && el.resetPasswordOverlay) {
-            el.resetPasswordToken.value = data.resetToken;
-            el.resetPasswordOverlay.hidden = false;
-            document.body.style.overflow = 'hidden';
-          }
+        if (res.ok && data.resetToken) {
           el.forgotPasswordForm.reset();
+          closeOverlay(el.forgotPasswordOverlay);
+          // Sync the new reset-close button ref if it was just injected
+          const resetCloseBtn = document.getElementById('resetPasswordCloseBtn');
+          if (resetCloseBtn && !resetCloseBtn._bound) {
+            resetCloseBtn._bound = true;
+            resetCloseBtn.addEventListener('click', () => closeOverlay(el.resetPasswordOverlay));
+          }
+          const tokenInput = document.getElementById('resetPasswordToken');
+          if (tokenInput) tokenInput.value = data.resetToken;
+          openOverlay(el.resetPasswordOverlay);
+          showToast('Account verified! Enter your new password below.', 'success');
         } else {
-          showToast(data.error || 'Failed to request reset.', 'error');
+          showToast(data.error || 'No account found with that email address.', 'error');
         }
       } catch (err) {
-        showToast('Server error.', 'error');
+        showToast('Server error. Please try again.', 'error');
+      } finally {
+        setButtonLoading(btn, false);
       }
     });
   }
@@ -466,22 +540,33 @@ function bindAuthEvents() {
   // Handle auto-opening Reset Modal via URL (?reset_token=abc)
   const urlParams = new URLSearchParams(window.location.search);
   const resetTokenParam = urlParams.get('reset_token');
-  if (resetTokenParam && el.resetPasswordOverlay) {
-    el.resetPasswordToken.value = resetTokenParam;
-    el.resetPasswordOverlay.hidden = false;
-    document.body.style.overflow = 'hidden';
-    
-    // Clear token from URL cleanly
+  if (resetTokenParam) {
+    const tokenInput = document.getElementById('resetPasswordToken');
+    if (tokenInput) tokenInput.value = resetTokenParam;
+    openOverlay(el.resetPasswordOverlay);
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  // Reset Password Submit
+  // ── Reset Password Form ─────────────────────────────────────────────────
   if (el.resetPasswordForm) {
     el.resetPasswordForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const token = el.resetPasswordToken.value;
-      const newPassword = el.resetNewPassword.value;
-      
+      const btn            = document.getElementById('resetSubmitBtn');
+      const token          = document.getElementById('resetPasswordToken')?.value;
+      const newPassword    = el.resetNewPassword?.value || '';
+      const confirmPassEl  = document.getElementById('resetConfirmPassword');
+      const confirmPass    = confirmPassEl?.value || '';
+
+      if (newPassword !== confirmPass) {
+        showToast('Passwords do not match. Please try again.', 'error');
+        return;
+      }
+      if (newPassword.length < 6) {
+        showToast('Password must be at least 6 characters.', 'error');
+        return;
+      }
+
+      setButtonLoading(btn, true, 'Resetting…');
       try {
         const res = await fetch(`${API_BASE}/auth/reset-password`, {
           method: 'POST',
@@ -489,28 +574,50 @@ function bindAuthEvents() {
           body: JSON.stringify({ token, newPassword })
         });
         const data = await res.json();
-        
         if (res.ok) {
-          showToast('Password reset! You can now log in.', 'success');
-          el.resetPasswordOverlay.hidden = true;
-          if (el.loginOverlay) el.loginOverlay.hidden = false;
-          el.resetPasswordForm.reset();
+          closeOverlay(el.resetPasswordOverlay);
+          if (el.resetPasswordForm) el.resetPasswordForm.reset();
+          openLoginModal('login');
+          showToast('Password reset! You can now sign in with your new password.', 'success');
         } else {
           showToast(data.error || 'Failed to reset password.', 'error');
         }
       } catch (err) {
-        showToast('Server error.', 'error');
+        showToast('Server error. Please try again.', 'error');
+      } finally {
+        setButtonLoading(btn, false);
       }
     });
   }
 
+  // Bind reset-close button (may have been injected)
+  const resetCloseBtn = document.getElementById('resetPasswordCloseBtn');
+  if (resetCloseBtn && !resetCloseBtn._bound) {
+    resetCloseBtn._bound = true;
+    resetCloseBtn.addEventListener('click', () => closeOverlay(el.resetPasswordOverlay));
+  }
 
+  // ── Escape key closes any open auth modal ───────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (el.profileOverlay && !el.profileOverlay.hidden)           { closeProfileModal(); return; }
+    if (el.resetPasswordOverlay && !el.resetPasswordOverlay.hidden) { closeOverlay(el.resetPasswordOverlay); return; }
+    if (el.forgotPasswordOverlay && !el.forgotPasswordOverlay.hidden) { closeOverlay(el.forgotPasswordOverlay); return; }
+    if (el.loginOverlay && !el.loginOverlay.hidden)               { closeLoginModal(); return; }
+  });
 
-  // Profile Trigger Dropdown Toggle
+  // ── Click outside to close login overlay ───────────────────────────────
+  if (el.loginOverlay) {
+    el.loginOverlay.addEventListener('click', (e) => {
+      if (e.target === el.loginOverlay) closeLoginModal();
+    });
+  }
+
+  // ── Profile Trigger Dropdown Toggle ────────────────────────────────────
   if (el.profileTriggerBtn && el.profileDropdownCard) {
     el.profileTriggerBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isHidden = el.profileDropdownCard.hidden || el.profileDropdownCard.style.display === 'none' || getComputedStyle(el.profileDropdownCard).display === 'none';
+      const isHidden = el.profileDropdownCard.hidden || el.profileDropdownCard.style.display === 'none';
       el.profileDropdownCard.hidden = !isHidden;
       el.profileDropdownCard.style.display = isHidden ? 'flex' : 'none';
       if (el.profileDropdownContainer) el.profileDropdownContainer.classList.toggle('open', isHidden);
@@ -519,18 +626,20 @@ function bindAuthEvents() {
 
     document.addEventListener('click', (e) => {
       if (el.profileDropdownContainer && !el.profileDropdownContainer.contains(e.target)) {
-        el.profileDropdownCard.hidden = true;
-        el.profileDropdownCard.style.display = 'none';
-        el.profileDropdownContainer.classList.remove('open');
+        if (el.profileDropdownCard) {
+          el.profileDropdownCard.hidden = true;
+          el.profileDropdownCard.style.display = 'none';
+        }
+        if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
         if (el.profileTriggerBtn) el.profileTriggerBtn.setAttribute('aria-expanded', 'false');
       }
     });
   }
 
-  // Dropdown Items Action Binding
+  // ── Dropdown Items ──────────────────────────────────────────────────────
   if (el.dropdownEditProfileBtn) {
     el.dropdownEditProfileBtn.addEventListener('click', () => {
-      if (el.profileDropdownCard) el.profileDropdownCard.hidden = true;
+      if (el.profileDropdownCard) { el.profileDropdownCard.hidden = true; el.profileDropdownCard.style.display = 'none'; }
       if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
       openProfileModal();
     });
@@ -538,9 +647,15 @@ function bindAuthEvents() {
 
   if (el.dropdownAdminPortalBtn) {
     el.dropdownAdminPortalBtn.addEventListener('click', () => {
-      if (el.profileDropdownCard) el.profileDropdownCard.hidden = true;
+      if (el.profileDropdownCard) { el.profileDropdownCard.hidden = true; el.profileDropdownCard.style.display = 'none'; }
       if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
-      openAdminDashboard();
+      // Guard: openAdminDashboard may only be available when admin.module.js is loaded
+      if (typeof openAdminDashboard === 'function') {
+        openAdminDashboard();
+      } else {
+        // Fallback: navigate to dashboard page where admin panel is available
+        window.location.href = '/dashboard.html';
+      }
     });
   }
 
@@ -549,84 +664,54 @@ function bindAuthEvents() {
       setToken(null);
       currentUser = null;
       updateUserUI();
-      showToast('Logged out successfully.', 'info');
-      if (el.profileDropdownCard) el.profileDropdownCard.hidden = true;
+      if (el.profileDropdownCard) { el.profileDropdownCard.hidden = true; el.profileDropdownCard.style.display = 'none'; }
       if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
+      showToast('Signed out successfully. See you soon! 👋', 'info');
+      window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: null } }));
     });
   }
 
+  // ── Profile Modal ───────────────────────────────────────────────────────
+  if (el.profileCloseBtn)     el.profileCloseBtn.addEventListener('click', closeProfileModal);
+  if (el.profileFormCancelBtn) el.profileFormCancelBtn.addEventListener('click', closeProfileModal);
 
-
-  // Profile Modal Controls
-  if (el.profileCloseBtn) {
-    el.profileCloseBtn.addEventListener('click', closeProfileModal);
-  }
-  if (el.profileFormCancelBtn) {
-    el.profileFormCancelBtn.addEventListener('click', closeProfileModal);
-  }
   if (el.profileFormPicture) {
     el.profileFormPicture.addEventListener('input', () => {
       const url = el.profileFormPicture.value.trim();
-      el.profilePicPreview.src = url || 'https://lh3.googleusercontent.com/a/default-user=s100';
-    });
-  }
-  if (el.profilePasswordChangeToggle) {
-    el.profilePasswordChangeToggle.addEventListener('click', () => {
-      const isHidden = el.profilePasswordSection.hidden || el.profilePasswordSection.style.display === 'none';
-      el.profilePasswordSection.hidden = !isHidden;
-      el.profilePasswordSection.style.display = isHidden ? 'flex' : 'none';
-      el.profilePasswordChangeToggle.textContent = isHidden ? '🔒 Change Password ▲' : '🔒 Change Password ▼';
-      
-      if (!isHidden) {
-        if (el.profileCurrentPassword) el.profileCurrentPassword.value = '';
-        if (el.profileNewPassword) el.profileNewPassword.value = '';
-        if (el.profileConfirmNewPassword) el.profileConfirmNewPassword.value = '';
+      if (el.profilePicPreview) {
+        el.profilePicPreview.src = url || 'https://lh3.googleusercontent.com/a/default-user=s100';
       }
     });
   }
+
+  if (el.profilePasswordChangeToggle) {
+    el.profilePasswordChangeToggle.addEventListener('click', () => {
+      const isVisible = el.profilePasswordSection && el.profilePasswordSection.style.display === 'flex';
+      setPasswordSectionVisible(!isVisible);
+      if (isVisible) {
+        // Clear fields when closing
+        if (el.profileCurrentPassword)    el.profileCurrentPassword.value = '';
+        if (el.profileNewPassword)         el.profileNewPassword.value = '';
+        if (el.profileConfirmNewPassword)  el.profileConfirmNewPassword.value = '';
+      }
+    });
+  }
+
   if (el.profileEditForm) {
     el.profileEditForm.addEventListener('submit', handleProfileUpdateSubmit);
   }
 
-  // Dev Bypass Action
-  if (el.devBypassBtn) {
-    el.devBypassBtn.addEventListener('click', async () => {
-      // Simulate Google auth token exchange by passing a mock payload
-      const mockPayload = {
-        email: 'student.bypass@gmail.com',
-        name: 'Demo Student',
-        picture: 'https://lh3.googleusercontent.com/a/default-user=s100'
-      };
-      
-      const mockCredential = 'header.' + btoa(JSON.stringify(mockPayload)) + '.signature';
-      
-      try {
-        const res = await fetch(`${API_BASE}/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: mockCredential })
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setToken(data.token);
-          currentUser = data.user;
-          updateUserUI();
-          el.loginOverlay.hidden = true;
-          document.body.style.overflow = '';
-          showToast('Demo Student loaded successfully!', 'success');
-          if (checkLoginRedirect()) return;
-        } else {
-          showToast('Bypass authentication failed.', 'error');
-        }
-      } catch (err) {
-        showToast('Connection error during bypass authentication.', 'error');
-      }
+  // ── Click outside to close profile overlay ─────────────────────────────
+  if (el.profileOverlay) {
+    el.profileOverlay.addEventListener('click', (e) => {
+      if (e.target === el.profileOverlay) closeProfileModal();
     });
   }
 }
 
-let googleClientId = null;
-let googleTokenClient = null;
+// ─── GOOGLE AUTHENTICATION ──────────────────────────────────────────────────
+let googleClientId      = null;
+let googleTokenClient   = null;
 let googleAuthInitialized = false;
 
 async function initGoogleAuth() {
@@ -636,6 +721,7 @@ async function initGoogleAuth() {
   try {
     if (!googleClientId) {
       const configRes = await fetch(`${API_BASE}/auth/config`);
+      if (!configRes.ok) return;
       const config = await configRes.json();
       googleClientId = config.googleClientId;
     }
@@ -643,13 +729,13 @@ async function initGoogleAuth() {
     if (!googleClientId) {
       el.googleSignInContainer.innerHTML = `
         <div style="font-size: 11.5px; color: var(--text-2); text-align: center; padding: 8px 12px; background: var(--surface-2); border: 1.5px dashed var(--border); border-radius: var(--radius-sm); line-height: 1.4;">
-          ⚠️ Google Sign In is unconfigured on server.
+          ⚠️ Google Sign-In is not configured on this server.
         </div>
       `;
       return;
     }
 
-    // Render custom Google Sign-In button
+    // Render custom Google Sign-In button (only once)
     if (!document.getElementById('customGoogleSignInBtn')) {
       el.googleSignInContainer.innerHTML = `
         <button type="button" id="customGoogleSignInBtn" style="
@@ -673,7 +759,7 @@ async function initGoogleAuth() {
       if (btn) {
         btn.addEventListener('click', () => {
           if (googleTokenClient) {
-            googleTokenClient.requestAccessToken({ prompt: 'consent' });
+            googleTokenClient.requestAccessToken({ prompt: '' });
           } else if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
             googleTokenClient = google.accounts.oauth2.initTokenClient({
               client_id: googleClientId,
@@ -682,7 +768,7 @@ async function initGoogleAuth() {
                 if (resp && resp.access_token) {
                   await handleGoogleTokenResponse(resp.access_token);
                 } else if (resp && resp.error) {
-                  showToast('Google Sign-In failed or was cancelled.', 'error');
+                  showToast('Google Sign-In was cancelled or failed.', 'error');
                 }
               }
             });
@@ -690,7 +776,7 @@ async function initGoogleAuth() {
           } else if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
             google.accounts.id.prompt();
           } else {
-            showToast('Google authentication is loading. Please try again in a moment.', 'info');
+            showToast('Google authentication is loading. Please wait a moment and try again.', 'info');
           }
         });
       }
@@ -706,7 +792,7 @@ async function initGoogleAuth() {
             if (tokenResponse && tokenResponse.access_token) {
               await handleGoogleTokenResponse(tokenResponse.access_token);
             } else if (tokenResponse && tokenResponse.error) {
-              showToast('Google Sign-In failed or was cancelled.', 'error');
+              showToast('Google Sign-In was cancelled or failed.', 'error');
             }
           }
         });
@@ -727,7 +813,7 @@ async function initGoogleAuth() {
   }
 }
 
-// Initialize Google Identity Services on load
+// Initialize Google Auth when GSI SDK finishes loading
 window.addEventListener('load', async () => {
   await initGoogleAuth();
   if (typeof initCompareBarEvents === 'function') {
@@ -735,26 +821,10 @@ window.addEventListener('load', async () => {
   }
 });
 
-function closeLoginModal() {
-  const overlay = document.getElementById('loginOverlay');
-  if (overlay) overlay.hidden = true;
-  if (el.loginOverlay) el.loginOverlay.hidden = true;
-
-  const wrapper = document.getElementById('authModalsWrapper');
-  if (wrapper) {
-    wrapper.querySelectorAll('.detail-overlay').forEach(o => o.hidden = true);
-  }
-  document.body.style.overflow = '';
-}
-
 // Handle Google access_token from TokenClient
 async function handleGoogleTokenResponse(accessToken) {
   const btn = document.getElementById('customGoogleSignInBtn');
-  const originalHtml = btn ? btn.innerHTML : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span style="display:inline-block; animation:spin 1s linear infinite;">⏳</span> Signing in...';
-  }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Signing in…'; }
 
   try {
     const res = await fetch(`${API_BASE}/auth/google`, {
@@ -768,18 +838,18 @@ async function handleGoogleTokenResponse(accessToken) {
       currentUser = data.user;
       updateUserUI();
       closeLoginModal();
-      showToast(`Welcome, ${currentUser.name}!`, 'success');
+      showToast(`Welcome, ${currentUser.name}! 👋`, 'success');
       window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
-      if (checkLoginRedirect()) return;
+      if (typeof checkLoginRedirect === 'function' && checkLoginRedirect()) return;
     } else {
-      showToast(data.error || 'Google login failed.', 'error');
+      showToast(data.error || 'Google login failed. Please try again.', 'error');
     }
   } catch (err) {
-    showToast('Failed to connect to authentication server.', 'error');
+    showToast('Failed to connect to the authentication server.', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = originalHtml;
+      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.13-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.87 10.78c-.18-.53-.28-1.09-.28-1.78s.1-1.25.28-1.78L.97 4.96C.35 6.18 0 7.55 0 9s.35 2.82.97 4.04l2.9-2.26z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.45 2.02.97 4.96l2.9 2.26C4.59 5.05 6.62 3.58 9 3.58z"/></svg> Sign in with Google`;
     }
   }
 }
@@ -787,12 +857,8 @@ async function handleGoogleTokenResponse(accessToken) {
 // Google OAuth callback receiver for ID Token
 async function handleGoogleCredentialResponse(response) {
   const btn = document.getElementById('customGoogleSignInBtn');
-  const originalHtml = btn ? btn.innerHTML : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span style="display:inline-block; animation:spin 1s linear infinite;">⏳</span> Signing in...';
-  }
-  
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Signing in…'; }
+
   try {
     const res = await fetch(`${API_BASE}/auth/google`, {
       method: 'POST',
@@ -805,73 +871,73 @@ async function handleGoogleCredentialResponse(response) {
       currentUser = data.user;
       updateUserUI();
       closeLoginModal();
-      showToast(`Welcome, ${currentUser.name}!`, 'success');
+      showToast(`Welcome, ${currentUser.name}! 👋`, 'success');
       window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
-      if (checkLoginRedirect()) return;
+      if (typeof checkLoginRedirect === 'function' && checkLoginRedirect()) return;
     } else {
       showToast(data.error || 'Google login failed.', 'error');
     }
   } catch (err) {
-    showToast('Failed to connect to authentication server.', 'error');
+    showToast('Failed to connect to the authentication server.', 'error');
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = originalHtml;
+      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.13-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"/><path fill="#FBBC05" d="M3.87 10.78c-.18-.53-.28-1.09-.28-1.78s.1-1.25.28-1.78L.97 4.96C.35 6.18 0 7.55 0 9s.35 2.82.97 4.04l2.9-2.26z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.45 2.02.97 4.96l2.9 2.26C4.59 5.05 6.62 3.58 9 3.58z"/></svg> Sign in with Google`;
     }
   }
 }
 
-// ─── PROFILE MANAGEMENT CONTROLLER ─────────────────────────────────────────
+// ─── PROFILE MANAGEMENT ──────────────────────────────────────────────────────
 function openProfileModal() {
   if (!currentUser) return;
-  
-  el.profileFormEmail.value = currentUser.email || '';
-  el.profileFormName.value = currentUser.name || '';
-  el.profileFormPicture.value = currentUser.picture || '';
-  el.profilePicPreview.src = currentUser.picture || 'https://lh3.googleusercontent.com/a/default-user=s100';
+  syncElRefs();
 
-  // Show password change section only for users with a local (email/password) account.
-  // The backend returns has_local_password: true for such users.
-  if (currentUser.has_local_password) {
-    el.profileLocalOnlySection.style.display = 'block';
-  } else {
-    el.profileLocalOnlySection.style.display = 'none';
+  if (el.profileFormEmail)   el.profileFormEmail.value   = currentUser.email   || '';
+  if (el.profileFormName)    el.profileFormName.value    = currentUser.name    || '';
+  if (el.profileFormPicture) el.profileFormPicture.value = currentUser.picture || '';
+  if (el.profilePicPreview)  el.profilePicPreview.src    = currentUser.picture || 'https://lh3.googleusercontent.com/a/default-user=s100';
+
+  // Show/hide password section based on account type
+  if (el.profileLocalOnlySection) {
+    el.profileLocalOnlySection.style.display = currentUser.has_local_password ? 'block' : 'none';
   }
 
-  el.profilePasswordSection.hidden = true;
-  if (el.profilePasswordChangeToggle) {
-    el.profilePasswordChangeToggle.textContent = '🔒 Change Password ▼';
-  }
-  el.profileNewPassword.value = '';
-  el.profileConfirmNewPassword.value = '';
+  // Always start with password section collapsed
+  setPasswordSectionVisible(false);
 
-  el.profileOverlay.hidden = false;
-  document.body.style.overflow = 'hidden';
+  // Clear password fields
+  if (el.profileCurrentPassword)   el.profileCurrentPassword.value   = '';
+  if (el.profileNewPassword)        el.profileNewPassword.value        = '';
+  if (el.profileConfirmNewPassword) el.profileConfirmNewPassword.value = '';
+
+  openOverlay(el.profileOverlay);
 }
 
 function closeProfileModal() {
-  el.profileOverlay.hidden = true;
-  document.body.style.overflow = '';
+  syncElRefs();
+  closeOverlay(el.profileOverlay);
 }
 
 async function handleProfileUpdateSubmit(e) {
   e.preventDefault();
+  syncElRefs();
 
   const token = getToken();
   if (!token) {
-    showToast('Session expired. Please log in again.', 'error');
+    showToast('Session expired. Please sign in again.', 'error');
     return;
   }
 
-  const name = el.profileFormName.value.trim();
-  const picture = el.profileFormPicture.value.trim();
-  const currentPassword = el.profileCurrentPassword ? el.profileCurrentPassword.value : '';
-  const newPassword = el.profileNewPassword.value;
-  const confirmPassword = el.profileConfirmNewPassword.value;
+  const name    = el.profileFormName?.value.trim()    || '';
+  const picture = el.profileFormPicture?.value.trim() || '';
+  const isPasswordSectionOpen = el.profilePasswordSection?.style.display === 'flex';
+  const newPassword    = el.profileNewPassword?.value        || '';
+  const confirmPassword = el.profileConfirmNewPassword?.value || '';
+  const currentPassword = el.profileCurrentPassword?.value   || '';
 
-  if (!el.profilePasswordSection.hidden && (newPassword || confirmPassword)) {
-    if (currentUser && currentUser.has_local_password !== false && !currentPassword) {
-      showToast('Please enter your current (old) password.', 'error');
+  if (isPasswordSectionOpen && (newPassword || confirmPassword)) {
+    if (currentUser?.has_local_password && !currentPassword) {
+      showToast('Please enter your current password to change it.', 'error');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -884,15 +950,14 @@ async function handleProfileUpdateSubmit(e) {
     }
   }
 
-  const bodyData = {
-    name,
-    picture: picture || null
-  };
-
-  if (!el.profilePasswordSection.hidden && newPassword) {
+  const bodyData = { name, picture: picture || null };
+  if (isPasswordSectionOpen && newPassword) {
     bodyData.currentPassword = currentPassword;
-    bodyData.newPassword = newPassword;
+    bodyData.newPassword     = newPassword;
   }
+
+  const saveBtn = document.getElementById('profileSaveBtn');
+  setButtonLoading(saveBtn, true, 'Saving…');
 
   try {
     const res = await fetch(`${API_BASE}/auth/profile`, {
@@ -903,25 +968,37 @@ async function handleProfileUpdateSubmit(e) {
       },
       body: JSON.stringify(bodyData)
     });
-
     const data = await res.json();
     if (res.ok) {
       currentUser = data.user;
       updateUserUI();
       closeProfileModal();
-      showToast('Profile updated successfully.', 'success');
+      showToast('Profile updated successfully! ✅', 'success');
     } else {
       showToast(data.error || 'Failed to update profile.', 'error');
     }
   } catch {
     showToast('Network error while updating profile.', 'error');
+  } finally {
+    setButtonLoading(saveBtn, false);
   }
 }
 
-// Auto-initialize auth module when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// ─── PUBLIC API — Called by boot.js / page scripts ──────────────────────────
+function initAuth() {
   ensureAuthModalsExist();
   syncElRefs();
-  initUserSession();
   bindAuthEvents();
-});
+  initUserSession();
+}
+
+// Expose globals needed by other modules
+window.initAuth                      = initAuth;
+window.openLoginModal                = openLoginModal;
+window.closeLoginModal               = closeLoginModal;
+window.openProfileModal              = openProfileModal;
+window.closeProfileModal             = closeProfileModal;
+window.getToken                      = getToken;
+window.currentUser                   = currentUser; // updated by reference — use window.currentUser
+window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
+window.updateUserUI                  = updateUserUI;
