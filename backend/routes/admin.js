@@ -142,7 +142,7 @@ router.post('/import', requireAuth, requireAdmin, async (req, res) => {
                placement_rate=?, campus_size=?, facilities=?, hostel_available=?,
                contact_email=?, contact_phone=?, website=?,
                student_rating=?, top_recruiters=?, scholarships_info=?, application_deadline=?,
-               logo_url=?, gallery_images=?, updated_at=NOW()
+               logo_url=?, gallery_images=?, updated_at=CURRENT_TIMESTAMP
              WHERE slug=?`,
             [
               c.name.trim(), c.city.trim(), c.state.trim(), c.stream, c.college_type, c.affiliation || null,

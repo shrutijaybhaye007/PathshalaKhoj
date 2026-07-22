@@ -361,7 +361,7 @@ router.put('/profile', require('../middlewares/authMiddleware').requireAuth, asy
     }
 
     if (updates.length > 0) {
-      updates.push("updated_at = NOW()");
+      updates.push("updated_at = CURRENT_TIMESTAMP");
       params.push(userId);
       await run(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`, params);
     }
