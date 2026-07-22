@@ -34,27 +34,48 @@ function hashPassword(pwd, salt) {
 }
 
 async function seedAdmin() {
-  const salt         = crypto.randomBytes(8).toString('hex');
-  const hash         = hashPassword(password, salt);
-  const passwordHash = `${salt}:${hash}`;
+  const targetEmail = (process.env.ADMIN_EMAIL || 'admin@pathshalakhoj.com').trim().toLowerCase();
+  const targetPassword = process.env.ADMIN_PASSWORD;
+  const adminName = process.env.ADMIN_NAME || 'System Admin';
 
-  const existing = await get('SELECT id FROM users WHERE email = ?', [email]);
-
-  if (existing) {
-    await run(
-      "UPDATE users SET name = ?, role = 'admin', password_hash = ?, updated_at = NOW() WHERE email = ?",
-      [name, passwordHash, email]
-    );
-    console.log(`[seed-admin] ✅ Admin account updated: ${email}`);
-  } else {
-    await run(
-      'INSERT INTO users (email, name, role, password_hash) VALUES (?, ?, ?, ?)',
-      [email, name, 'admin', passwordHash]
-    );
-    console.log(`[seed-admin] ✅ Admin account created: ${email}`);
+  if (!targetPassword) {
+    console.error('[seed-admin] ERROR: ADMIN_PASSWORD is not set.');
+    return;
   }
 
-  console.log('[seed-admin] Done. Keep your ADMIN_PASSWORD safe — do not commit it to git.');
+  if (targetPassword.length < 8) {
+    console.error('[seed-admin] ERROR: ADMIN_PASSWORD must be at least 8 characters.');
+    return;
+  }
+
+  const salt         = crypto.randomBytes(8).toString('hex');
+  const hash         = hashPassword(targetPassword, salt);
+  const passwordHash = `${salt}:${hash}`;
+
+  const userByEmail = await get('SELECT id, role FROM users WHERE LOWER(email) = ?', [targetEmail]);
+
+  if (userByEmail) {
+    await run(
+      "UPDATE users SET name = ?, role = 'admin', password_hash = ?, updated_at = NOW() WHERE id = ?",
+      [adminName, passwordHash, userByEmail.id]
+    );
+    console.log(`[seed-admin] ✅ Admin account updated for ${targetEmail}`);
+  } else {
+    const existingAdmin = await get("SELECT id FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1");
+    if (existingAdmin) {
+      await run(
+        "UPDATE users SET email = ?, name = ?, password_hash = ?, updated_at = NOW() WHERE id = ?",
+        [targetEmail, adminName, passwordHash, existingAdmin.id]
+      );
+      console.log(`[seed-admin] ✅ Updated existing admin email to ${targetEmail}`);
+    } else {
+      await run(
+        "INSERT INTO users (email, name, role, password_hash) VALUES (?, ?, 'admin', ?)",
+        [targetEmail, adminName, passwordHash]
+      );
+      console.log(`[seed-admin] ✅ Created new admin account for ${targetEmail}`);
+    }
+  }
 }
 
 if (require.main === module) {
