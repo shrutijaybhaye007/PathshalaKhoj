@@ -541,4 +541,20 @@ router.put('/profile', require('../middlewares/authMiddleware').requireAuth, asy
   }
 });
 
+/**
+ * DELETE /api/auth/account
+ * Permanently deletes the authenticated user's account.
+ */
+router.delete('/account', require('../middlewares/authMiddleware').requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await run('DELETE FROM users WHERE id = ?', [userId]);
+    res.json({ success: true, message: 'Your account has been deleted successfully.' });
+  } catch (err) {
+    console.error('DELETE /api/auth/account error:', err);
+    res.status(500).json({ error: 'Failed to delete account. Please try again.' });
+  }
+});
+
 module.exports = router;
+

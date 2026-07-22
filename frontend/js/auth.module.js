@@ -35,7 +35,7 @@ function syncElRefs() {
     'profileCloseBtn', 'profileEditForm', 'profilePicPreview', 'profileFormEmail', 'profileFormName',
     'profileFormPicture', 'profileLocalOnlySection', 'profilePasswordChangeToggle',
     'profilePasswordSection', 'profileCurrentPassword', 'profileNewPassword',
-    'profileConfirmNewPassword', 'profileFormCancelBtn'
+    'profileConfirmNewPassword', 'profileFormCancelBtn', 'profileDeleteAccountBtn'
   ];
   ids.forEach(id => {
     window.el[id] = document.getElementById(id);
@@ -189,7 +189,15 @@ function ensureAuthModalsExist() {
                 </div>
               </div>
             </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px;">
+            <!-- Danger Zone: Delete Account -->
+            <div style="border-top: 1px dashed rgba(239, 68, 68, 0.3); margin-top: 20px; padding-top: 14px; display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <div style="font-size: 12px; font-weight: 700; color: #ef4444;">Delete Account</div>
+                <div style="font-size: 11px; color: var(--text-3);">Permanently remove your account &amp; data</div>
+              </div>
+              <button type="button" id="profileDeleteAccountBtn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-xs); padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;">Delete Account</button>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px;">
               <button type="button" id="profileFormCancelBtn" class="btn-secondary">Cancel</button>
               <button type="submit" id="profileSaveBtn" class="btn-primary">Save Changes</button>
             </div>
@@ -630,6 +638,45 @@ function bindAuthEvents() {
 
   if (el.profileEditForm) {
     el.profileEditForm.addEventListener('submit', handleProfileUpdateSubmit);
+  }
+
+  if (el.profileDeleteAccountBtn) {
+    el.profileDeleteAccountBtn.addEventListener('click', async () => {
+      const confirmed = confirm('⚠️ Are you sure you want to permanently delete your account?\n\nThis action CANNOT be undone and all your account data will be removed.');
+      if (!confirmed) return;
+
+      const doubleConfirm = prompt('Type DELETE to confirm account deletion:');
+      if (doubleConfirm !== 'DELETE') {
+        showToast('Account deletion cancelled.', 'info');
+        return;
+      }
+
+      const token = getToken();
+      if (!token) return;
+
+      setButtonLoading(el.profileDeleteAccountBtn, true, 'Deleting…');
+      try {
+        const res = await fetch(`${API_BASE}/auth/account`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setToken(null);
+          currentUser = null;
+          updateUserUI();
+          closeProfileModal();
+          showToast('Your account has been permanently deleted.', 'info');
+          window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: null } }));
+        } else {
+          showToast(data.error || 'Failed to delete account.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error while deleting account.', 'error');
+      } finally {
+        setButtonLoading(el.profileDeleteAccountBtn, false);
+      }
+    });
   }
 
   // ── Click outside to close profile overlay ─────────────────────────────
