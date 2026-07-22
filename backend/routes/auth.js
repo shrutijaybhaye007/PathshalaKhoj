@@ -93,9 +93,42 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
 
   const errors = [];
 
-  // 1a. Try Brevo REST API
-  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+  // 1a. Try SendGrid REST API
+  const sendgridApiKey = (process.env.SENDGRID_API_KEY || '').trim().replace(/^["']|["']$/g, '');
   const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim().replace(/^["']|["']$/g, '');
+
+  if (sendgridApiKey) {
+    try {
+      const sgRes = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sendgridApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: toEmail }] }],
+          from: { email: senderEmail, name: 'PathshalaKhoj' },
+          subject: 'Reset your PathshalaKhoj password',
+          content: [{ type: 'text/html', value: htmlContent }]
+        }),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (sgRes.ok || sgRes.status === 202) {
+        console.log(`✅ Reset email sent via SendGrid API to ${toEmail}`);
+        return { sent: true, provider: 'sendgrid' };
+      } else {
+        const sgData = await sgRes.json().catch(() => ({}));
+        console.error('❌ SendGrid API Error:', sgRes.status, sgData);
+        errors.push({ provider: 'sendgrid', status: sgRes.status, detail: sgData });
+      }
+    } catch (sgErr) {
+      console.error('❌ SendGrid API Error:', sgErr.message);
+      errors.push({ provider: 'sendgrid', detail: sgErr.message });
+    }
+  }
+
+  // 1b. Try Brevo REST API
+  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
 
   if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
     try {
