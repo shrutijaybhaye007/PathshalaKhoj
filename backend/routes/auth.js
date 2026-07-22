@@ -20,8 +20,13 @@ function createTransporter() {
   if (!user || !pass) return null;
 
   return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass }
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user, pass },
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 8000
   });
 }
 
@@ -355,12 +360,10 @@ router.post('/forgot-password', async (req, res) => {
       [resetToken, expires, user.id]
     );
 
-    try {
-      await sendPasswordResetEmail(email, resetToken, user.name);
-    } catch (emailErr) {
-      console.error('Email send failed:', emailErr.message);
-      // Still respond — token is stored so user can try again
-    }
+    // Send email asynchronously in background so response returns instantly
+    sendPasswordResetEmail(email, resetToken, user.name).catch(emailErr => {
+      console.error('Email dispatch error:', emailErr.message);
+    });
 
     res.json({
       success: true,
