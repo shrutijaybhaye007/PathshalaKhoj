@@ -94,10 +94,10 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
   const errors = [];
 
   // 1a. Try Brevo REST API
-  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
-  const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim();
+  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+  const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim().replace(/^["']|["']$/g, '');
 
-  if (brevoApiKey) {
+  if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
     try {
       const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -111,7 +111,8 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
           to: [{ email: toEmail }],
           subject: 'Reset your PathshalaKhoj password',
           htmlContent: htmlContent
-        })
+        }),
+        signal: AbortSignal.timeout(8000)
       });
       const brevoData = await brevoRes.json();
       console.log(`🔍 Brevo REST API Status: ${brevoRes.status}`, JSON.stringify(brevoData));
