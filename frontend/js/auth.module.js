@@ -442,9 +442,13 @@ function bindAuthEvents() {
         const data = await res.json();
         
         if (res.ok) {
-          showToast('Reset link generated (Check server console for local demo)', 'success');
+          showToast(data.message || 'Account verified! Enter your new password below.', 'success');
           el.forgotPasswordOverlay.hidden = true;
-          document.body.style.overflow = '';
+          if (data.resetToken && el.resetPasswordOverlay) {
+            el.resetPasswordToken.value = data.resetToken;
+            el.resetPasswordOverlay.hidden = false;
+            document.body.style.overflow = 'hidden';
+          }
           el.forgotPasswordForm.reset();
         } else {
           showToast(data.error || 'Failed to request reset.', 'error');
@@ -485,7 +489,7 @@ function bindAuthEvents() {
         if (res.ok) {
           showToast('Password reset! You can now log in.', 'success');
           el.resetPasswordOverlay.hidden = true;
-          el.loginOverlay.hidden = false;
+          if (el.loginOverlay) el.loginOverlay.hidden = false;
           el.resetPasswordForm.reset();
         } else {
           showToast(data.error || 'Failed to reset password.', 'error');
@@ -502,8 +506,9 @@ function bindAuthEvents() {
   if (el.profileTriggerBtn && el.profileDropdownCard) {
     el.profileTriggerBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isHidden = el.profileDropdownCard.hidden;
+      const isHidden = el.profileDropdownCard.hidden || el.profileDropdownCard.style.display === 'none' || getComputedStyle(el.profileDropdownCard).display === 'none';
       el.profileDropdownCard.hidden = !isHidden;
+      el.profileDropdownCard.style.display = isHidden ? 'flex' : 'none';
       if (el.profileDropdownContainer) el.profileDropdownContainer.classList.toggle('open', isHidden);
       el.profileTriggerBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
     });
@@ -511,6 +516,7 @@ function bindAuthEvents() {
     document.addEventListener('click', (e) => {
       if (el.profileDropdownContainer && !el.profileDropdownContainer.contains(e.target)) {
         el.profileDropdownCard.hidden = true;
+        el.profileDropdownCard.style.display = 'none';
         el.profileDropdownContainer.classList.remove('open');
         if (el.profileTriggerBtn) el.profileTriggerBtn.setAttribute('aria-expanded', 'false');
       }

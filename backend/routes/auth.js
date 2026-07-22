@@ -244,7 +244,7 @@ router.post('/forgot-password', async (req, res) => {
     const email = rawEmail.trim().toLowerCase();
     const user = await get('SELECT id FROM users WHERE email = ?', [email]);
     if (!user) {
-      return res.json({ success: true, message: 'If an account exists, a reset link was sent.' });
+      return res.status(404).json({ error: 'No registered account found with this email address.' });
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
@@ -258,7 +258,11 @@ router.post('/forgot-password', async (req, res) => {
     console.log(`🔗 RESET TOKEN: ${resetToken}`);
     console.log(`=========================================\n`);
 
-    res.json({ success: true, message: 'If an account exists, a reset link was sent.' });
+    res.json({ 
+      success: true, 
+      resetToken: resetToken, 
+      message: 'Account verified! Please enter your new password below.' 
+    });
   } catch (err) {
     console.error('Forgot password error:', err);
     res.status(500).json({ error: 'Failed to process request.' });
