@@ -31,7 +31,7 @@ function syncElRefs() {
     'resetPasswordForm', 'resetPasswordToken', 'resetNewPassword', 'googleSignInContainer',
     'navLoginBtn', 'navUserPic', 'navUserName', 'profileDropdownContainer', 'profileTriggerBtn',
     'profileDropdownCard', 'dropdownUserName', 'dropdownUserEmail', 'dropdownUserRole',
-    'dropdownEditProfileBtn', 'dropdownAdminPortalBtn', 'dropdownLogoutBtn', 'profileOverlay',
+    'dropdownEditProfileBtn', 'dropdownStudentDashboardBtn', 'dropdownAdminPortalBtn', 'dropdownLogoutBtn', 'profileOverlay',
     'profileCloseBtn', 'profileEditForm', 'profilePicPreview', 'profileFormEmail', 'profileFormName',
     'profileFormPicture', 'profileLocalOnlySection', 'profilePasswordChangeToggle',
     'profilePasswordSection', 'profileCurrentPassword', 'profileNewPassword',
@@ -339,6 +339,9 @@ function updateUserUI() {
     }
     if (el.dropdownAdminPortalBtn) {
       el.dropdownAdminPortalBtn.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+    }
+    if (el.dropdownStudentDashboardBtn) {
+      el.dropdownStudentDashboardBtn.style.display = currentUser.role === 'admin' ? 'none' : 'flex';
     }
   } else {
     if (el.navLoginBtn) el.navLoginBtn.style.display = 'inline-flex';
