@@ -148,3 +148,66 @@ document.addEventListener('DOMContentLoaded', () => {
   populateAdminMetrics();
 
 });
+
+// Global Toast Notifications & Utility Helpers
+function showToast(message, type = 'info', duration = 3500) {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    container.setAttribute('aria-live', 'polite');
+    document.body.appendChild(container);
+  }
+
+  const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon" aria-hidden="true">${icons[type] || 'ℹ️'}</span>
+    <span class="toast-msg">${escapeHtml(message)}</span>
+    <button type="button" class="toast-close" aria-label="Dismiss notification">&#x2715;</button>
+  `;
+  const closeBtn = toast.querySelector('.toast-close');
+  if (closeBtn) closeBtn.addEventListener('click', () => removeToast(toast));
+  container.appendChild(toast);
+  setTimeout(() => removeToast(toast), duration);
+}
+
+function removeToast(toast) {
+  if (!toast) return;
+  toast.style.opacity = '0';
+  toast.style.transform = 'translateX(60px)';
+  toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+  setTimeout(() => { if (toast && toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+}
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function checkLoginRedirect() {
+  const p = new URLSearchParams(window.location.search);
+  const redirect = p.get('redirect');
+  if (redirect) {
+    try {
+      const url = new URL(redirect, window.location.origin);
+      if (url.origin === window.location.origin) {
+        window.location.href = redirect;
+        return true;
+      }
+    } catch (e) {}
+  }
+  return false;
+}
+
+window.showToast = showToast;
+window.removeToast = removeToast;
+window.escapeHtml = escapeHtml;
+window.checkLoginRedirect = checkLoginRedirect;
