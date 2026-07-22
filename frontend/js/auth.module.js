@@ -39,9 +39,7 @@ function syncElRefs() {
     'profilePasswordSection', 'profileNewPassword', 'profileConfirmNewPassword', 'profileFormCancelBtn'
   ];
   ids.forEach(id => {
-    if (!window.el[id]) {
-      window.el[id] = document.getElementById(id);
-    }
+    window.el[id] = document.getElementById(id);
   });
 }
 

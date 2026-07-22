@@ -125,8 +125,30 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
     }
 
-    const existingUser = await get('SELECT id FROM users WHERE email = ?', [email]);
+    const existingUser = await get('SELECT id, name, password_hash FROM users WHERE email = ?', [email]);
     if (existingUser) {
+      if (!existingUser.password_hash) {
+        // User originally created via Google Sign-In: set local password for dual login
+        const salt = crypto.randomBytes(8).toString('hex');
+        const hash = hashPassword(password, salt);
+        const passwordHash = `${salt}:${hash}`;
+
+        await run(
+          'UPDATE users SET password_hash = ?, name = COALESCE(name, ?), updated_at = NOW() WHERE id = ?',
+          [passwordHash, name.trim(), existingUser.id]
+        );
+
+        const token = jwt.sign(
+          { id: existingUser.id, email, role: 'user', name: existingUser.name || name.trim() },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        return res.status(200).json({
+          token,
+          user: { id: existingUser.id, email, name: existingUser.name || name.trim(), role: 'user' }
+        });
+      }
       return res.status(409).json({ error: 'An account with this email already exists. Please sign in instead.' });
     }
 
@@ -173,15 +195,26 @@ router.post('/login', async (req, res) => {
     }
 
     const user = await get('SELECT id, email, name, role, password_hash FROM users WHERE email = ?', [email]);
-    if (!user || !user.password_hash) {
-      return res.status(401).json({ error: 'Invalid credentials. If you used Google to sign up, please sign in with Google.' });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    const [salt, storedHash] = user.password_hash.split(':');
+    if (!user.password_hash) {
+      return res.status(401).json({
+        error: 'This account was created via Google Sign-In. Please sign in with Google or set a password using "Forgot password?".'
+      });
+    }
+
+    const parts = user.password_hash.split(':');
+    if (parts.length !== 2) {
+      return res.status(401).json({ error: 'Invalid password configuration. Please reset your password.' });
+    }
+
+    const [salt, storedHash] = parts;
     const computedHash = hashPassword(password, salt);
 
     if (computedHash !== storedHash) {
-      return res.status(401).json({ error: 'Invalid credentials.' });
+      return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const token = jwt.sign(
