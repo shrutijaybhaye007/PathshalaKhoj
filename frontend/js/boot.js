@@ -10,5 +10,10 @@
  *
  * Calling init() + initAuth() here guarantees every function it depends on is defined.
  */
-if (typeof init === 'function') init();
-if (typeof initAuth === 'function') initAuth();
+(async () => {
+  // Initialize authentication state first (defines currentUser, attaches auth event listeners)
+  if (typeof initAuth === 'function') await initAuth();
+  
+  // Then initialize the main application logic, which relies on currentUser
+  if (typeof init === 'function') await init();
+})();

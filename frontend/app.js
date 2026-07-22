@@ -315,8 +315,6 @@ function pushStateToURL() {
 
 async function init() {
   syncStateFromURL();
-  await initUserSession();
-  bindAuthEvents();
   
   // Check if redirected from another page to login
   if (new URLSearchParams(window.location.search).get('login') === 'true') {

@@ -985,11 +985,11 @@ async function handleProfileUpdateSubmit(e) {
 }
 
 // ─── PUBLIC API — Called by boot.js / page scripts ──────────────────────────
-function initAuth() {
+async function initAuth() {
   ensureAuthModalsExist();
   syncElRefs();
   bindAuthEvents();
-  initUserSession();
+  await initUserSession();
 }
 
 // Expose globals needed by other modules
