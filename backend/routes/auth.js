@@ -78,7 +78,6 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
             </td>
           </tr>
           <tr>
-            <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e8ecf0;text-align:center;">
               <p style="margin:0;color:#a0aec0;font-size:12px;">
                 © 2026 PathshalaKhoj · <a href="${SITE_URL}" style="color:#4f46e5;text-decoration:none;">pathshalakhoj.onrender.com</a>
               </p>
@@ -92,11 +91,13 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
 </html>
   `;
 
-  // 1a. Try Brevo REST API (if xkeysib- API key is provided)
+  const errors = [];
+
+  // 1a. Try Brevo REST API
   const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
   const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim();
 
-  if (brevoApiKey && brevoApiKey.startsWith('xkeysib-')) {
+  if (brevoApiKey) {
     try {
       const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -116,16 +117,18 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
       console.log(`🔍 Brevo REST API Status: ${brevoRes.status}`, JSON.stringify(brevoData));
       if (brevoRes.ok) {
         console.log(`✅ Reset email sent via Brevo REST API to ${toEmail} (messageId: ${brevoData.messageId})`);
-        return { sent: true, provider: 'brevo-rest' };
+        return { sent: true, provider: 'brevo-rest', messageId: brevoData.messageId };
       } else {
         console.error('❌ Brevo REST API Error:', brevoData);
+        errors.push({ provider: 'brevo-rest', status: brevoRes.status, detail: brevoData });
       }
     } catch (brevoErr) {
       console.error('❌ Brevo REST API Error:', brevoErr.message);
+      errors.push({ provider: 'brevo-rest', detail: brevoErr.message });
     }
   }
 
-  // 1b. Try Brevo SMTP Relay (if xsmtpsib- SMTP key is provided)
+  // 1b. Try Brevo SMTP Relay (if xsmtpsib- key)
   if (brevoApiKey && brevoApiKey.startsWith('xsmtpsib-')) {
     try {
       const brevoTransporter = nodemailer.createTransport({
@@ -150,6 +153,7 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
       return { sent: true, provider: 'brevo-smtp' };
     } catch (brevoSmtpErr) {
       console.error('❌ Brevo SMTP Relay Error:', brevoSmtpErr.message);
+      errors.push({ provider: 'brevo-smtp', detail: brevoSmtpErr.message });
     }
   }
 
@@ -176,38 +180,15 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
         return { sent: true, provider: 'resend' };
       } else {
         console.error('❌ Resend API Error:', resendData);
-        // Resend free plan: can only send to account owner's email
-        // Error code 403 = domain not verified
-        if (resendData.statusCode === 403 || resendRes.status === 403) {
-          console.error('⚠️  Resend: Domain not verified. Falling back to onboarding@resend.dev sender...');
-          // Retry with onboarding@resend.dev (only works for Resend account owner email)
-          const retryRes = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              from: 'PathshalaKhoj <onboarding@resend.dev>',
-              to: [toEmail],
-              subject: 'Reset your PathshalaKhoj password',
-              html: htmlContent
-            })
-          });
-          const retryData = await retryRes.json();
-          console.log('🔍 Resend Retry Status:', retryRes.status, JSON.stringify(retryData));
-          if (retryRes.ok) {
-            console.log(`✅ Reset email sent via Resend (onboarding sender) to ${toEmail}`);
-            return { sent: true, provider: 'resend-onboarding' };
-          }
-        }
+        errors.push({ provider: 'resend', status: resendRes.status, detail: resendData });
       }
     } catch (resendErr) {
       console.error('❌ Resend API Fetch Error:', resendErr.message);
+      errors.push({ provider: 'resend', detail: resendErr.message });
     }
   }
 
-  // 2. Try Nodemailer SMTP
+  // 3. Try Nodemailer SMTP
   const transporter = createTransporter();
   if (transporter) {
     try {
@@ -222,15 +203,15 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
       return { sent: true, provider: 'smtp' };
     } catch (smtpErr) {
       console.error(`❌ SMTP Send Error to ${toEmail}:`, smtpErr.message);
+      errors.push({ provider: 'smtp', detail: smtpErr.message });
     }
   }
 
-  // Fallback: log token to console
   console.log('\n=========================================');
   console.log(`🔐 PASSWORD RESET REQUESTED FOR: ${toEmail}`);
   console.log(`🔗 RESET LINK: ${resetLink}`);
   console.log('=========================================\n');
-  return { fallback: true };
+  return { fallback: true, errors };
 }
 
 // ─── Helper: hash password ────────────────────────────────────────────────────
