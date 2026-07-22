@@ -257,9 +257,11 @@ function bindAuthEvents() {
   // Open Login Overlay
   if (el.navLoginBtn) {
     el.navLoginBtn.addEventListener('click', () => {
-      el.loginOverlay.hidden = false;
+      syncElRefs();
+      initGoogleAuth();
+      if (el.loginOverlay) el.loginOverlay.hidden = false;
       document.body.style.overflow = 'hidden';
-      el.loginEmail.focus();
+      if (el.loginEmail) el.loginEmail.focus();
     });
   }
 
@@ -568,84 +570,111 @@ function bindAuthEvents() {
     });
   }
 
-  // Initialize Google Identity Services dynamically
-  window.addEventListener('load', async () => {
-    try {
+let googleClientId = null;
+let googleTokenClient = null;
+let googleAuthInitialized = false;
+
+async function initGoogleAuth() {
+  syncElRefs();
+  if (!el.googleSignInContainer) return;
+
+  try {
+    if (!googleClientId) {
       const configRes = await fetch(`${API_BASE}/auth/config`);
       const config = await configRes.json();
-      const client_id = config.googleClientId;
+      googleClientId = config.googleClientId;
+    }
 
-      if (typeof google !== 'undefined' && client_id) {
-        let tokenClient = null;
+    if (!googleClientId) {
+      el.googleSignInContainer.innerHTML = `
+        <div style="font-size: 11.5px; color: var(--text-2); text-align: center; padding: 8px 12px; background: var(--surface-2); border: 1.5px dashed var(--border); border-radius: var(--radius-sm); line-height: 1.4;">
+          ⚠️ Google Sign In is unconfigured on server.
+        </div>
+      `;
+      return;
+    }
 
-        // Initialize Token Client for Brave & 3rd-party cookie blocking browsers
-        if (google.accounts && google.accounts.oauth2) {
-          tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: client_id,
-            scope: 'email profile openid',
-            callback: async (tokenResponse) => {
-              if (tokenResponse && tokenResponse.access_token) {
-                await handleGoogleTokenResponse(tokenResponse.access_token);
+    // Render custom Google Sign-In button
+    if (!document.getElementById('customGoogleSignInBtn')) {
+      el.googleSignInContainer.innerHTML = `
+        <button type="button" id="customGoogleSignInBtn" style="
+          display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+          width: 280px; height: 42px; border-radius: 4px; border: 1px solid #dadce0;
+          background-color: #ffffff; color: #3c4043; font-family: 'Google Sans', Roboto, sans-serif;
+          font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;
+          box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
+        ">
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.13-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"/>
+            <path fill="#FBBC05" d="M3.87 10.78c-.18-.53-.28-1.09-.28-1.78s.1-1.25.28-1.78L.97 4.96C.35 6.18 0 7.55 0 9s.35 2.82.97 4.04l2.9-2.26z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.45 2.02.97 4.96l2.9 2.26C4.59 5.05 6.62 3.58 9 3.58z"/>
+          </svg>
+          Sign in with Google
+        </button>
+      `;
+
+      const btn = document.getElementById('customGoogleSignInBtn');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (googleTokenClient) {
+            googleTokenClient.requestAccessToken({ prompt: 'consent' });
+          } else if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+            googleTokenClient = google.accounts.oauth2.initTokenClient({
+              client_id: googleClientId,
+              scope: 'email profile openid',
+              callback: async (resp) => {
+                if (resp && resp.access_token) {
+                  await handleGoogleTokenResponse(resp.access_token);
+                }
               }
-            }
-          });
-        }
+            });
+            googleTokenClient.requestAccessToken({ prompt: 'consent' });
+          } else if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+            google.accounts.id.prompt();
+          } else {
+            showToast('Google authentication is loading. Please try again in a moment.', 'info');
+          }
+        });
+      }
+    }
 
-        // Initialize standard GIS
+    // Setup Token Client & GIS if SDK is present
+    if (typeof google !== 'undefined' && google.accounts) {
+      if (google.accounts.oauth2 && !googleTokenClient) {
+        googleTokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              await handleGoogleTokenResponse(tokenResponse.access_token);
+            }
+          }
+        });
+      }
+
+      if (google.accounts.id && !googleAuthInitialized) {
         google.accounts.id.initialize({
-          client_id: client_id,
+          client_id: googleClientId,
           callback: handleGoogleCredentialResponse,
           cancel_on_tap_outside: true,
           use_fedcm_for_prompt: true
         });
-
-        // Render custom button that works seamlessly across all browsers (including Brave)
-        if (el.googleSignInContainer) {
-          el.googleSignInContainer.innerHTML = `
-            <button type="button" id="customGoogleSignInBtn" style="
-              display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-              width: 280px; height: 42px; border-radius: 4px; border: 1px solid #dadce0;
-              background-color: #ffffff; color: #3c4043; font-family: 'Google Sans', Roboto, sans-serif;
-              font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s;
-              box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
-            ">
-              <svg width="18" height="18" viewBox="0 0 18 18">
-                <path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/>
-                <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.13-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"/>
-                <path fill="#FBBC05" d="M3.87 10.78c-.18-.53-.28-1.09-.28-1.78s.1-1.25.28-1.78L.97 4.96C.35 6.18 0 7.55 0 9s.35 2.82.97 4.04l2.9-2.26z"/>
-                <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.45 2.02.97 4.96l2.9 2.26C4.59 5.05 6.62 3.58 9 3.58z"/>
-              </svg>
-              Sign in with Google
-            </button>
-          `;
-
-          const btn = document.getElementById('customGoogleSignInBtn');
-          if (btn) {
-            btn.addEventListener('click', () => {
-              if (tokenClient) {
-                tokenClient.requestAccessToken({ prompt: 'consent' });
-              } else {
-                google.accounts.id.prompt();
-              }
-            });
-          }
-        }
-      } else if (el.googleSignInContainer) {
-        console.warn('Google Client ID not configured or SDK unavailable.');
-        el.googleSignInContainer.innerHTML = `
-          <div style="font-size: 11.5px; color: var(--text-2); text-align: center; padding: 8px 12px; background: var(--surface-2); border: 1.5px dashed var(--border); border-radius: var(--radius-sm); line-height: 1.4;">
-            ⚠️ Google Sign In is unconfigured.
-          </div>
-        `;
+        googleAuthInitialized = true;
       }
-    } catch (err) {
-      console.error('Failed to fetch auth configuration from server:', err);
     }
+  } catch (err) {
+    console.error('initGoogleAuth error:', err);
+  }
+}
 
-    if (typeof initCompareBarEvents === 'function') {
-      initCompareBarEvents();
-    }
-  });
+// Initialize Google Identity Services on load
+window.addEventListener('load', async () => {
+  await initGoogleAuth();
+  if (typeof initCompareBarEvents === 'function') {
+    initCompareBarEvents();
+  }
+});
 }
 
 // Handle Google access_token from TokenClient
