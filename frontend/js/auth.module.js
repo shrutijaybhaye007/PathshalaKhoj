@@ -36,7 +36,7 @@ function syncElRefs() {
     'dropdownEditProfileBtn', 'dropdownAdminPortalBtn', 'dropdownLogoutBtn', 'profileOverlay',
     'profileCloseBtn', 'profileEditForm', 'profilePicPreview', 'profileFormEmail', 'profileFormName',
     'profileFormPicture', 'profileLocalOnlySection', 'profilePasswordChangeToggle',
-    'profilePasswordSection', 'profileNewPassword', 'profileConfirmNewPassword', 'profileFormCancelBtn'
+    'profilePasswordSection', 'profileCurrentPassword', 'profileNewPassword', 'profileConfirmNewPassword', 'profileFormCancelBtn'
   ];
   ids.forEach(id => {
     window.el[id] = document.getElementById(id);
@@ -157,6 +157,10 @@ function ensureAuthModalsExist() {
               <div id="profileLocalOnlySection" style="display: none;">
                 <button type="button" id="profilePasswordChangeToggle" class="password-change-toggle-btn">🔒 Change Password ▼</button>
                 <div id="profilePasswordSection" class="password-change-section" hidden style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+                  <div class="filter-group">
+                    <label for="profileCurrentPassword">Current (Old) Password</label>
+                    <input type="password" id="profileCurrentPassword" placeholder="Enter old password" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
+                  </div>
                   <div class="filter-group">
                     <label for="profileNewPassword">New Password</label>
                     <input type="password" id="profileNewPassword" placeholder="••••••••" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-2); background: var(--surface-3); color: var(--text); outline: none; font-size:13px;" />
@@ -859,16 +863,21 @@ async function handleProfileUpdateSubmit(e) {
 
   const name = el.profileFormName.value.trim();
   const picture = el.profileFormPicture.value.trim();
+  const currentPassword = el.profileCurrentPassword ? el.profileCurrentPassword.value : '';
   const newPassword = el.profileNewPassword.value;
   const confirmPassword = el.profileConfirmNewPassword.value;
 
   if (!el.profilePasswordSection.hidden && (newPassword || confirmPassword)) {
+    if (currentUser && currentUser.has_local_password !== false && !currentPassword) {
+      showToast('Please enter your current (old) password.', 'error');
+      return;
+    }
     if (newPassword !== confirmPassword) {
       showToast('New passwords do not match.', 'error');
       return;
     }
     if (newPassword.length < 6) {
-      showToast('Password must be at least 6 characters.', 'error');
+      showToast('New password must be at least 6 characters.', 'error');
       return;
     }
   }
@@ -879,6 +888,7 @@ async function handleProfileUpdateSubmit(e) {
   };
 
   if (!el.profilePasswordSection.hidden && newPassword) {
+    bodyData.currentPassword = currentPassword;
     bodyData.newPassword = newPassword;
   }
 

@@ -369,7 +369,7 @@ router.get('/me', require('../middlewares/authMiddleware').requireAuth, async (r
  */
 router.put('/profile', require('../middlewares/authMiddleware').requireAuth, async (req, res) => {
   try {
-    const { name, picture, newPassword } = req.body;
+    const { name, picture, currentPassword, newPassword } = req.body;
     const userId = req.user.id;
 
     const existingUser = await get('SELECT id, password_hash FROM users WHERE id = ?', [userId]);
@@ -394,6 +394,17 @@ router.put('/profile', require('../middlewares/authMiddleware').requireAuth, asy
       if (newPassword.length < 6) {
         return res.status(400).json({ error: 'New password must be at least 6 characters.' });
       }
+
+      if (existingUser.password_hash) {
+        if (!currentPassword) {
+          return res.status(400).json({ error: 'Current (old) password is required to change password.' });
+        }
+        const [salt, storedHash] = existingUser.password_hash.split(':');
+        if (hashPassword(currentPassword, salt) !== storedHash) {
+          return res.status(400).json({ error: 'Incorrect current (old) password.' });
+        }
+      }
+
       const salt = crypto.randomBytes(8).toString('hex');
       const hash = hashPassword(newPassword, salt);
       const passwordHash = `${salt}:${hash}`;
