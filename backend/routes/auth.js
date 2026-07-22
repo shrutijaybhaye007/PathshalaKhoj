@@ -35,25 +35,10 @@ function createTransporter() {
 }
 
 async function sendPasswordResetEmail(toEmail, resetToken, userName) {
-  const transporter = createTransporter();
   const resetLink = `${SITE_URL}/reset-password.html?token=${resetToken}`;
-
-  if (!transporter) {
-    // Fallback: log to console in dev / if SMTP not configured
-    console.log('\n=========================================');
-    console.log(`🔐 PASSWORD RESET REQUESTED FOR: ${toEmail}`);
-    console.log(`🔗 RESET LINK: ${resetLink}`);
-    console.log('=========================================\n');
-    return { fallback: true };
-  }
-
   const firstName = (userName || toEmail).split(' ')[0];
 
-  await transporter.sendMail({
-    from: `"PathshalaKhoj" <${process.env.SMTP_USER}>`,
-    to: toEmail,
-    subject: 'Reset your PathshalaKhoj password',
-    html: `
+  const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -66,14 +51,12 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
     <tr>
       <td align="center">
         <table width="100%" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-          <!-- Header -->
           <tr>
             <td style="background:linear-gradient(135deg,#1a1a3e 0%,#2d2d6b 100%);padding:36px 40px;text-align:center;">
               <h1 style="margin:0;color:#F5A623;font-size:28px;font-weight:800;letter-spacing:-0.5px;">PathshalaKhoj</h1>
               <p style="margin:6px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">India's College Discovery Platform</p>
             </td>
           </tr>
-          <!-- Body -->
           <tr>
             <td style="padding:40px 40px 32px;">
               <h2 style="margin:0 0 8px;color:#1a1a3e;font-size:22px;font-weight:700;">Hi ${firstName},</h2>
@@ -94,7 +77,6 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
               </p>
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e8ecf0;text-align:center;">
               <p style="margin:0;color:#a0aec0;font-size:12px;">
@@ -108,11 +90,60 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
   </table>
 </body>
 </html>
-    `,
-    text: `Hi ${firstName},\n\nWe received a request to reset your PathshalaKhoj password.\n\nClick this link to reset it (expires in 1 hour):\n${resetLink}\n\nIf you didn't request this, ignore this email.\n\n— PathshalaKhoj Team`
-  });
+  `;
 
-  return { sent: true };
+  // 1. Try Resend HTTP API (HTTPS port 443 — works unblocked on Render)
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: 'PathshalaKhoj <onboarding@resend.dev>',
+          to: [toEmail],
+          subject: 'Reset your PathshalaKhoj password',
+          html: htmlContent
+        })
+      });
+      const resendData = await resendRes.json();
+      if (resendRes.ok) {
+        console.log(`✅ Reset email sent via Resend API to ${toEmail} (id: ${resendData.id})`);
+        return { sent: true, provider: 'resend' };
+      } else {
+        console.error('❌ Resend API Error:', resendData);
+      }
+    } catch (resendErr) {
+      console.error('❌ Resend API Fetch Error:', resendErr.message);
+    }
+  }
+
+  // 2. Try Nodemailer SMTP
+  const transporter = createTransporter();
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from: `"PathshalaKhoj" <${process.env.SMTP_USER}>`,
+        to: toEmail,
+        subject: 'Reset your PathshalaKhoj password',
+        html: htmlContent,
+        text: `Hi ${firstName},\n\nClick this link to reset your PathshalaKhoj password:\n${resetLink}\n\nLink expires in 1 hour.`
+      });
+      console.log(`✅ Reset email sent via SMTP to ${toEmail}`);
+      return { sent: true, provider: 'smtp' };
+    } catch (smtpErr) {
+      console.error(`❌ SMTP Send Error to ${toEmail}:`, smtpErr.message);
+    }
+  }
+
+  // Fallback: log token to console
+  console.log('\n=========================================');
+  console.log(`🔐 PASSWORD RESET REQUESTED FOR: ${toEmail}`);
+  console.log(`🔗 RESET LINK: ${resetLink}`);
+  console.log('=========================================\n');
+  return { fallback: true };
 }
 
 // ─── Helper: hash password ────────────────────────────────────────────────────
