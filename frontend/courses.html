@@ -19,7 +19,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=17.0" />
+  <link rel="stylesheet" href="styles.css?v=18.0" />
   <style>
     /* Premium style overrides for Courses page */
     .courses-search-wrapper {
@@ -318,6 +318,7 @@
         
         <div id="profileDropdownContainer" class="profile-dropdown-container" style="display: none;">
           <button type="button" id="profileTriggerBtn" class="profile-trigger-btn" aria-haspopup="true" aria-expanded="false" aria-label="Open user menu">
+            <div id="navInitialsAvatar" class="profile-initials-avatar" style="display: none;"></div>
             <img id="navUserPic" class="profile-trigger-avatar" src="" alt="Profile picture" style="display: none;" />
             <span id="navUserName">User</span>
             <span class="profile-trigger-chevron">▼</span>
@@ -325,9 +326,15 @@
           
           <div id="profileDropdownCard" class="profile-dropdown-card" hidden>
             <div class="profile-dropdown-header">
-              <span id="dropdownUserName" class="dropdown-user-name">User Name</span>
+              <div class="dropdown-header-main">
+                <div id="dropdownInitialsAvatar" class="dropdown-initials-avatar" style="display: none;"></div>
+                <img id="dropdownUserPic" class="dropdown-user-pic" src="" alt="Profile picture" style="display: none;" />
+                <div class="dropdown-user-details">
+                  <span id="dropdownUserName" class="dropdown-user-name">User Name</span>
               <span id="dropdownUserEmail" class="dropdown-user-email">user@email.com</span>
-              <span id="dropdownUserRole" class="dropdown-user-role">Student</span>
+                  <span id="dropdownUserRole" class="dropdown-user-role">Student</span>
+                </div>
+              </div>
             </div>
             <a href="dashboard.html" class="profile-dropdown-item" style="text-decoration: none; color: inherit;">
               <span class="dropdown-item-icon">📊</span> Student Dashboard
@@ -952,9 +959,9 @@
 
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="global.js?v=17.0"></script>
-  <script src="js/auth.module.js?v=17.0"></script>
-  <script src="courses.js?v=17.0"></script>
+  <script src="global.js?v=18.0"></script>
+  <script src="js/auth.module.js?v=18.0"></script>
+  <script src="courses.js?v=18.0"></script>
 
   <!-- ============ GLOBAL FOOTER ============ -->
   <footer class="site-footer" style="background: #0B2545 !important; color: #ffffff !important; padding: 50px 20px 24px !important; margin-top: 60px !important; width: 100% !important; box-sizing: border-box !important; display: block !important; clear: both !important;">

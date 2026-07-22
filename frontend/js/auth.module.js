@@ -223,19 +223,61 @@ async function initUserSession() {
 
 function updateUserUI() {
   syncElRefs();
+  
   if (currentUser) {
     if (el.navLoginBtn) el.navLoginBtn.style.display = 'none';
     if (el.profileDropdownContainer) el.profileDropdownContainer.style.display = 'inline-block';
     
-    if (el.navUserName) el.navUserName.textContent = currentUser.name || currentUser.email;
-    if (currentUser.picture && el.navUserPic) {
-      el.navUserPic.src = currentUser.picture;
-      el.navUserPic.style.display = 'inline-block';
-    } else if (el.navUserPic) {
-      el.navUserPic.style.display = 'none';
+    const displayName = currentUser.name || currentUser.email || 'User';
+    if (el.navUserName) el.navUserName.textContent = displayName;
+    
+    // Generate initials (up to 2 characters)
+    let initials = '?';
+    if (currentUser.name) {
+      const parts = currentUser.name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        initials = (parts[0][0] + parts[1][0]).toUpperCase();
+      } else if (parts.length === 1 && parts[0]) {
+        initials = parts[0][0].toUpperCase();
+      }
+    } else if (currentUser.email) {
+      initials = currentUser.email[0].toUpperCase();
     }
 
-    if (el.dropdownUserName) el.dropdownUserName.textContent = currentUser.name || 'User';
+    // Navbar Avatar
+    const navInitials = document.getElementById('navInitialsAvatar');
+    if (currentUser.picture) {
+      if (el.navUserPic) {
+        el.navUserPic.src = currentUser.picture;
+        el.navUserPic.style.display = 'inline-block';
+      }
+      if (navInitials) navInitials.style.display = 'none';
+    } else {
+      if (el.navUserPic) el.navUserPic.style.display = 'none';
+      if (navInitials) {
+        navInitials.textContent = initials;
+        navInitials.style.display = 'flex';
+      }
+    }
+
+    // Dropdown Avatar & Info
+    const dropInitials = document.getElementById('dropdownInitialsAvatar');
+    const dropPic = document.getElementById('dropdownUserPic');
+    if (currentUser.picture) {
+      if (dropPic) {
+        dropPic.src = currentUser.picture;
+        dropPic.style.display = 'inline-block';
+      }
+      if (dropInitials) dropInitials.style.display = 'none';
+    } else {
+      if (dropPic) dropPic.style.display = 'none';
+      if (dropInitials) {
+        dropInitials.textContent = initials;
+        dropInitials.style.display = 'flex';
+      }
+    }
+
+    if (el.dropdownUserName) el.dropdownUserName.textContent = displayName;
     if (el.dropdownUserEmail) el.dropdownUserEmail.textContent = currentUser.email || '';
     if (el.dropdownUserRole) {
       el.dropdownUserRole.textContent = currentUser.role === 'admin' ? 'Admin' : 'Student';
