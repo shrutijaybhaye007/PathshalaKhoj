@@ -107,7 +107,8 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
           'content-type': 'application/json'
         },
         body: JSON.stringify({
-          sender: { name: 'PathshalaKhoj', email: senderEmail },
+          sender: { name: 'PathshalaKhoj', email: (process.env.BREVO_SENDER_EMAIL || 'no-reply@brevomail.com').trim() },
+          replyTo: { name: 'PathshalaKhoj Support', email: senderEmail },
           to: [{ email: toEmail }],
           subject: 'Reset your PathshalaKhoj password',
           htmlContent: htmlContent
