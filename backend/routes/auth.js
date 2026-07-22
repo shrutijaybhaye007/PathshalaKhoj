@@ -136,7 +136,7 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
         port: 587,
         secure: false,
         auth: {
-          user: senderEmail,
+          user: (process.env.BREVO_SMTP_USER || senderEmail).trim(),
           pass: brevoApiKey
         },
         connectionTimeout: 10000,
