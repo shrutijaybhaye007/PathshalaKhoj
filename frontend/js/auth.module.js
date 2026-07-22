@@ -607,6 +607,9 @@ function bindAuthEvents() {
       if (el.profileDropdownContainer) el.profileDropdownContainer.classList.remove('open');
       showToast('Signed out successfully. See you soon! 👋', 'info');
       window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: null } }));
+      if (window.location.pathname.includes('dashboard.html')) {
+        window.location.href = '/';
+      }
     });
   }
 
@@ -668,6 +671,9 @@ function bindAuthEvents() {
           closeProfileModal();
           showToast('Your account has been permanently deleted.', 'info');
           window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: null } }));
+          if (window.location.pathname.includes('dashboard.html')) {
+            window.location.href = '/';
+          }
         } else {
           showToast(data.error || 'Failed to delete account.', 'error');
         }

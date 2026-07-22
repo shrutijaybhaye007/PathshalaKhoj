@@ -9,6 +9,12 @@ if (!token) {
   window.location.href = '/?login=true';
 }
 
+window.addEventListener('pk:auth-changed', (e) => {
+  if (!e.detail || !e.detail.user) {
+    window.location.href = '/?login=true';
+  }
+});
+
 // ── Toast notification utility (dashboard-local since app.js isn't loaded here) ──
 function showToast(message, type = 'info', duration = 3500) {
   let container = document.querySelector('.toast-container');
