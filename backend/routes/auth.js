@@ -435,13 +435,10 @@ router.post('/forgot-password', async (req, res) => {
 
     const email = rawEmail.trim().toLowerCase();
 
-    // Always respond with success to prevent email enumeration attacks
     const user = await get('SELECT id, name FROM users WHERE email = ?', [email]);
     if (!user) {
-      // Don't reveal if the email exists or not
-      return res.json({
-        success: true,
-        message: 'If an account exists for that email, a reset link has been sent.'
+      return res.status(400).json({
+        error: 'No account registered with that email address. Please check spelling or click "Sign Up" to create an account.'
       });
     }
 
@@ -453,14 +450,17 @@ router.post('/forgot-password', async (req, res) => {
       [resetToken, expires, user.id]
     );
 
-    // Send email asynchronously in background so response returns instantly
-    sendPasswordResetEmail(email, resetToken, user.name).catch(emailErr => {
-      console.error('Email dispatch error:', emailErr.message);
-    });
+    // Send email via Brevo / SMTP API
+    try {
+      const dispatch = await sendPasswordResetEmail(email, resetToken, user.name);
+      console.log('📧 Password reset email result:', dispatch);
+    } catch (emailErr) {
+      console.error('📧 Email dispatch error:', emailErr.message);
+    }
 
     res.json({
       success: true,
-      message: 'If an account exists for that email, a reset link has been sent.'
+      message: 'Reset link sent! Please check your inbox (and spam folder).'
     });
   } catch (err) {
     console.error('Forgot password error:', err);
