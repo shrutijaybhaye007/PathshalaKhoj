@@ -293,41 +293,6 @@ router.get('/config', (req, res) => {
 });
 
 /**
- * GET /api/auth/email-debug
- * Diagnostic endpoint to check email configuration and run live dispatch test.
- */
-router.get('/email-debug', async (req, res) => {
-  const brevoKey  = (process.env.BREVO_API_KEY || '').trim();
-  const resendKey = (process.env.RESEND_API_KEY || '').trim();
-  const smtpUser  = (process.env.SMTP_USER || '').trim();
-
-  const envInfo = {
-    hasBrevoKey: Boolean(brevoKey),
-    brevoKeyPrefix: brevoKey ? brevoKey.substring(0, 12) + '...' : null,
-    hasResendKey: Boolean(resendKey),
-    resendKeyPrefix: resendKey ? resendKey.substring(0, 8) + '...' : null,
-    hasSmtpUser: Boolean(smtpUser),
-    smtpUser: smtpUser || null,
-    siteUrl: SITE_URL
-  };
-
-  if (req.query.send === 'true') {
-    const testTarget = (req.query.email || smtpUser || 'itme28563@gmail.com').trim();
-    try {
-      const dispatchResult = await sendPasswordResetEmail(testTarget, 'debug-token-123', 'Test User');
-      return res.json({ env: envInfo, testEmail: testTarget, dispatchResult });
-    } catch (err) {
-      return res.json({ env: envInfo, testEmail: testTarget, error: err.message });
-    }
-  }
-
-  res.json({
-    env: envInfo,
-    hint: 'Visit /api/auth/email-debug?send=true&email=your@email.com to send a live test email'
-  });
-});
-
-/**
  * POST /api/auth/google
  * Verifies Google OAuth token, finds or creates user, and returns JWT.
  */

@@ -24,6 +24,16 @@ database.sqlite
 task.md
 merge_seed.js
 
+# Backend one-off dev/audit/fix scripts (never needed in production)
+backend/db_*.js
+backend/check_*.js
+backend/find_*.js
+backend/parse_*.js
+backend/test_*.js
+backend/ddg_*.html
+backend/scratch_*.js
+scratch-*.js
+
 # Build output
 dist/
 build/
