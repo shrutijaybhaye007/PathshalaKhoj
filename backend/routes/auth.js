@@ -92,7 +92,36 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
 </html>
   `;
 
-  // 1. Try Resend HTTP API (HTTPS port 443 — works unblocked on Render)
+  // 1. Try Brevo (Sendinblue) API (Free 300 emails/day to ANY email address, HTTPS port 443)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: 'PathshalaKhoj', email: process.env.SMTP_USER || 'itme28563@gmail.com' },
+          to: [{ email: toEmail }],
+          subject: 'Reset your PathshalaKhoj password',
+          htmlContent: htmlContent
+        })
+      });
+      const brevoData = await brevoRes.json();
+      console.log(`🔍 Brevo API Status: ${brevoRes.status}`, JSON.stringify(brevoData));
+      if (brevoRes.ok) {
+        console.log(`✅ Reset email sent via Brevo API to ${toEmail}`);
+        return { sent: true, provider: 'brevo' };
+      } else {
+        console.error('❌ Brevo API Error:', brevoData);
+      }
+    } catch (brevoErr) {
+      console.error('❌ Brevo API Fetch Error:', brevoErr.message);
+    }
+  }
+
+  // 2. Try Resend HTTP API (HTTPS port 443)
   if (process.env.RESEND_API_KEY) {
     try {
       const resendRes = await fetch('https://api.resend.com/emails', {
