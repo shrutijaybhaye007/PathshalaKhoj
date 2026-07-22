@@ -93,16 +93,19 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
   `;
 
   // 1. Try Brevo (Sendinblue) API (Free 300 emails/day to ANY email address, HTTPS port 443)
-  if (process.env.BREVO_API_KEY) {
+  const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
+  if (brevoApiKey) {
     try {
+      const senderEmail = (process.env.SMTP_USER || 'itme28563@gmail.com').trim();
       const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'api-key': process.env.BREVO_API_KEY,
-          'Content-Type': 'application/json'
+          'accept': 'application/json',
+          'api-key': brevoApiKey,
+          'content-type': 'application/json'
         },
         body: JSON.stringify({
-          sender: { name: 'PathshalaKhoj', email: process.env.SMTP_USER || 'itme28563@gmail.com' },
+          sender: { name: 'PathshalaKhoj', email: senderEmail },
           to: [{ email: toEmail }],
           subject: 'Reset your PathshalaKhoj password',
           htmlContent: htmlContent
@@ -111,7 +114,7 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
       const brevoData = await brevoRes.json();
       console.log(`🔍 Brevo API Status: ${brevoRes.status}`, JSON.stringify(brevoData));
       if (brevoRes.ok) {
-        console.log(`✅ Reset email sent via Brevo API to ${toEmail}`);
+        console.log(`✅ Reset email sent via Brevo API to ${toEmail} (messageId: ${brevoData.messageId})`);
         return { sent: true, provider: 'brevo' };
       } else {
         console.error('❌ Brevo API Error:', brevoData);
