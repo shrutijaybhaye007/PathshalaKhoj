@@ -102,9 +102,7 @@ async function sendPasswordResetEmail(toEmail, resetToken, userName) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: process.env.SMTP_USER
-            ? `PathshalaKhoj <${process.env.SMTP_USER}>`
-            : 'PathshalaKhoj <onboarding@resend.dev>',
+          from: 'PathshalaKhoj <onboarding@resend.dev>',
           to: [toEmail],
           subject: 'Reset your PathshalaKhoj password',
           html: htmlContent
