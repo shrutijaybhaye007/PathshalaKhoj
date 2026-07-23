@@ -749,7 +749,7 @@ async function initGoogleAuth() {
       if (btn) {
         btn.addEventListener('click', () => {
           if (googleTokenClient) {
-            googleTokenClient.requestAccessToken({ prompt: '' });
+            googleTokenClient.requestAccessToken({ prompt: 'select_account' });
           } else if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
             googleTokenClient = google.accounts.oauth2.initTokenClient({
               client_id: googleClientId,
@@ -758,11 +758,14 @@ async function initGoogleAuth() {
                 if (resp && resp.access_token) {
                   await handleGoogleTokenResponse(resp.access_token);
                 } else if (resp && resp.error) {
-                  showToast('Google Sign-In was cancelled or failed.', 'error');
+                  console.error('Google Sign-In callback error:', resp);
+                  if (resp.error !== 'access_denied') {
+                    showToast(`Google Sign-In failed: ${resp.error}`, 'error');
+                  }
                 }
               }
             });
-            googleTokenClient.requestAccessToken({ prompt: 'consent' });
+            googleTokenClient.requestAccessToken({ prompt: 'select_account' });
           } else if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
             google.accounts.id.prompt();
           } else {
