@@ -803,9 +803,39 @@ async function initGoogleAuth() {
   }
 }
 
-// Initialize Google Auth when GSI SDK finishes loading
-window.addEventListener('load', async () => {
+// Initialize Google Auth — run as soon as GSI SDK is ready
+// The GSI script fires window.onGoogleLibraryLoad when fully loaded.
+// We also try on window.load as a fallback, and retry every 500ms up to 6s.
+function tryInitGoogleAuth() {
+  let attempts = 0;
+  const maxAttempts = 12; // 6 seconds total
+  const interval = setInterval(async () => {
+    attempts++;
+    if (typeof google !== 'undefined' && google.accounts) {
+      clearInterval(interval);
+      await initGoogleAuth();
+    } else if (attempts >= maxAttempts) {
+      clearInterval(interval);
+      // SDK never loaded — show fallback message
+      syncElRefs();
+      if (el.googleSignInContainer && !document.getElementById('customGoogleSignInBtn')) {
+        el.googleSignInContainer.innerHTML =
+          `<div style="font-size:12px;color:var(--text-2);text-align:center;padding:8px;">⚠️ Google Sign-In unavailable. Please use email/password.</div>`;
+      }
+    }
+  }, 500);
+}
+
+// Hook into GSI's own callback (fires before window.load)
+window.onGoogleLibraryLoad = async () => {
   await initGoogleAuth();
+};
+
+window.addEventListener('load', async () => {
+  // Kick off retry loop in case onGoogleLibraryLoad didn't fire
+  if (!googleAuthInitialized) {
+    tryInitGoogleAuth();
+  }
   if (typeof initCompareBarEvents === 'function') {
     initCompareBarEvents();
   }
