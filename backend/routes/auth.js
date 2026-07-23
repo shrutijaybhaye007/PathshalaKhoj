@@ -337,21 +337,24 @@ router.post('/google', async (req, res) => {
     }
 
     const email = rawEmail.trim().toLowerCase();
-    let user = await get('SELECT id, email, name, picture, role FROM users WHERE email = ?', [email]);
+    let user = await get('SELECT id, email, name, picture, role FROM users WHERE LOWER(email) = ?', [email]);
 
     if (!user) {
-      const result = await run(
+      await run(
         'INSERT INTO users (email, name, picture, role) VALUES (?, ?, ?, ?)',
-        [email, name, picture || null, 'user']
+        [email, name || email.split('@')[0], picture || null, 'user']
       );
-      user = { id: result.lastInsertRowid, email, name, picture: picture || null, role: 'user' };
+      user = await get('SELECT id, email, name, picture, role FROM users WHERE LOWER(email) = ?', [email]);
     } else {
       await run(
-        'UPDATE users SET name = ?, picture = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?',
-        [name, picture || null, email]
+        'UPDATE users SET name = COALESCE(?, name), picture = COALESCE(?, picture), updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [name || null, picture || null, user.id]
       );
-      user.name    = name;
-      user.picture = picture || null;
+      user = await get('SELECT id, email, name, picture, role FROM users WHERE id = ?', [user.id]);
+    }
+
+    if (!user || !user.id) {
+      return res.status(500).json({ error: 'Database failed to save user profile.' });
     }
 
     const token = jwt.sign(
