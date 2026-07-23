@@ -868,9 +868,12 @@ async function handleGoogleTokenResponse(accessToken) {
     if (res.ok) {
       setToken(data.token);
       currentUser = data.user;
+      if (window.location.search.includes('login=')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
       updateUserUI();
       closeLoginModal();
-      showToast(`Welcome, ${currentUser.name}! 👋`, 'success');
+      showToast(`Welcome, ${currentUser.name || 'there'}! 👋`, 'success');
       window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
       if (typeof checkLoginRedirect === 'function' && checkLoginRedirect()) return;
     } else {
@@ -901,9 +904,12 @@ async function handleGoogleCredentialResponse(response) {
     if (res.ok) {
       setToken(data.token);
       currentUser = data.user;
+      if (window.location.search.includes('login=')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
       updateUserUI();
       closeLoginModal();
-      showToast(`Welcome, ${currentUser.name}! 👋`, 'success');
+      showToast(`Welcome, ${currentUser.name || 'there'}! 👋`, 'success');
       window.dispatchEvent(new CustomEvent('pk:auth-changed', { detail: { user: currentUser } }));
       if (typeof checkLoginRedirect === 'function' && checkLoginRedirect()) return;
     } else {

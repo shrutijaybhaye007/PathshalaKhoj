@@ -335,7 +335,11 @@ async function init() {
   
   // Check if redirected from another page to login
   if (new URLSearchParams(window.location.search).get('login') === 'true') {
-    if (el.navLoginBtn) el.navLoginBtn.click();
+    const hasToken = typeof getToken === 'function' ? getToken() : localStorage.getItem('pk_token');
+    if (!currentUser && !hasToken) {
+      if (typeof openLoginModal === 'function') openLoginModal('login');
+      else if (el.navLoginBtn) el.navLoginBtn.click();
+    }
     window.history.replaceState({}, document.title, window.location.pathname);
   }
   // Check if redirected from another page to open admin portal

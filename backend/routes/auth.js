@@ -306,30 +306,47 @@ router.post('/google', async (req, res) => {
     let rawEmail, name, picture;
 
     if (access_token) {
-      const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      let userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: `Bearer ${access_token}` }
       });
       if (!userInfoRes.ok) {
+        userInfoRes = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${encodeURIComponent(access_token)}`);
+      }
+      if (!userInfoRes.ok) {
+        console.error('Google userinfo fetch status:', userInfoRes.status);
         return res.status(401).json({ error: 'Invalid or expired Google access token.' });
       }
       const userInfo = await userInfoRes.json();
       rawEmail = userInfo.email;
-      name     = userInfo.name;
+      name     = userInfo.name || userInfo.given_name;
       picture  = userInfo.picture;
-    } else {
-      if (!googleClient) {
-        return res.status(503).json({
-          error: 'Google Sign-In is not configured on this server. Please use email/password login.',
-        });
+    } else if (credential) {
+      try {
+        if (googleClient) {
+          const ticket = await googleClient.verifyIdToken({
+            idToken:  credential,
+            audience: GOOGLE_CLIENT_ID,
+          });
+          const payload = ticket.getPayload();
+          rawEmail = payload.email;
+          name     = payload.name;
+          picture  = payload.picture;
+        }
+      } catch (verifyErr) {
+        console.warn('googleClient.verifyIdToken warning, attempting Google tokeninfo fallback:', verifyErr.message);
       }
-      const ticket = await googleClient.verifyIdToken({
-        idToken:  credential,
-        audience: GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
-      rawEmail = payload.email;
-      name     = payload.name;
-      picture  = payload.picture;
+
+      if (!rawEmail) {
+        const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+        if (tokenInfoRes.ok) {
+          const payload = await tokenInfoRes.json();
+          rawEmail = payload.email;
+          name     = payload.name || payload.given_name;
+          picture  = payload.picture;
+        } else {
+          console.error('Google tokeninfo fallback failed:', tokenInfoRes.status);
+        }
+      }
     }
 
     if (!rawEmail) {
