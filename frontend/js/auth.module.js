@@ -782,7 +782,16 @@ async function initGoogleAuth() {
             if (tokenResponse && tokenResponse.access_token) {
               await handleGoogleTokenResponse(tokenResponse.access_token);
             } else if (tokenResponse && tokenResponse.error) {
-              showToast('Google Sign-In was cancelled or failed.', 'error');
+              console.error('Google OAuth error:', tokenResponse.error, tokenResponse.error_description);
+              if (tokenResponse.error !== 'access_denied') {
+                showToast(`Google Sign-In failed: ${tokenResponse.error_description || tokenResponse.error}`, 'error');
+              }
+            }
+          },
+          error_callback: (err) => {
+            console.error('Google Token Client error:', err);
+            if (err.type !== 'popup_closed') {
+              showToast('Google Sign-In failed. Please try again.', 'error');
             }
           }
         });
@@ -792,8 +801,8 @@ async function initGoogleAuth() {
         google.accounts.id.initialize({
           client_id: googleClientId,
           callback: handleGoogleCredentialResponse,
-          cancel_on_tap_outside: true,
-          use_fedcm_for_prompt: true
+          cancel_on_tap_outside: true
+          // Note: use_fedcm_for_prompt removed — causes silent failures in some browsers
         });
         googleAuthInitialized = true;
       }
