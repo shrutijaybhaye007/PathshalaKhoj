@@ -2603,7 +2603,8 @@ a { color: inherit; text-decoration: none; }
   .header-nav {
     position: fixed;
     top: 0;
-    right: -100%;
+    right: 0;
+    transform: translateX(110%);
     width: 280px;
     height: 100vh;
     background: var(--surface);
@@ -2612,12 +2613,12 @@ a { color: inherit; text-decoration: none; }
     padding: 80px 24px 24px;
     gap: 24px;
     box-shadow: -4px 0 24px rgba(0,0,0,0.1);
-    transition: right 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 999;
   }
 
   .header-nav.menu-open {
-    right: 0;
+    transform: translateX(0);
   }
 
   .nav-stats {
@@ -4390,9 +4391,13 @@ body.modal-open .compare-bar {
    ========================================================================== */
 
 /* Universal mobile viewport overflow protection */
-html, body {
+/* NOTE: Only body gets overflow-x:hidden. DO NOT add max-width:100vw — that
+   clips page content on the left when the fixed nav panel is off-screen right. */
+html {
+  overflow-x: clip; /* clip without creating a scroll-container that shifts layout */
+}
+body {
   overflow-x: hidden;
-  max-width: 100vw;
 }
 
 /* Reset default webkit touch highlights for clean native touch feel */
@@ -4436,7 +4441,8 @@ a, button, input, select, textarea, label {
   .header-nav {
     position: fixed;
     top: 0;
-    right: -100%;
+    right: 0;
+    transform: translateX(100%);
     width: 290px;
     max-width: 85vw;
     height: 100vh;
@@ -4447,7 +4453,7 @@ a, button, input, select, textarea, label {
     padding: 72px 20px 24px;
     gap: 16px;
     box-shadow: -4px 0 28px rgba(0, 0, 0, 0.25);
-    transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1000;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -5319,23 +5325,25 @@ input:focus-visible {
   .results-section { padding-bottom: 60px; }
 }
 
-/* ── 31. Mobile Menu Blur Backdrop & Opaque Drawer Panel ───────────────── */
+/* ── 31. Mobile Menu — Fixed backdrop & transform-based slide ─────────────── */
+
+/* IMPORTANT: The overlay must NOT use backdrop-filter.
+   backdrop-filter creates a new stacking context in WebKit/Blink, which
+   causes z-index ordering to break — the nav drawer gets blurred even
+   though its z-index is higher. Use a plain dark tint only. */
 .mobile-menu-overlay {
   position: fixed !important;
   inset: 0 !important;
-  background: rgba(3, 7, 18, 0.65) !important;
-  backdrop-filter: blur(12px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+  background: rgba(0, 0, 0, 0.6) !important;
   z-index: 998 !important;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: opacity 0.28s ease !important;
+  /* NO backdrop-filter */
 }
 
 [data-theme="light"] .mobile-menu-overlay {
-  background: rgba(15, 23, 42, 0.45) !important;
-  backdrop-filter: blur(12px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(150%) !important;
+  background: rgba(10, 17, 32, 0.5) !important;
 }
 
 .mobile-menu-overlay.open {
@@ -5343,24 +5351,31 @@ input:focus-visible {
   pointer-events: auto !important;
 }
 
+/* Nav drawer uses transform instead of right:-100%.
+   right:-100% causes the browser to include that off-screen space
+   in page width calculations, which shifts page content to the left
+   under overflow:hidden. transform:translateX has zero layout impact. */
 @media (max-width: 800px) {
   .header-nav {
     position: fixed !important;
     top: 0 !important;
-    right: -100% !important;
+    right: 0 !important;
+    transform: translateX(110%) !important;   /* off-screen, no layout impact */
     width: 290px !important;
     max-width: 85vw !important;
     height: 100vh !important;
     height: 100dvh !important;
+    /* Solid opaque background — NO backdrop-filter on the drawer itself */
     background: var(--surface-2, #162235) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     border-left: 1px solid var(--border-2) !important;
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5) !important;
-    transition: right 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
     z-index: 1000 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    overscroll-behavior: contain;
   }
 
   [data-theme="light"] .header-nav {
@@ -5370,6 +5385,6 @@ input:focus-visible {
   }
 
   .header-nav.menu-open {
-    right: 0 !important;
+    transform: translateX(0) !important;
   }
 }
