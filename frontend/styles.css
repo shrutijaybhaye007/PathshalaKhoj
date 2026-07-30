@@ -5141,7 +5141,7 @@ textarea:focus-visible {
   outline-offset: 2px !important;
   border-radius: 4px;
 }
-input:focus-visible {
+input:not(#searchInput):not(#modalSearchInput):not(.search-row input):focus-visible {
   outline: 2px solid var(--gold) !important;
   outline-offset: 0 !important;
 }
@@ -5151,7 +5151,7 @@ input:focus-visible {
 [data-theme="light"] textarea:focus-visible {
   outline-color: var(--indigo) !important;
 }
-[data-theme="light"] input:focus-visible {
+[data-theme="light"] input:not(#searchInput):not(#modalSearchInput):not(.search-row input):focus-visible {
   outline-color: var(--indigo) !important;
 }
 
