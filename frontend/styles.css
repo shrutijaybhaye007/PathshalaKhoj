@@ -352,6 +352,27 @@ a { color: inherit; text-decoration: none; }
 
 
 /* Shortlist button */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 8px;
+  cursor: pointer;
+  z-index: 999 !important; /* Must be lower than drawer (1000) */
+}
+
+.mobile-menu-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+@media (max-width: 800px) {
+  .mobile-menu-btn {
+    display: block;
+  }
+}
+
 .nav-shortlist {
   display: flex; align-items: center; gap: 6px;
   background: transparent; border: none;
@@ -1117,7 +1138,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 5px;
   background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.06));
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(16,185,129,0.35);
   color: #047857;
   font-size: 11.5px;
   font-weight: 700;
@@ -2587,7 +2608,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--text);
   padding: 8px;
   cursor: pointer;
-  z-index: 1000;
+  z-index: 999 !important; /* Keep under drawer (1000) so it doesn't overlap close btn */
 }
 
 .mobile-menu-btn svg {
@@ -5404,8 +5425,8 @@ input:focus-visible {
 
   .header-nav.menu-open {
     transform: translateX(0) !important;
-    visibility: visible;
-    pointer-events: auto;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   /* Glassmorphic close button */
