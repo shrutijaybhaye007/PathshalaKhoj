@@ -4400,6 +4400,12 @@ body {
   overflow-x: hidden;
 }
 
+/* Strictly prevent scrolling when mobile menu is open */
+body.nav-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
 /* Reset default webkit touch highlights for clean native touch feel */
 a, button, input, select, textarea, label {
   -webkit-tap-highlight-color: transparent;
@@ -5365,13 +5371,13 @@ input:focus-visible {
     max-width: 85vw !important;
     height: 100vh !important;
     height: 100dvh !important;
-    /* Solid opaque background — NO backdrop-filter on the drawer itself */
-    background: var(--surface-2, #162235) !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    border-left: 1px solid var(--border-2) !important;
+    /* Glassmorphism UI: Semi-transparent background + soft blur */
+    background: rgba(14, 23, 38, 0.85) !important; /* Dark theme glass */
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5) !important;
-    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
     z-index: 1000 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
@@ -5379,12 +5385,45 @@ input:focus-visible {
   }
 
   [data-theme="light"] .header-nav {
-    background: #FFFFFF !important;
-    border-left: 1px solid #CBD5E1 !important;
-    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.16) !important;
+    background: rgba(255, 255, 255, 0.85) !important; /* Light theme glass */
+    border-left: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1) !important;
   }
 
   .header-nav.menu-open {
     transform: translateX(0) !important;
+  }
+
+  /* Glassmorphic close button */
+  .mobile-nav-close {
+    display: flex !important;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: var(--text);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .mobile-nav-close:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    transform: scale(1.05);
+  }
+
+  [data-theme="light"] .mobile-nav-close {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+  [data-theme="light"] .mobile-nav-close:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
   }
 }

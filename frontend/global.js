@@ -34,47 +34,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Mobile Menu Logic ---
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-  const headerNav = document.getElementById('headerNav');
+  const headerNav    = document.getElementById('headerNav');
+
   if (mobileMenuBtn && headerNav) {
-    // Create overlay backdrop
+
+    // ── Create overlay (appended to body so it's a true sibling of everything) ──
     const mobileOverlay = document.createElement('div');
-    mobileOverlay.className = 'mobile-menu-overlay';
+    mobileOverlay.className  = 'mobile-menu-overlay';
+    mobileOverlay.setAttribute('data-mobile-nav', 'overlay');
+    mobileOverlay.setAttribute('aria-hidden', 'true');
     document.body.appendChild(mobileOverlay);
 
-    // Create close button inside the nav panel
+    // ── Create ✕ close button inside the drawer ──────────────────────────────
     const mobileCloseBtn = document.createElement('button');
-    mobileCloseBtn.type = 'button';
+    mobileCloseBtn.type  = 'button';
     mobileCloseBtn.className = 'mobile-nav-close';
-    mobileCloseBtn.setAttribute('aria-label', 'Close menu');
-    mobileCloseBtn.innerHTML = '&#x2715;'; // ✕
+    mobileCloseBtn.setAttribute('aria-label', 'Close navigation menu');
+    mobileCloseBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round">
+        <line x1="1" y1="1" x2="13" y2="13"/>
+        <line x1="13" y1="1" x2="1" y2="13"/>
+      </svg>`;
     headerNav.insertBefore(mobileCloseBtn, headerNav.firstChild);
 
+    // ── Open / close helpers ─────────────────────────────────────────────────
     function openMobileMenu() {
-      headerNav.classList.add('menu-open');
+      // 1. Make overlay visible first (so it fades in behind the drawer)
       mobileOverlay.classList.add('open');
-      document.body.style.overflow = 'hidden';
-      mobileCloseBtn.focus();
+      // 2. Slide in the drawer on next frame (guarantees CSS transition fires)
+      requestAnimationFrame(() => {
+        headerNav.classList.add('menu-open');
+      });
+      // 3. Lock body scroll (use class so we can handle iOS properly)
+      document.body.classList.add('nav-open');
+      // 4. ARIA state
+      mobileMenuBtn.setAttribute('aria-expanded', 'true');
+      mobileMenuBtn.setAttribute('aria-label', 'Close navigation menu');
+      // 5. Focus trap — move focus into the drawer
+      setTimeout(() => mobileCloseBtn.focus(), 80);
     }
+
     function closeMobileMenu() {
       headerNav.classList.remove('menu-open');
       mobileOverlay.classList.remove('open');
-      document.body.style.overflow = '';
+      document.body.classList.remove('nav-open');
+      mobileMenuBtn.setAttribute('aria-expanded', 'false');
+      mobileMenuBtn.setAttribute('aria-label', 'Open navigation menu');
+      // Return focus to hamburger
       mobileMenuBtn.focus();
     }
 
+    // ── Event wiring ─────────────────────────────────────────────────────────
     mobileMenuBtn.addEventListener('click', () => {
       headerNav.classList.contains('menu-open') ? closeMobileMenu() : openMobileMenu();
     });
     mobileCloseBtn.addEventListener('click', closeMobileMenu);
     mobileOverlay.addEventListener('click', closeMobileMenu);
-    // Escape key closes menu
+
+    // Escape key
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && headerNav.classList.contains('menu-open')) closeMobileMenu();
+      if (e.key === 'Escape' && headerNav.classList.contains('menu-open')) {
+        closeMobileMenu();
+      }
     });
-    // Close on nav link click (single-page style) — excluding the close button itself
+
+    // Close when any nav link is clicked
     headerNav.querySelectorAll('a').forEach(el => {
       el.addEventListener('click', closeMobileMenu);
     });
+
+    // Set initial ARIA state
+    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+    mobileMenuBtn.setAttribute('aria-label', 'Open navigation menu');
   }
 
   // --- Sign In Button Styling ---
