@@ -5364,22 +5364,32 @@ input:focus-visible {
    in page width calculations, which shifts page content to the left
    under overflow:hidden. transform:translateX has zero layout impact. */
 @media (max-width: 800px) {
+  /* Fix WebKit Bug: If site-header has a backdrop-filter, any child (header-nav) loses its backdrop-filter.
+     So we disable the header's filter while the menu is open to let the drawer's glassmorphism render. */
+  .site-header:has(.header-nav.menu-open),
+  body.nav-open .site-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   .header-nav {
     position: fixed !important;
     top: 0 !important;
     right: 0 !important;
     transform: translateX(110%) !important;   /* off-screen, no layout impact */
+    visibility: hidden; /* prevents off-screen element from expanding scroll width in older iOS */
+    pointer-events: none;
     width: 290px !important;
     max-width: 85vw !important;
     height: 100vh !important;
     height: 100dvh !important;
     /* Glassmorphism UI: Semi-transparent background + soft blur */
-    background: rgba(14, 23, 38, 0.85) !important; /* Dark theme glass */
+    background: rgba(14, 23, 38, 0.90) !important; /* Dark theme glass */
     backdrop-filter: blur(16px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5) !important;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s !important;
     z-index: 1000 !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
@@ -5387,13 +5397,15 @@ input:focus-visible {
   }
 
   [data-theme="light"] .header-nav {
-    background: rgba(255, 255, 255, 0.85) !important; /* Light theme glass */
+    background: rgba(255, 255, 255, 0.96) !important; /* Extremely high opacity fallback for Safari */
     border-left: 1px solid rgba(0, 0, 0, 0.08) !important;
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1) !important;
   }
 
   .header-nav.menu-open {
     transform: translateX(0) !important;
+    visibility: visible;
+    pointer-events: auto;
   }
 
   /* Glassmorphic close button */
