@@ -2630,7 +2630,7 @@ a { color: inherit; text-decoration: none; }
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.5);
-    backdrop-filter: blur(4px);
+    backdrop-filter: none !important;
     z-index: 998;
     opacity: 0;
     pointer-events: none;
@@ -5345,7 +5345,9 @@ input:focus-visible {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.28s ease !important;
-  /* NO backdrop-filter */
+  /* EXPLICITLY REMOVE BACKDROP FILTER to prevent Webkit stacking context issues */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 [data-theme="light"] .mobile-menu-overlay {
