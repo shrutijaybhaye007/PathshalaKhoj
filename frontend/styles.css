@@ -68,6 +68,9 @@
 
   /* Brand (Navy) — needed for footer etc */
   --brand:       #0A1120;
+  --brand-dim:   rgba(10,17,32,0.15);
+  /* Missing shadow-xl */
+  --shadow-xl:   0 32px 80px rgba(0,0,0,0.65);
 }
 
 /* ============================================================
@@ -4959,4 +4962,359 @@ a, button, input, select, textarea, label {
     padding: 10px 14px !important;
     font-size: 13.5px !important;
   }
+}
+
+/* ==========================================================================
+   GLOBAL UI/UX AUDIT FIXES — v26.0
+   Comprehensive fixes for dark mode, accessibility, consistency, mobile.
+   ========================================================================== */
+
+/* ── 1. Missing CSS variables for light theme ──────────────────────────── */
+[data-theme="light"] {
+  --brand-dim:  rgba(11,37,69,0.09);
+  --shadow-xl:  0 20px 50px rgba(0,0,0,0.12);
+}
+
+/* ── 2. Fix --font-sans undefined variable ──────────────────────────────── */
+.profile-dropdown-item {
+  font-family: var(--font-body) !important;
+}
+
+/* ── 3. Winner badges — proper dark/light theme-aware colours ───────────── */
+/* Override hardcoded light-only hex values that become invisible in dark mode */
+.winner-nirf {
+  background: var(--indigo-dim) !important;
+  color: var(--indigo) !important;
+  border: 1px solid rgba(124,111,255,0.25) !important;
+}
+.winner-fee {
+  background: var(--sage-dim) !important;
+  color: var(--sage) !important;
+  border: 1px solid rgba(72,201,122,0.25) !important;
+}
+.winner-salary {
+  background: var(--gold-dim) !important;
+  color: var(--gold) !important;
+  border: 1px solid rgba(245,166,35,0.25) !important;
+}
+[data-theme="light"] .winner-nirf {
+  background: rgba(30,58,138,0.09) !important;
+  color: var(--indigo) !important;
+  border-color: rgba(30,58,138,0.2) !important;
+}
+[data-theme="light"] .winner-fee {
+  background: rgba(38,138,74,0.09) !important;
+  color: var(--sage) !important;
+  border-color: rgba(38,138,74,0.2) !important;
+}
+[data-theme="light"] .winner-salary {
+  background: rgba(212,175,55,0.1) !important;
+  color: #7A4500 !important;
+  border-color: rgba(212,175,55,0.3) !important;
+}
+
+/* ── 4. Compare card remove button — theme-aware ────────────────────────── */
+.compare-card-remove {
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.compare-card-remove:hover {
+  background: var(--rose-dim) !important;
+  color: var(--rose) !important;
+  border-color: var(--rose) !important;
+}
+
+/* ── 5. Live feed link :visited — theme-aware ───────────────────────────── */
+.live-feed-link,
+.live-feed-link:visited {
+  color: var(--text) !important;
+}
+
+/* ── 6. Detail modal — mobile bottom sheet ──────────────────────────────── */
+@media (max-width: 640px) {
+  .detail-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  .detail-modal {
+    margin-bottom: 0 !important;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92vh !important;
+    max-height: 92dvh !important;
+    overflow-y: auto !important;
+  }
+  .detail-content { padding: 16px 16px 32px !important; }
+  .detail-name { padding-right: 40px !important; }
+}
+
+/* ── 7. Filter panel expanded max-height fix on mobile ──────────────────── */
+@media (max-width: 640px) {
+  .filters-panel.expanded {
+    max-height: 480px !important;
+  }
+}
+
+/* ── 8. Tablet: compare field row label column narrower ─────────────────── */
+@media (max-width: 900px) {
+  .compare-field-row {
+    grid-template-columns: 160px 1fr !important;
+  }
+  .compare-sticky-header {
+    grid-template-columns: 160px 1fr !important;
+  }
+}
+@media (max-width: 640px) {
+  .compare-field-row {
+    grid-template-columns: 120px 1fr !important;
+    padding: 12px 14px !important;
+    font-size: 12.5px !important;
+  }
+  .compare-field-label { font-size: 12px !important; }
+  .compare-value-cell  { font-size: 12.5px !important; }
+}
+
+/* ── 9. Touch-action manipulation on all interactive elements ───────────── */
+button, a, label,
+.chip, .exam-chip, .card-tag, .tab-link, .tab-btn, .nav-link,
+.shortlist-toggle, .compare-toggle, .college-card, .exam-card,
+.news-card, .timeline-item, .suggestion-item, .profile-dropdown-item,
+.pagination button, .view-btn, .filter-group select {
+  touch-action: manipulation;
+}
+
+/* ── 10. Dark mode heading & section title readability ──────────────────── */
+.content-section h2,
+.details-card h3,
+.info-card h3,
+.sidebar-title {
+  color: var(--text) !important;
+}
+[data-theme="light"] .content-section h2,
+[data-theme="light"] .details-card h3,
+[data-theme="light"] .info-card h3,
+[data-theme="light"] .sidebar-title {
+  color: var(--brand) !important;
+}
+
+/* ── 11. Focus ring consistency ─────────────────────────────────────────── */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2.5px solid var(--gold) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+input:focus-visible {
+  outline: 2px solid var(--gold) !important;
+  outline-offset: 0 !important;
+}
+[data-theme="light"] button:focus-visible,
+[data-theme="light"] a:focus-visible,
+[data-theme="light"] select:focus-visible,
+[data-theme="light"] textarea:focus-visible {
+  outline-color: var(--indigo) !important;
+}
+[data-theme="light"] input:focus-visible {
+  outline-color: var(--indigo) !important;
+}
+
+/* ── 12. Gold button / active chip text contrast ────────────────────────── */
+.search-submit,
+.btn-compare,
+.btn-primary,
+.btn-gold,
+.chip.active,
+.compare-bar-submit-btn {
+  color: #1A0800 !important;
+}
+
+/* ── 13. Nav link active/hover in light mode ────────────────────────────── */
+[data-theme="light"] .nav-link.active,
+[data-theme="light"] .nav-link:hover {
+  color: var(--brand) !important;
+}
+[data-theme="light"] .nav-link.active::after,
+[data-theme="light"] .nav-link:hover::after {
+  background-color: var(--gold) !important;
+}
+
+/* ── 14. Card hover border in light mode ────────────────────────────────── */
+[data-theme="light"] .college-card:hover {
+  border-color: var(--gold) !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.07), 0 0 0 1px rgba(212,175,55,0.3) !important;
+}
+[data-theme="light"] .exam-card:hover,
+[data-theme="light"] .news-card:hover {
+  border-color: var(--gold) !important;
+}
+
+/* ── 15. Sticky sidebar/tabs top offset on mobile header (60px) ─────────── */
+@media (max-width: 800px) {
+  .results-sidebar { top: 72px !important; }
+  .college-sidebar-revamped { top: 72px !important; }
+  .college-sidebar { top: 72px !important; }
+  .compare-sticky-header { top: 62px !important; }
+}
+
+/* ── 16. Hero section padding & text on very small phones ───────────────── */
+@media (max-width: 480px) {
+  .hero { padding: 40px 0 28px !important; }
+  .hero-sub, .hero-subtitle {
+    font-size: 14.5px !important;
+    margin-bottom: 24px !important;
+  }
+  .hero-badge {
+    font-size: 11px !important;
+    padding: 6px 14px !important;
+  }
+}
+
+/* ── 17. Pagination minimum tap target on mobile ────────────────────────── */
+@media (max-width: 640px) {
+  .pagination button {
+    min-width: 44px !important;
+    height: 44px !important;
+  }
+}
+
+/* ── 18. Dashboard banner — mobile stacked layout ───────────────────────── */
+@media (max-width: 640px) {
+  .dash-profile-banner {
+    flex-direction: column !important;
+    padding: 18px 16px !important;
+    gap: 16px !important;
+  }
+  .dash-setup-btn {
+    width: 100% !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* ── 19. Stream chips mobile horizontal scroll (override wrapping) ───────── */
+@media (max-width: 640px) {
+  .stream-chips {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    padding-bottom: 6px;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .stream-chips::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0 !important; }
+}
+
+/* ── 20. Exam chips row mobile scroll ───────────────────────────────────── */
+@media (max-width: 640px) {
+  .exam-chips-row {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .exam-chips-row::-webkit-scrollbar { display: none; }
+  .exam-chip { flex-shrink: 0 !important; }
+}
+
+/* ── 21. Results meta — stack on very small phones ──────────────────────── */
+@media (max-width: 480px) {
+  .results-meta {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .results-view-toggle { align-self: flex-end; }
+}
+
+/* ── 22. Toast container — iOS safe area bottom padding ─────────────────── */
+@media (max-width: 640px) {
+  .toast-container {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+}
+
+/* ── 23. Compare bar responsive on small screens ────────────────────────── */
+@media (max-width: 640px) {
+  .compare-bar {
+    bottom: 12px !important;
+    border-radius: 20px !important;
+    padding: 8px 14px !important;
+  }
+  .compare-bar-info { font-size: 12px !important; }
+  .compare-bar-submit-btn { padding: 7px 13px !important; font-size: 12px !important; }
+  .compare-bar-clear-btn { display: none !important; } /* save space on mobile */
+}
+
+/* ── 24. Dropdown user role — fix undefined --brand-dim fallback ────────── */
+.dropdown-user-role {
+  background: var(--brand-dim, rgba(10,17,32,0.12)) !important;
+  color: var(--text-2) !important;
+}
+[data-theme="light"] .dropdown-user-role {
+  background: rgba(11,37,69,0.07) !important;
+  color: var(--brand) !important;
+}
+
+/* ── 25. Smooth theme transition (targeted, not universal) ──────────────── */
+/* Targets only background, color, border — excludes transform to prevent jank */
+.site-header, .header-nav,
+.college-card, .exam-card, .news-card, .dash-stat-card,
+.search-card, .search-row,
+.detail-modal, .compare-modal, .shortlist-drawer,
+.profile-dropdown-card, .autocomplete-suggestions,
+.filters-panel, .sidebar-card, .toast,
+.chip, .exam-chip, .metric-badge,
+.stat-box, .details-card, .info-card,
+.tab-link, .tab-btn, .nav-link,
+.site-footer {
+  transition:
+    background-color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ── 26. Shortlist drawer — full width on mobile ────────────────────────── */
+@media (max-width: 480px) {
+  .shortlist-overlay { padding: 0 !important; }
+  .shortlist-drawer {
+    max-width: 100% !important;
+    border-left: none !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ── 27. Improve stat-box display in light mode on college hero ─────────── */
+[data-theme="light"] .college-hero .stat-box {
+  background: rgba(255,255,255,0.2) !important;
+}
+
+/* ── 28. Mobile nav links inside drawer — better tap targets ────────────── */
+@media (max-width: 800px) {
+  .header-nav .nav-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* ── 29. Image handling — prevent stretch on cards ──────────────────────── */
+.news-img, .profile-pic-preview-frame,
+.profile-trigger-avatar, .dropdown-user-pic,
+.profile-trigger-avatar img {
+  object-fit: cover;
+}
+
+/* ── 30. Section spacing consistency ─────────────────────────────────────── */
+.results-section { padding-bottom: 80px; }
+@media (max-width: 640px) {
+  .results-section { padding-bottom: 60px; }
 }
